@@ -262,9 +262,9 @@ Alfred starts a new process on every keystroke, so the whole run counts, not jus
 
 | Entries | Per keystroke | First keystroke after the file changed |
 |---|---|---|
-| 1,000 | ~37 ms | ~42 ms |
+| 1,000 | ~35 ms | ~40 ms |
 | 10,000 | ~45–55 ms | ~90 ms |
-| 50,000 | ~80–110 ms | ~300 ms |
+| 50,000 | ~70–95 ms, ~125 ms for a single letter | ~330 ms |
 
 About 25 ms of that is starting Python and importing modules, which no pure-Python workflow avoids. Reproduce with `uv run python bench.py --python /usr/bin/python3`; add `--stress` for a vocabulary where most queries match most entries.
 
