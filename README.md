@@ -2,21 +2,22 @@
 
 Fuzzy keyword search over a plain-text stash you own, as an Alfred workflow.
 
-- **Search** with any words, in any order, any subset of them, any part of a word: `st stg k8` finds *Kube switch to staging*.
+- **Search** with any words, in any order, any subset of them, any part of a word: `st stg k8` finds `k8s ctx staging kube`.
+- **Act**: ↩ copies the payload, or opens it when it is a URL, a path or an Alfred flow; ⇧↩ pastes it.
 - **Add** by typing: whatever you searched for is always offered as a new entry, so a miss is one ↩ away from being stored.
-- **Own the data**: one line per entry in a text file you can edit, grep, sync and keep in git. A line is searchable in full until you add a `|` to split what you search by from what you copy.
+- **Own the data**: one line per entry in a text file you can edit, grep, sync and keep in git. The format is one rule: everything after the first `|` is the payload.
 - **Fast**: no dependencies, built to stay well under Alfred's "instant" threshold for a stash of a few thousand entries.
 
 ```
 st stg k8
 ┌──────────────────────────────────────────────────────┐
-│ Kube switch to staging                               │
+│ k8s ctx staging kube                                 │
 │ kubectl config use-context staging                   │
 ├──────────────────────────────────────────────────────┤
 │ Add: stg k8                                          │
-│ stg k8  →  stg k8   (keywords | title | payload)     │
+│ stg k8   (words | payload)                           │
 └──────────────────────────────────────────────────────┘
-  ↩ copy (or add)   ⇧↩ paste   ⌘↩ edit   ⌥↩ delete   ⌃ keywords
+  ↩ copy / open / add   ⇧↩ paste   ⌘↩ edit   ⌥↩ delete
 ```
 
 ## Contents
@@ -47,9 +48,10 @@ Requirements: Alfred 5 with the Powerpack, and Python 3.9 or newer. There are no
 `st`, `sta` and `stash` are the same keyword; use whichever your fingers produce.
 
 ```
-st ssh prod web | Prod web box | ssh deploy@10.0.1.5     ↩ adds the entry
-st prod                                                  ↩ copies ssh deploy@10.0.1.5
-st                                                       browse everything; ⌘↩ opens the file
+st ssh prod web | ssh deploy@10.0.1.5     ↩ adds the entry
+st prod                                   ↩ copies ssh deploy@10.0.1.5
+st http://127.0.0.1:4000                  ↩ adds it; next time, st 4000 ↩ opens it
+st                                        browse everything; ⌘↩ opens the file
 ```
 
 To explore with sample data first, set `db_file` to the `examples/stash.txt` that ships with the source.
@@ -58,59 +60,51 @@ To explore with sample data first, set `db_file` to the `examples/stash.txt` tha
 
 Default location: `~/.config/stash/stash.txt`, created on the first add. One entry per line, and one rule:
 
-**A line is searchable in full, and copied in full, until you put a `|` in it.** Then the words *before* the first `|` are what you search by, and what comes after is what you see and copy, never searched.
+**Everything after the first `|` is the payload, verbatim. The words before it are what you search by, and what Alfred shows.** Without a `|`, the whole line is both.
 
 ```
-pihole update finished                                   every word searchable; copies itself
-ssh prod web | ssh deploy@10.0.1.5                       search by ssh/prod/web; copies the command
-ssh prod web | Prod web box | ssh deploy@10.0.1.5        same, shown as "Prod web box" (its words are searchable too)
+pihole update finished                                   searched in full, copied in full
+ssh prod web | ssh deploy@10.0.1.5                       search by ssh / prod / web, copy the command
+logs api | tail -f app.log | grep ERROR                  only the first | splits, so pipes in the payload are fine
+find pyc \ find . -name '*.pyc' -exec rm {} \;           \ works as the separator too
+| echo a | wc                                            empty left side: a payload with pipes, searched by its own words
 ```
-
-Use plain lines for notes, facts, anything short enough to read in the results. Add a `|` when the thing you want copied is long, cryptic or a URL, so its innards don't pollute search; add a second `|` when you also want a readable title.
-
-In full, a line is `keywords | title | payload`:
-
-| Field | Meaning |
-|---|---|
-| keywords | Words to search by, separated by spaces or commas. The only required field. |
-| title | What Alfred shows as the result. Optional, defaults to the keywords. Its words are searchable too. |
-| payload | What ↩ copies. Optional, defaults to the keywords. **Never searched.** May contain `\|`. |
 
 Rules:
 
-- Only the first two `|` split fields, so the payload can hold shell pipes.
-- With two fields the second one is the **payload**: `wifi guest | GuestNetwork-5G`.
-- To skip the title but keep a piped payload, leave the title empty: `uuid gen || uuidgen | tr A-Z a-z`.
-- Lines starting with `#` and blank lines are ignored, so comment and group freely.
-- Whitespace around fields is ignored, so you can align columns.
-- The file is UTF-8; keywords in any script work (`кава coffee`). A stray non-UTF-8 byte won't break search, and add or delete keep such bytes exactly as they were.
+- `|` and `\` are both separators, so use whichever your keyboard makes easier; only the first one on the line counts.
+- Search words are split on spaces and commas; the payload is never searched.
+- A separator with nothing after it (`note |`) copies the words themselves.
+- Lines starting with `#` and blank lines are ignored, so comment and group freely. To stash something that starts with `#`, write `| #FF8800`.
+- Whitespace around the separator is ignored, so you can align columns.
+- The file is UTF-8; words in any script work (`кава coffee`). A stray non-UTF-8 byte won't break search, and add or delete keep such bytes exactly as they were.
 
 A sample of what a real file can look like (the full one is in `examples/stash.txt`):
 
 ```
-# shell commands
-ssh prod web          | Prod web box              | ssh deploy@10.0.1.5
-k8s ctx staging       | Kube switch to staging    | kubectl config use-context staging
-k8s pods failing      | Kube failing pods         | kubectl get pods -A --field-selector=status.phase!=Running
-port listen who       | Who listens on port 8080  | lsof -nP -iTCP:8080 -sTCP:LISTEN | grep -v COMMAND
-uuid gen              ||                            uuidgen | tr A-Z a-z
+# shell one-liners: enter copies, shift-enter pastes
+ssh prod web              | ssh deploy@10.0.1.5
+k8s ctx staging kube      | kubectl config use-context staging
+port listen who 8080      | lsof -nP -iTCP:8080 -sTCP:LISTEN | grep -v COMMAND
+find py rm                \ find . -name '*.pyc' -exec rm {} \;
 
-# links
-grafana api latency   | API latency dashboard     | https://grafana.example.com/d/api-latency
+# links and paths: enter opens
+grafana api latency       | https://grafana.example.com/d/api-latency
+notes folder              | ~/notes
+tally open                | alfred://runtrigger/com.anokhin.tally/open/
 
-# text snippets
-email work            | Work email                | name.surname@example.com
-reply thanks review   | Thanks for the review     | Thanks for the review! I've addressed the comments, PTAL.
+# text: enter copies
+email work                | name.surname@example.com
+reply thanks review       | Thanks for the review! I've addressed the comments, PTAL.
 
-# plain lines: searchable in full, copied in full
+# plain lines: searched in full, copied in full
 pihole update finished
-deploy checklist
-wifi guest            | GuestNetwork-5G
+wifi guest GuestNetwork-5G
 ```
 
 ## Searching
 
-Type `st` (or `sta`, or `stash`) followed by any words. Each query word must match **some** keyword or title word of an entry; the order of query words doesn't matter, and entries may have more words than you typed.
+Type `st` (or `sta`, or `stash`) followed by any words. Each query word must match **some** word of an entry's left side; the order of query words doesn't matter, and entries may have more words than you typed.
 
 A query word matches a stash word in one of four ways, strongest first:
 
@@ -118,7 +112,7 @@ A query word matches a stash word in one of four ways, strongest first:
 |---|---|---|---|
 | `prod` | prod | whole word | 4 |
 | `pro` | prod | start of word | 3 |
-| `rod` | prod | inside word | 2 |
+| `rod`, `4000` | prod, http://127.0.0.1:4000 | inside word | 2 |
 | `prd`, `stg` | prod, staging | letters in order, inside one word | 1 |
 
 Scores of all query words add up. Equal scores go to the entry with fewer words (the tighter match), then to the one higher in the file. Alfred also learns which results you pick and moves them up over time.
@@ -128,52 +122,61 @@ The last result is always **Add: …** for what you typed (see [Adding entries](
 | You type | You get | Why |
 |---|---|---|
 | `st` | every entry, in file order | empty query browses the file |
-| `st prod` | Prod web box, Kube switch to prod | whole-word match in keywords |
-| `st web ssh` | Prod web box, Staging web box | any order; Prod is first in the file |
-| `st stg` | Staging web box, Kube switch to staging | letters in order inside *staging* |
-| `st k8 prd` | Kube switch to prod | `k8` starts *k8s*, `prd` is inside *prod* |
-| `st ctx` | Kube switch to prod, Kube switch to staging | same score; the prod entry has fewer words |
-| `st lat` | API latency dashboard | `lat` starts *latency* |
-| `st grf lat` | API latency dashboard | `grf` is inside *grafana* |
-| `st thnk rev` | Thanks for the review | title words are searchable too |
-| `st кав` | Кава ☕ | Unicode works |
-| `st finished` | pihole update finished | a plain line is searchable in full |
-| `st deploy` | deploy checklist | the ssh entries' payloads mention *deploy*, but text after a `\|` isn't searched |
+| `st prod` | ssh prod web, k8s ctx prod kube | whole-word match |
+| `st web ssh` | ssh prod web, ssh staging web | any order; prod is first in the file |
+| `st stg` | ssh staging web, k8s ctx staging kube, wifi guest GuestNetwork-5G | letters in order inside *staging*; the stray hit in *GuestNetwork-5G* ranks last |
+| `st k8 prd` | k8s ctx prod kube | `k8` starts *k8s*, `prd` is inside *prod* |
+| `st lat` | grafana api latency | `lat` starts *latency* |
+| `st grf lat` | grafana api latency | `grf` is inside *grafana* |
+| `st 4000` | http://127.0.0.1:4000 | a plain line is searched in full, and `4000` is inside its one word |
+| `st кав` | кава coffee order | Unicode works |
+| `st finished` | pihole update finished | a plain line is searched in full |
+| `st deploy` | only *Add* | the ssh payloads mention *deploy*, but payloads aren't searched |
 | `st ssh prod staging` | only *Add* | every query word must match |
 | `st kctx` | only *Add* | letters-in-order stays inside one word; type `st k ctx` |
 | `st stgaing` | only *Add* | swapped letters aren't tolerated, dropped letters are |
 
-Press ⇥ (Tab) on a result to put its keywords into the query.
+Press ⇥ (Tab) on a result to put its words into the query.
 
 ## Actions on a result
 
+What ↩ does depends on the payload:
+
+| Payload | ↩ |
+|---|---|
+| `http://…`, `https://…`, `file://…` | opens it in the default app |
+| `alfred://runtrigger/<bundle id>/<trigger>/?argument=…` | runs that workflow's external trigger |
+| a path that exists (`~/notes`, `/Users/me/doc.pdf`) | opens it (⌥↩ in Finder is up to you: see below) |
+| anything else | copies it to the clipboard |
+
+The subtitle says which: an entry whose payload opens shows `Open · …`. Everything else is the same for every result:
+
 | Keys | Action |
 |---|---|
-| ↩ | Copy the payload to the clipboard (on the *Add* item: store the entry) |
 | ⇧↩ | Copy and paste the payload into the frontmost app |
 | ⌘↩ | Open the stash in your editor at this entry's line (on *Add* or a hint: at the top) |
 | ⌥↩ | Delete this entry from the file |
-| ⌃ (hold) | Show the entry's keywords in the subtitle |
-| ⌘C | Copy the payload (Alfred's own copy shortcut) |
+| ⌃ (hold) | Show the entry's line number and what ↩ will do |
+| ⌘C | Copy the payload as written (Alfred's own copy shortcut) |
 | ⌘L | Show the payload in Large Type |
 
-The payload is copied literally: Alfred placeholders such as `{date}` inside it are not expanded.
+The payload is copied literally: Alfred placeholders such as `{date}` inside it are not expanded. A shell one-liner is deliberately *not* run on ↩; ⇧↩ into a terminal you are looking at is one keystroke more and much harder to regret.
 
 ## Adding entries
 
-There is no separate add keyword. Whatever you type after `st` is offered as a new entry in the **Add: …** result, whose subtitle previews exactly what will be stored. Press ↩ on it and the line is appended to the file, confirmed by a notification.
+There is no separate add keyword. Whatever you type after `st` is offered as a new entry in the **Add: …** result, whose subtitle previews the payload. Press ↩ on it and the line is appended to the file, confirmed by a notification.
 
 - With no matches, *Add* is the only result, so a miss is ↩ away from being stored under the words you just searched for.
 - With matches, *Add* is the last result: ↓ to it, or keep typing.
-- As soon as you type a `|`, you are clearly writing an entry, so *Add* becomes the **first** result and ↩ stores it. The words before the `|` are still searched, so you see at once whether such an entry already exists.
+- As soon as you type a `|` or `\`, you are clearly writing an entry, so *Add* becomes the **first** result and ↩ stores it. The words before the separator are still searched, so you see at once whether such an entry already exists.
 
-| You type after `st` | Stored line | Shown as | Copies |
+| You type after `st` | Stored line | Shown as | ↩ later |
 |---|---|---|---|
-| `ssh prod web \| Prod web box \| ssh deploy@10.0.1.5` | same | Prod web box | `ssh deploy@10.0.1.5` |
-| `wifi guest \| GuestNetwork-5G` | same | wifi guest | `GuestNetwork-5G` |
-| `logs api \| Tail API logs \| kubectl logs -f deploy/api \| grep ERROR` | same | Tail API logs | `kubectl logs -f deploy/api \| grep ERROR` |
-| `uuid gen \|\| uuidgen \| tr A-Z a-z` | same | uuid gen | `uuidgen \| tr A-Z a-z` |
-| `deploy checklist` | same | deploy checklist | `deploy checklist` |
+| `ssh prod web \| ssh deploy@10.0.1.5` | same | ssh prod web | copies the command |
+| `logs api \| tail -f app.log \| grep ERROR` | same | logs api | copies `tail -f app.log \| grep ERROR` |
+| `grafana lat \| https://grafana.example.com/d/api-latency` | same | grafana lat | opens the dashboard |
+| `http://127.0.0.1:4000` | same | http://127.0.0.1:4000 | opens it |
+| `pihole update finished` | same | pihole update finished | copies it |
 
 Entries are appended at the end of the file. Reorder or group them later in your editor; the file is the source of truth.
 
@@ -216,7 +219,7 @@ Select every object of the workflow in Alfred, copy and paste it, give the copie
 export db_file=~/notes/links.txt; exec "${python:-/usr/bin/python3}" -S -X utf8 run.py search "$1"
 ```
 
-Every script of the copy needs the same export (search, add, delete, edit), because Alfred does not pass a script's environment on to the objects it is connected to.
+Every script of the copy needs the same export (search, add, delete, edit, open), because Alfred does not pass a script's environment on to the objects it is connected to.
 
 ### Sync and history
 
@@ -246,7 +249,7 @@ python3 ~/.stash/run.py search k8s prod | jq -r '.items[0].arg' | pbcopy
 Add an entry:
 
 ```bash
-python3 ~/.stash/run.py add 'logs api | Tail API logs | kubectl logs -f deploy/api'
+python3 ~/.stash/run.py add 'logs api | kubectl logs -f deploy/api | grep -v health'
 ```
 
 Save the command you just ran under some keywords, so the next time it's one `st` away.
@@ -290,6 +293,7 @@ The design is deliberately the simple one: the file is parsed on every keystroke
 What keeps it fast:
 
 - Each query word compiles to one regex whose alternatives are ordered from whole word to in-word letters, so a single `match` returns both whether and how well the word matches, and the in-word pattern never backtracks.
+- Deciding whether a payload opens or copies costs one `stat` per shown result, never per entry.
 - Python runs with `-S` (no `site` import) and the code avoids heavy modules: `dataclasses` alone costs ~12 ms and `pathlib` ~9 ms per start, so `NamedTuple`, `os.path` and `os.execvp` take their place.
 - Alfred is set to run the script immediately and to cancel a still-running search when you type the next letter.
 
@@ -297,15 +301,16 @@ What keeps it fast:
 
 - Swapped letters (`stgaing`) don't match; dropped letters (`stgng`) do.
 - Letters-in-order matching stays within one word: `kctx` won't find `k8s ctx`, `k ctx` will.
-- Title words are split on whitespace only, so in a title like *Kube: switch*, `kube` matches as the start of `kube:` rather than a whole word.
+- Words are split on spaces and commas only, so `kube:` is a word and `kube` matches it as a prefix, not a whole word.
 - Payloads are single lines.
+- A path payload opens only if it exists when you search; a command that happens to start with `/` is copied, not run.
 - It's a plain-text file: don't store secrets you wouldn't keep in a dotfile.
 
 ## Development
 
 ```bash
 uv sync
-uv run pytest                                       # 160 tests
+uv run pytest                                       # 193 tests
 uv run --python 3.9 --isolated --with pytest --with pytest-mock pytest   # what /usr/bin/python3 is on macOS
 uv run python bench.py                              # latency per keystroke
 uv run python make_plist.py                         # regenerate info.plist after changing keywords or wiring
@@ -319,11 +324,11 @@ zip -r dist/Stash.alfredworkflow info.plist icon.png run.py stash -x '*__pycache
 
 | Path | Responsibility |
 |---|---|
-| `stash/entries.py` | Parse a line into an `Entry` with its searchable text |
+| `stash/entries.py` | Split a line at its first separator into an `Entry` with its searchable text |
 | `stash/matching.py` | One regex per query word, scoring, ranking |
 | `stash/store.py` | Load entries, append, delete lines; atomic, symlink-safe writes |
-| `stash/alfred.py` | Alfred Script Filter JSON: results, the *Add* item, hints |
-| `stash/cli.py` | Commands `search`, `add`, `delete`, `edit`; workflow variables |
+| `stash/alfred.py` | Alfred Script Filter JSON: results and their copy/open action, the *Add* item, hints |
+| `stash/cli.py` | Commands `search`, `add`, `delete`, `edit`, `open`; workflow variables |
 | `run.py` | Entry point Alfred calls |
 | `make_plist.py` | Source of `info.plist`: keywords, objects, connections, variables |
 | `tests/` | pytest suite, including a structural check of `info.plist` |

@@ -26,11 +26,11 @@ def test_read_text_reads_unicode(db_file):
 
 
 def test_load_entries_skips_comments_and_keeps_line_numbers(db_file):
-    path = write(db_file, "# my db\n\nssh prod | Prod | ssh p\nwifi | Wifi | pw\n")
+    path = write(db_file, "# my db\n\nssh prod | ssh p\nwifi | pw\n")
 
     entries = load_entries(path)
 
-    assert [entry.title for entry in entries] == ["Prod", "Wifi"], "load_entries should skip comments and blanks"
+    assert [entry.label for entry in entries] == ["ssh prod", "wifi"], "load_entries should skip comments and blanks"
     assert [entry.line_number for entry in entries] == [3, 4], "load_entries should number lines as in the editor"
 
 
@@ -123,13 +123,13 @@ def test_ensure_file_keeps_existing_content(db_file):
     assert db_file.read_text(encoding="utf-8") == "a | A | 1\n", "ensure_file should never truncate the database"
 
 
-MIXED_ENCODING = "good | Good | 1\n".encode() + b"caf\xe9 latin1 | Bad byte | 2\n" + "last | Last | 3\n".encode()
+MIXED_ENCODING = "good | 1\n".encode() + b"caf\xe9 latin1 | 2\n" + "last | 3\n".encode()
 
 
 def test_load_entries_tolerates_undecodable_bytes(db_file):
     db_file.write_bytes(MIXED_ENCODING)
 
-    assert [entry.title for entry in load_entries(str(db_file))] == ["Good", "Bad byte", "Last"], (
+    assert [entry.payload for entry in load_entries(str(db_file))] == ["1", "2", "3"], (
         "load_entries should read every line despite a stray non-UTF-8 byte"
     )
 
@@ -137,15 +137,15 @@ def test_load_entries_tolerates_undecodable_bytes(db_file):
 def test_delete_line_preserves_undecodable_bytes(db_file):
     db_file.write_bytes(MIXED_ENCODING)
 
-    assert delete_line(str(db_file), "last | Last | 3") is True, "delete_line should work in a file with stray bytes"
-    assert db_file.read_bytes() == b"good | Good | 1\ncaf\xe9 latin1 | Bad byte | 2\n", (
+    assert delete_line(str(db_file), "last | 3") is True, "delete_line should work in a file with stray bytes"
+    assert db_file.read_bytes() == b"good | 1\ncaf\xe9 latin1 | 2\n", (
         "delete_line should write undecodable bytes back exactly as they were"
     )
 
 
 def test_append_line_after_undecodable_bytes(db_file):
-    db_file.write_bytes(b"caf\xe9 | x | y")
+    db_file.write_bytes(b"caf\xe9 | x")
 
-    append_line(str(db_file), "new | New | 1")
+    append_line(str(db_file), "new | 1")
 
-    assert db_file.read_bytes() == b"caf\xe9 | x | y\nnew | New | 1\n", "append_line should not choke on stray bytes"
+    assert db_file.read_bytes() == b"caf\xe9 | x\nnew | 1\n", "append_line should not choke on stray bytes"

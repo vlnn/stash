@@ -5,7 +5,7 @@ import pytest
 
 from stash.cli import DEFAULT_DB_FILE, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS, config_from, editor_argv, main
 
-DATABASE = "ssh prod web | Prod web box | ssh deploy@10.0.1.5\nwifi guest | Guest wifi | hunter2\n"
+DATABASE = "ssh prod web | ssh deploy@10.0.1.5\nwifi guest | hunter2\n"
 
 
 @pytest.fixture
@@ -50,12 +50,13 @@ def test_config_from_environment(env, expected):
 @pytest.mark.parametrize(
     "argv, expected",
     [
-        (["search", "prod"], ["Prod web box", "Add: prod"]),
-        (["search", "web", "prod"], ["Prod web box", "Add: web prod"]),
-        (["search", ""], ["Prod web box", "Guest wifi"]),
-        (["search"], ["Prod web box", "Guest wifi"]),
+        (["search", "prod"], ["ssh prod web", "Add: prod"]),
+        (["search", "web", "prod"], ["ssh prod web", "Add: web prod"]),
+        (["search", ""], ["ssh prod web", "wifi guest"]),
+        (["search"], ["ssh prod web", "wifi guest"]),
         (["search", "zzz"], ["Add: zzz"]),
-        (["search", "prod | Prod box | ssh prod"], ["Add: Prod box", "Prod web box"]),
+        (["search", "prod | ssh prod"], ["Add: prod", "ssh prod web"]),
+        (["search", "prod \\ ssh prod"], ["Add: prod", "ssh prod web"]),
     ],
 )
 def test_search_prints_alfred_items(capsys, env, argv, expected):
@@ -81,23 +82,23 @@ def test_search_on_missing_database_with_empty_query_says_so(capsys, tmp_path):
 
 
 def test_search_survives_undecodable_bytes(capsys, env, db_file):
-    db_file.write_bytes(DATABASE.encode() + b"caf\xe9 | Latin-1 line | x\n")
+    db_file.write_bytes(DATABASE.encode() + b"caf\xe9 | x\n")
 
-    assert item_titles(run(capsys, env, "search", "")) == ["Prod web box", "Guest wifi", "Latin-1 line"], (
+    assert len(item_titles(run(capsys, env, "search", ""))) == 3, (
         "search should still list entries when the file has a non-UTF-8 byte"
     )
 
 
 def test_add_appends_entry_and_confirms(capsys, env, db_file):
-    output = run(capsys, env, "add", "  k8s ctx | Kube | kubectl ctx  ")
+    output = run(capsys, env, "add", "  k8s ctx | kubectl ctx  ")
 
-    assert output == "Added: Kube", "add should confirm with the entry title"
-    assert db_file.read_text(encoding="utf-8").endswith("\nk8s ctx | Kube | kubectl ctx\n"), (
+    assert output == "Added: k8s ctx", "add should confirm with the entry label"
+    assert db_file.read_text(encoding="utf-8").endswith("\nk8s ctx | kubectl ctx\n"), (
         "add should append the stripped line to the database"
     )
 
 
-@pytest.mark.parametrize("raw", ["", "# nope", " | no keywords"])
+@pytest.mark.parametrize("raw", ["", "# nope", " | "])
 def test_add_rejects_invalid_entry(capsys, env, db_file, raw):
     output = run(capsys, env, "add", raw)
 
@@ -106,16 +107,16 @@ def test_add_rejects_invalid_entry(capsys, env, db_file, raw):
 
 
 def test_added_entry_is_searchable(capsys, env):
-    run(capsys, env, "add", "k8s ctx | Kube | kubectl ctx")
+    run(capsys, env, "add", "k8s ctx kube | kubectl ctx")
 
-    assert item_titles(run(capsys, env, "search", "kub"))[0] == "Kube", "a freshly added entry should be found"
+    assert item_titles(run(capsys, env, "search", "kub"))[0] == "k8s ctx kube", "a freshly added entry should be found"
 
 
 @pytest.mark.parametrize(
     "raw, expected_output, expected_titles",
     [
-        ("wifi guest | Guest wifi | hunter2", "Deleted: wifi guest | Guest wifi | hunter2", ["Prod web box"]),
-        ("gone | Gone | x", "Not deleted: entry not found, the stash may have changed", ["Prod web box", "Guest wifi"]),
+        ("wifi guest | hunter2", "Deleted: wifi guest | hunter2", ["ssh prod web"]),
+        ("gone | x", "Not deleted: entry not found, the stash may have changed", ["ssh prod web", "wifi guest"]),
     ],
 )
 def test_delete(capsys, env, raw, expected_output, expected_titles):
@@ -165,6 +166,17 @@ def test_edit_reports_missing_editor(mocker, capsys, env):
 
     assert output == "Editor not found: nosuch (use a full path in the editor variable)", (
         "edit should explain how to fix a missing editor"
+    )
+
+
+@pytest.mark.parametrize("payload", ["https://example.com/x", "/tmp/some file.pdf"])
+def test_open_replaces_process_with_open(mocker, capsys, env, payload):
+    execvp = mocker.patch("stash.cli.os.execvp")
+
+    run(capsys, env, "open", payload)
+
+    assert execvp.call_args_list == [mocker.call("open", ["open", payload])], (
+        "open should hand the process over to macOS open with the payload as given"
     )
 
 

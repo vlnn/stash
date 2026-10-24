@@ -1,16 +1,16 @@
 from __future__ import annotations
 
+import re
 from typing import NamedTuple, Optional
 
-FIELD_SEPARATOR = "|"
+SEPARATOR = re.compile(r"[|\\]")
 COMMENT_PREFIX = "#"
 
 Keywords = tuple[str, ...]
 
 
 class Entry(NamedTuple):
-    keywords: Keywords
-    title: str
+    label: str
     payload: str
     haystack: str
     line_number: int = 0
@@ -21,25 +21,27 @@ def parse_line(line: str, line_number: int = 0) -> Optional[Entry]:
     text = line.strip()
     if not text or text.startswith(COMMENT_PREFIX):
         return None
-    keywords_field, *rest = split_fields(text)
-    keywords = split_words(keywords_field)
+    label, payload = split_record(text)
+    keywords = split_words(SEPARATOR.sub(" ", label))
     if not keywords:
         return None
-    title, payload = title_and_payload(rest, fallback=" ".join(keywords))
-    return Entry(keywords, title, payload, haystack_of(keywords, title), line_number, text)
+    return Entry(label, payload, haystack_of(keywords), line_number, text)
 
 
-def split_fields(text: str) -> list[str]:
-    return [field.strip() for field in text.split(FIELD_SEPARATOR, 2)]
+def split_record(text: str) -> tuple[str, str]:
+    head, *tail = SEPARATOR.split(text, 1)
+    if not tail:
+        return text, text
+    label, payload = head.strip(), tail[0].strip()
+    return label or payload, payload or label
 
 
-def title_and_payload(rest: list[str], fallback: str) -> tuple[str, str]:
-    title, payload = [""] * (2 - len(rest)) + rest
-    return title or fallback, payload or fallback
+def has_separator(text: str) -> bool:
+    return SEPARATOR.search(text) is not None
 
 
-def haystack_of(keywords: Keywords, title: str) -> str:
-    words = dict.fromkeys(" ".join(keywords + split_words(title)).lower().split())
+def haystack_of(keywords: Keywords) -> str:
+    words = dict.fromkeys(" ".join(keywords).lower().split())
     return f" {' '.join(words)} "
 
 

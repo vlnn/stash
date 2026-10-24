@@ -1,30 +1,34 @@
-# Stash: one entry per line   keywords | title | payload
-# Title and payload are optional. Lines starting with # are comments.
-# A line is searchable in full until it has a |; then only the part before it (and the title) is searched.
+# Stash: one entry per line.
+# Everything after the first | (or \) is the payload, verbatim; the words before it are what you search by.
+# Without a separator the whole line is both. Lines starting with # are comments.
 
-# shell commands
-ssh prod web          | Prod web box              | ssh deploy@10.0.1.5
-ssh staging web       | Staging web box           | ssh deploy@10.0.2.5
-k8s ctx staging       | Kube switch to staging    | kubectl config use-context staging
-k8s ctx prod          | Kube switch to prod       | kubectl config use-context prod
-k8s pods failing      | Kube failing pods         | kubectl get pods -A --field-selector=status.phase!=Running
-git log graph         | Pretty git log            | git log --oneline --graph --decorate --all
-docker prune          | Docker clean everything   | docker system prune -af --volumes
-port listen who       | Who listens on port 8080  | lsof -nP -iTCP:8080 -sTCP:LISTEN | grep -v COMMAND
-uuid gen              ||                            uuidgen | tr A-Z a-z
+# shell one-liners: enter copies, shift-enter pastes
+ssh prod web              | ssh deploy@10.0.1.5
+ssh staging web           | ssh deploy@10.0.2.5
+k8s ctx staging kube      | kubectl config use-context staging
+k8s ctx prod kube         | kubectl config use-context prod
+k8s pods failing          | kubectl get pods -A --field-selector=status.phase!=Running
+git log graph pretty      | git log --oneline --graph --decorate --all
+docker prune clean        | docker system prune -af --volumes
+port listen who 8080      | lsof -nP -iTCP:8080 -sTCP:LISTEN | grep -v COMMAND
+uuid gen lower            | uuidgen | tr A-Z a-z
+find py rm                \ find . -name '*.pyc' -exec rm {} \;
 
-# links
-jira board sprint     | Sprint board              | https://example.atlassian.net/jira/software/projects/OPS/boards/1
-grafana api latency   | API latency dashboard     | https://grafana.example.com/d/api-latency
-docs python re        | Python re module docs     | https://docs.python.org/3/library/re.html
+# links and paths: enter opens
+jira board sprint         | https://example.atlassian.net/jira/software/projects/OPS/boards/1
+grafana api latency       | https://grafana.example.com/d/api-latency
+docs python re            | https://docs.python.org/3/library/re.html
+notes folder              | ~/notes
+tally open                | alfred://runtrigger/com.anokhin.tally/open/
 
-# text snippets
-email work            | Work email                | name.surname@example.com
-address home          | Home address              | 221B Baker Street, London NW1 6XE
-reply thanks review   | Thanks for the review     | Thanks for the review! I've addressed the comments, PTAL.
-кава coffee           | Кава ☕                    | flat white, oat milk, no sugar
+# text: enter copies
+email work                | name.surname@example.com
+address home              | 221B Baker Street, London NW1 6XE
+reply thanks review       | Thanks for the review! I've addressed the comments, PTAL.
+кава coffee order         | flat white, oat milk, no sugar
 
-# plain lines: searchable in full, copied in full
+# plain lines: searched in full, copied in full
 pihole update finished
-deploy checklist
-wifi guest            | GuestNetwork-5G
+wifi guest GuestNetwork-5G
+http://127.0.0.1:4000
+| echo "a payload with | pipes, searched by its own words"

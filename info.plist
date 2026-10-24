@@ -67,6 +67,18 @@
 			</dict>
 			<dict>
 				<key>destinationuid</key>
+				<string>5C10BA80-0C15-5F76-B7F0-F3D331295CAB</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>FFCBD64C-DC29-536F-B520-6E06B61F3816</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
 				<string>0B9EA1E8-7FC4-53A0-A088-B7B15EE58172</string>
 				<key>modifiers</key>
 				<integer>0</integer>
@@ -246,7 +258,7 @@
 				<key>scriptfile</key>
 				<string></string>
 				<key>subtext</key>
-				<string>Fuzzy search keywords and titles; the last result adds what you typed</string>
+				<string>Fuzzy search; the last result adds what you typed</string>
 				<key>title</key>
 				<string>Search the stash</string>
 				<key>type</key>
@@ -295,7 +307,7 @@
 				<key>scriptfile</key>
 				<string></string>
 				<key>subtext</key>
-				<string>Fuzzy search keywords and titles; the last result adds what you typed</string>
+				<string>Fuzzy search; the last result adds what you typed</string>
 				<key>title</key>
 				<string>Search the stash</string>
 				<key>type</key>
@@ -344,7 +356,7 @@
 				<key>scriptfile</key>
 				<string></string>
 				<key>subtext</key>
-				<string>Fuzzy search keywords and titles; the last result adds what you typed</string>
+				<string>Fuzzy search; the last result adds what you typed</string>
 				<key>title</key>
 				<string>Search the stash</string>
 				<key>type</key>
@@ -377,6 +389,20 @@
 						<string>add</string>
 						<key>uid</key>
 						<string>30F49DCE-4D4B-57C9-BFFB-A26E1227A181</string>
+					</dict>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:action}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
+						<string>open</string>
+						<key>outputlabel</key>
+						<string>open</string>
+						<key>uid</key>
+						<string>FFCBD64C-DC29-536F-B520-6E06B61F3816</string>
 					</dict>
 				</array>
 				<key>elselabel</key>
@@ -501,6 +527,29 @@
 		<dict>
 			<key>config</key>
 			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
+				<string>exec "${python:-/usr/bin/python3}" -S -X utf8 run.py open "$1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>5C10BA80-0C15-5F76-B7F0-F3D331295CAB</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
 				<key>lastpathcomponent</key>
 				<false/>
 				<key>onlyshowifquerypopulated</key>
@@ -523,12 +572,12 @@
 	<key>readme</key>
 	<string>Fuzzy keyword search over a plain-text stash you own.
 
-st / sta / stash &lt;words&gt;   search; words match keywords and title words in any order,
-                           as whole words, prefixes, substrings or in-word letters (stg → staging)
-                           the last result adds what you typed; type a | and it becomes the first
-                           ↩ copy or add  ⇧↩ paste  ⌘↩ edit in editor  ⌥↩ delete  ⌃ show keywords
+st / sta / stash &lt;words&gt;   search; words match in any order, as whole words, prefixes,
+                           substrings or in-word letters (stg → staging)
+                           the last result adds what you typed; type | and it becomes the first
+                           ↩ copy, or open a URL/path, or add  ⇧↩ paste  ⌘↩ edit  ⌥↩ delete
 
-Entries are lines of  keywords | title | payload  (title and payload optional).
+Entries are lines of  words | payload ; without a | the whole line is both.
 
 Variables: db_file (stash path), editor (command template with {file} and {line}),
 max_results, python (interpreter, 3.9+).
@@ -567,6 +616,13 @@ max_results, python (interpreter, 3.9+).
 		<dict>
 			<key>xpos</key>
 			<integer>870</integer>
+			<key>ypos</key>
+			<integer>300</integer>
+		</dict>
+		<key>5C10BA80-0C15-5F76-B7F0-F3D331295CAB</key>
+		<dict>
+			<key>xpos</key>
+			<integer>600</integer>
 			<key>ypos</key>
 			<integer>300</integer>
 		</dict>
@@ -620,7 +676,7 @@ max_results, python (interpreter, 3.9+).
 	<key>variablesdontexport</key>
 	<array/>
 	<key>version</key>
-	<string>2.0.0</string>
+	<string>2.1.0</string>
 	<key>webaddress</key>
 	<string></string>
 </dict>

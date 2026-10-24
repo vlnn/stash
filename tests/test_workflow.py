@@ -101,15 +101,18 @@ def test_every_search_keyword_shares_the_actions(workflow, objects, search_filte
             )
 
 
-def test_conditional_routes_add_items_to_add_and_the_rest_to_copy(workflow, objects, conditional):
-    [condition] = conditional["config"]["conditions"]
-    [add_target] = destinations(workflow, objects, conditional, output_uid=condition["uid"])
+@pytest.mark.parametrize("action, command", [("add", "run.py add"), ("open", "run.py open")])
+def test_conditional_routes_actions_to_their_scripts(workflow, objects, conditional, action, command):
+    [condition] = [c for c in conditional["config"]["conditions"] if c["matchstring"] == action]
+    [target] = destinations(workflow, objects, conditional, output_uid=condition["uid"])
+
+    assert condition["inputstring"] == "{var:action}", "the conditional should test the action variable items set"
+    assert command in target["config"]["script"], f"the {action} branch should run {command}"
+
+
+def test_conditional_copies_everything_else(workflow, objects, conditional):
     [else_target] = destinations(workflow, objects, conditional)
 
-    assert (condition["inputstring"], condition["matchstring"]) == ("{var:action}", "add"), (
-        "the conditional should test the action variable set by the Add item"
-    )
-    assert "run.py add" in add_target["config"]["script"], "the add branch should run the add command"
     assert else_target["type"] == "alfred.workflow.output.clipboard", "everything else should copy the payload"
     assert else_target["config"]["autopaste"] is False, "plain enter copies without pasting"
 

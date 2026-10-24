@@ -14,18 +14,18 @@ def uid(name):
     return str(uuid.uuid5(uuid.NAMESPACE_URL, f"com.vlnn.stash/{name}")).upper()
 
 
-COPY, PASTE, EDIT, DELETE, ADD, NOTIFY, ROUTE, ROUTE_ADD = map(
-    uid, ("copy", "paste", "edit", "delete", "add", "notify", "route", "route-add")
+COPY, PASTE, EDIT, DELETE, ADD, OPEN, NOTIFY, ROUTE, ROUTE_ADD, ROUTE_OPEN = map(
+    uid, ("copy", "paste", "edit", "delete", "add", "open", "notify", "route", "route-add", "route-open")
 )
 
 README = """Fuzzy keyword search over a plain-text stash you own.
 
-st / sta / stash <words>   search; words match keywords and title words in any order,
-                           as whole words, prefixes, substrings or in-word letters (stg → staging)
-                           the last result adds what you typed; type a | and it becomes the first
-                           ↩ copy or add  ⇧↩ paste  ⌘↩ edit in editor  ⌥↩ delete  ⌃ show keywords
+st / sta / stash <words>   search; words match in any order, as whole words, prefixes,
+                           substrings or in-word letters (stg → staging)
+                           the last result adds what you typed; type | and it becomes the first
+                           ↩ copy, or open a URL/path, or add  ⇧↩ paste  ⌘↩ edit  ⌥↩ delete
 
-Entries are lines of  keywords | title | payload  (title and payload optional).
+Entries are lines of  words | payload ; without a | the whole line is both.
 
 Variables: db_file (stash path), editor (command template with {file} and {line}),
 max_results, python (interpreter, 3.9+).
@@ -53,7 +53,7 @@ def search_filter(keyword):
             "script": f'{PYTHON} search "$1"',
             "scriptargtype": 1,
             "scriptfile": "",
-            "subtext": "Fuzzy search keywords and titles; the last result adds what you typed",
+            "subtext": "Fuzzy search; the last result adds what you typed",
             "title": "Search the stash",
             "type": 0,
             "withspace": True,
@@ -101,10 +101,11 @@ ROUTER = {
                 "inputstring": "{var:action}",
                 "matchcasesensitive": False,
                 "matchmode": 0,
-                "matchstring": "add",
-                "outputlabel": "add",
-                "uid": ROUTE_ADD,
+                "matchstring": action,
+                "outputlabel": action,
+                "uid": output_uid,
             }
+            for action, output_uid in (("add", ROUTE_ADD), ("open", ROUTE_OPEN))
         ],
         "elselabel": "copy",
         "hideelse": False,
@@ -147,7 +148,7 @@ WORKFLOW = {
     "disabled": False,
     "name": "Stash",
     "readme": README,
-    "version": "2.0.0",
+    "version": "2.1.0",
     "webaddress": "",
     "variables": {
         "db_file": DEFAULT_DB_FILE,
@@ -164,11 +165,12 @@ WORKFLOW = {
         run_script(EDIT, "edit"),
         run_script(DELETE, "delete"),
         run_script(ADD, "add"),
+        run_script(OPEN, "open"),
         NOTIFICATION,
     ],
     "connections": {
         **{uid(f"search-{keyword}"): SEARCH_LINKS for keyword in SEARCH_KEYWORDS},
-        ROUTE: [link(ADD, output_uid=ROUTE_ADD), link(COPY)],
+        ROUTE: [link(ADD, output_uid=ROUTE_ADD), link(OPEN, output_uid=ROUTE_OPEN), link(COPY)],
         EDIT: [link(NOTIFY)],
         DELETE: [link(NOTIFY)],
         ADD: [link(NOTIFY)],
@@ -178,6 +180,7 @@ WORKFLOW = {
         ROUTE: {"xpos": 330, "ypos": 60},
         COPY: {"xpos": 600, "ypos": 40},
         ADD: {"xpos": 600, "ypos": 170},
+        OPEN: {"xpos": 600, "ypos": 300},
         PASTE: {"xpos": 330, "ypos": 300},
         EDIT: {"xpos": 330, "ypos": 430},
         DELETE: {"xpos": 330, "ypos": 560},

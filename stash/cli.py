@@ -6,7 +6,7 @@ import sys
 from typing import Callable, Mapping, NamedTuple, Optional, Sequence
 
 from . import alfred, store
-from .entries import FIELD_SEPARATOR, parse_line
+from .entries import SEPARATOR, parse_line
 from .matching import search
 
 DEFAULT_DB_FILE = "~/.config/stash/stash.txt"
@@ -30,8 +30,8 @@ def config_from(env: Mapping[str, str]) -> Config:
 
 def search_command(query: str, config: Config) -> str:
     entries = store.load_entries(config.db_file)
-    keywords, *_ = query.split(FIELD_SEPARATOR, 1)
-    results = search(keywords, entries, config.max_results)
+    words, *_ = SEPARATOR.split(query, 1)
+    results = search(words, entries, config.max_results)
     return alfred.render(alfred.search_feedback(results, entries, query.strip()))
 
 
@@ -40,7 +40,7 @@ def add_command(raw: str, config: Config) -> str:
     if entry is None:
         return f"Nothing added, expected: {alfred.FORMAT_HINT}"
     store.append_line(config.db_file, entry.raw)
-    return f"Added: {entry.title}"
+    return f"Added: {entry.label}"
 
 
 def delete_command(raw: str, config: Config) -> str:
@@ -59,6 +59,10 @@ def edit_command(line_number: str, config: Config) -> Optional[str]:
     return None
 
 
+def open_command(target: str, config: Config) -> None:
+    os.execvp("open", ["open", target])
+
+
 def editor_argv(template: str, file: str, line: str) -> list[str]:
     return [part.replace("{file}", file).replace("{line}", line) for part in shlex.split(template)]
 
@@ -70,6 +74,7 @@ COMMANDS: dict[str, Command] = {
     "add": add_command,
     "delete": delete_command,
     "edit": edit_command,
+    "open": open_command,
 }
 
 USAGE = f"usage: run.py {{{','.join(COMMANDS)}}} [argument]"

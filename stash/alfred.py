@@ -1,41 +1,58 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import Any, Optional, Sequence
 
-from .entries import FIELD_SEPARATOR, Entry, parse_line
+from .entries import Entry, has_separator, parse_line
 
 Item = dict[str, Any]
 
-FORMAT_HINT = "keywords | title | payload"
+FORMAT_HINT = "words | payload"
 OPEN_EDITOR = {"arg": "1", "subtitle": "Open the stash in your editor"}
+OPENABLE_SCHEMES = ("http://", "https://", "file://", "alfred://")
+LABELS = {"copy": "Copy", "open": "Open"}
+
+
+def action_of(payload: str) -> str:
+    if payload.startswith(OPENABLE_SCHEMES) or os.path.exists(os.path.expanduser(payload)):
+        return "open"
+    return "copy"
 
 
 def entry_item(entry: Entry) -> Item:
-    keywords = " ".join(entry.keywords)
+    action = action_of(entry.payload)
+    arg = os.path.expanduser(entry.payload) if action == "open" else entry.payload
     return {
-        "uid": f"{keywords}|{entry.title}",
-        "title": entry.title,
-        "subtitle": entry.payload,
-        "arg": entry.payload,
-        "autocomplete": keywords,
+        "uid": f"{entry.label}|{entry.payload}",
+        "title": entry.label,
+        "subtitle": subtitle_of(entry, action),
+        "arg": arg,
+        "autocomplete": entry.label,
+        "variables": {"action": action},
         "text": {"copy": entry.payload, "largetype": entry.payload},
         "mods": {
             "cmd": {"arg": str(entry.line_number), "subtitle": f"Edit line {entry.line_number} of the stash"},
             "alt": {"arg": entry.raw, "subtitle": f"Delete: {entry.raw}"},
-            "ctrl": {"valid": False, "subtitle": f"Keywords: {keywords}"},
+            "ctrl": {"valid": False, "subtitle": f"Line {entry.line_number} · {action}"},
         },
     }
+
+
+def subtitle_of(entry: Entry, action: str) -> str:
+    if entry.payload == entry.label:
+        return LABELS[action]
+    return entry.payload if action == "copy" else f"{LABELS[action]} · {entry.payload}"
 
 
 def add_item(raw: str) -> Optional[Item]:
     entry = parse_line(raw)
     if entry is None:
         return None
-    format_hint = "" if FIELD_SEPARATOR in raw else f"   ({FORMAT_HINT})"
+    format_hint = "" if has_separator(raw) else f"   ({FORMAT_HINT})"
     return {
-        "title": f"Add: {entry.title}",
-        "subtitle": f"{' '.join(entry.keywords)}  →  {entry.payload}{format_hint}",
+        "title": f"Add: {entry.label}",
+        "subtitle": f"{entry.payload}{format_hint}",
         "arg": entry.raw,
         "variables": {"action": "add"},
         "mods": {"cmd": OPEN_EDITOR, "alt": {"valid": False}, "shift": {"valid": False}},
@@ -51,7 +68,7 @@ def search_feedback(results: Sequence[Entry], entries: Sequence[Entry], query: s
     matches = [entry_item(entry) for entry in results]
     if addition is None:
         return matches or [empty_hint(entries, query)]
-    if FIELD_SEPARATOR in query:
+    if has_separator(query):
         return [addition, *matches]
     return [*matches, addition]
 

@@ -1,12 +1,14 @@
 import json
+import os
 
 import pytest
 
-from stash.alfred import add_item, entry_item, render, search_feedback
+from stash.alfred import action_of, add_item, entry_item, render, search_feedback
 from stash.entries import parse_line
 
-ENTRY = parse_line("ssh prod web | Prod web box | ssh deploy@10.0.1.5", line_number=12)
-OTHER = parse_line("wifi guest | Guest wifi | hunter2", line_number=13)
+ENTRY = parse_line("ssh prod web | ssh deploy@10.0.1.5", line_number=12)
+OTHER = parse_line("wifi guest | hunter2", line_number=13)
+PLAIN = parse_line("pihole update finished", line_number=14)
 
 
 def titles(items):
@@ -14,56 +16,98 @@ def titles(items):
 
 
 @pytest.mark.parametrize(
+    "payload, action",
+    [
+        ("ssh deploy@10.0.1.5", "copy"),
+        ("pihole update finished", "copy"),
+        ("https://grafana.example.com/d/api", "open"),
+        ("http://127.0.0.1:4000", "open"),
+        ("file:///Users/me/notes.md", "open"),
+        ("alfred://runtrigger/com.anokhin.tally/open/?argument=x", "open"),
+        ("/usr/bin/env python3 -c 'print(1)'", "copy"),
+        ("~/nowhere/that/exists", "copy"),
+        ("ftp://old.example.com", "copy"),
+    ],
+)
+def test_action_of_payload_shape(payload, action):
+    assert action_of(payload) == action, "URLs and existing paths open, everything else is copied"
+
+
+@pytest.mark.parametrize("spelling", ["{tmp}", "{tmp}/notes.md", "~/{rel}"])
+def test_action_of_existing_path_is_open(tmp_path, monkeypatch, spelling):
+    (tmp_path / "notes.md").write_text("x")
+    monkeypatch.setenv("HOME", str(tmp_path.parent))
+    payload = spelling.format(tmp=tmp_path, rel=os.path.join(tmp_path.name, "notes.md"))
+
+    assert action_of(payload) == "open", "a path that exists on disk should open, with ~ expanded"
+
+
+@pytest.mark.parametrize(
     "key, expected",
     [
-        ("title", "Prod web box"),
+        ("title", "ssh prod web"),
         ("subtitle", "ssh deploy@10.0.1.5"),
         ("arg", "ssh deploy@10.0.1.5"),
         ("autocomplete", "ssh prod web"),
-        ("uid", "ssh prod web|Prod web box"),
+        ("uid", "ssh prod web|ssh deploy@10.0.1.5"),
         ("text", {"copy": "ssh deploy@10.0.1.5", "largetype": "ssh deploy@10.0.1.5"}),
+        ("variables", {"action": "copy"}),
     ],
 )
 def test_entry_item_fields(key, expected):
     assert entry_item(ENTRY)[key] == expected, f"entry_item should set {key} for Alfred"
 
 
-def test_entry_item_has_no_routing_variable():
-    assert "variables" not in entry_item(ENTRY), "a plain entry should take the default (copy) route"
+def test_entry_item_without_separator_shows_the_action_instead_of_repeating_itself():
+    item = entry_item(PLAIN)
+
+    assert item["title"] == "pihole update finished", "a plain line is shown as itself"
+    assert item["subtitle"] == "Copy", "the subtitle should not repeat the title"
+
+
+def test_entry_item_for_url_opens_and_expands_tilde(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    (tmp_path / "notes.md").write_text("x")
+    item = entry_item(parse_line("notes | ~/notes.md"))
+
+    assert item["variables"] == {"action": "open"}, "an existing path should route to open"
+    assert item["arg"] == str(tmp_path / "notes.md"), "the path handed to open should have ~ expanded"
+    assert item["text"]["copy"] == "~/notes.md", "cmd-c should still copy the payload as written"
+    assert item["subtitle"] == "Open · ~/notes.md", "the subtitle should say what enter does"
 
 
 @pytest.mark.parametrize(
     "modifier, arg",
     [
         ("cmd", "12"),
-        ("alt", "ssh prod web | Prod web box | ssh deploy@10.0.1.5"),
+        ("alt", "ssh prod web | ssh deploy@10.0.1.5"),
     ],
 )
 def test_entry_item_modifiers_carry_action_arguments(modifier, arg):
-    assert entry_item(ENTRY)["mods"][modifier]["arg"] == arg, (
-        f"{modifier} modifier should pass what its action needs"
-    )
+    assert entry_item(ENTRY)["mods"][modifier]["arg"] == arg, f"{modifier} modifier should pass what its action needs"
 
 
-def test_entry_item_ctrl_reveals_keywords_without_action():
+def test_entry_item_ctrl_shows_line_without_action():
     ctrl = entry_item(ENTRY)["mods"]["ctrl"]
 
-    assert ctrl["valid"] is False, "ctrl modifier should only reveal keywords, not trigger an action"
-    assert "ssh prod web" in ctrl["subtitle"], "ctrl modifier should show the entry keywords"
+    assert ctrl["valid"] is False, "ctrl modifier should only inform, not trigger an action"
+    assert ctrl["subtitle"] == "Line 12 · copy", "ctrl modifier should show where the entry lives and what enter does"
 
 
 @pytest.mark.parametrize(
     "raw, title, subtitle",
     [
-        ("ssh prod | Prod | ssh p", "Add: Prod", "ssh prod  →  ssh p"),
-        ("wifi guest", "Add: wifi guest", "wifi guest  →  wifi guest   (keywords | title | payload)"),
+        ("ssh prod | ssh p", "Add: ssh prod", "ssh p"),
+        ("ssh prod \\ ssh p", "Add: ssh prod", "ssh p"),
+        ("wifi guest", "Add: wifi guest", "wifi guest   (words | payload)"),
+        ("http://127.0.0.1:4000", "Add: http://127.0.0.1:4000", "http://127.0.0.1:4000   (words | payload)"),
     ],
 )
 def test_add_item_shows_parsed_entry(raw, title, subtitle):
     item = add_item(raw)
 
-    assert item["title"] == title, "add_item should show the resulting title"
-    assert item["subtitle"] == subtitle, "add_item should show keywords and payload, and the format until a | is typed"
+    assert item["title"] == title, "add_item should show the label"
+    assert item["subtitle"] == subtitle, "add_item should show the payload, and the format until a separator is typed"
     assert item["arg"] == raw.strip(), "add_item should pass the line on to the add action"
     assert item["variables"] == {"action": "add"}, "add_item should route to the add action"
 
@@ -77,7 +121,7 @@ def test_add_item_modifiers_open_editor_and_nothing_else():
     )
 
 
-@pytest.mark.parametrize("raw", ["", "  ", "# comment", " | title | payload"])
+@pytest.mark.parametrize("raw", ["", "  ", "# comment", "|", " \\ "])
 def test_add_item_is_absent_for_text_that_is_not_an_entry(raw):
     assert add_item(raw) is None, "add_item should offer nothing for text that cannot be stored"
 
@@ -85,22 +129,23 @@ def test_add_item_is_absent_for_text_that_is_not_an_entry(raw):
 @pytest.mark.parametrize(
     "results, entries, query, expected",
     [
-        ([ENTRY], [ENTRY, OTHER], "prod", ["Prod web box", "Add: prod"]),
-        ([ENTRY, OTHER], [ENTRY, OTHER], "", ["Prod web box", "Guest wifi"]),
+        ([ENTRY], [ENTRY, OTHER], "prod", ["ssh prod web", "Add: prod"]),
+        ([ENTRY, OTHER], [ENTRY, OTHER], "", ["ssh prod web", "wifi guest"]),
         ([], [ENTRY], "zzz", ["Add: zzz"]),
-        ([ENTRY], [ENTRY], "prod | Prod | p", ["Add: Prod", "Prod web box"]),
-        ([], [], "new | New | n", ["Add: New"]),
+        ([ENTRY], [ENTRY], "prod | p", ["Add: prod", "ssh prod web"]),
+        ([ENTRY], [ENTRY], "prod \\ p", ["Add: prod", "ssh prod web"]),
+        ([], [], "new | n", ["Add: new"]),
         ([], [], "", ["The stash is empty"]),
-        ([], [ENTRY], "| x", ["No match for '| x'"]),
+        ([], [ENTRY], "|", ["No match for '|'"]),
     ],
 )
 def test_search_feedback_lists_matches_and_offers_to_add(results, entries, query, expected):
     assert titles(search_feedback(results, entries, query)) == expected, (
-        "search_feedback should list matches, offer to add the query, and put Add first once a | is typed"
+        "search_feedback should list matches, offer to add the query, and put Add first once a separator is typed"
     )
 
 
-@pytest.mark.parametrize("entries, query", [([], ""), ([ENTRY], "| x")])
+@pytest.mark.parametrize("entries, query", [([], ""), ([ENTRY], "|")])
 def test_search_feedback_hints_are_not_actionable_except_for_editing(entries, query):
     hint = search_feedback([], entries, query)[0]
 
