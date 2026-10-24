@@ -79,6 +79,18 @@
 			</dict>
 			<dict>
 				<key>destinationuid</key>
+				<string>F8EA80FA-FBF3-5E63-9B0A-0B4593040827</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>3BFE7FED-2F10-5353-9036-5336A67FAB4B</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
 				<string>0B9EA1E8-7FC4-53A0-A088-B7B15EE58172</string>
 				<key>modifiers</key>
 				<integer>0</integer>
@@ -404,6 +416,20 @@
 						<key>uid</key>
 						<string>FFCBD64C-DC29-536F-B520-6E06B61F3816</string>
 					</dict>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:action}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
+						<string>alfred</string>
+						<key>outputlabel</key>
+						<string>alfred</string>
+						<key>uid</key>
+						<string>3BFE7FED-2F10-5353-9036-5336A67FAB4B</string>
+					</dict>
 				</array>
 				<key>elselabel</key>
 				<string>copy</string>
@@ -550,6 +576,29 @@
 		<dict>
 			<key>config</key>
 			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
+				<string>exec "${python:-/usr/bin/python3}" -S -X utf8 run.py alfred "$1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>F8EA80FA-FBF3-5E63-9B0A-0B4593040827</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
 				<key>lastpathcomponent</key>
 				<false/>
 				<key>onlyshowifquerypopulated</key>
@@ -575,9 +624,11 @@
 st / sta / stash &lt;words&gt;   search; words match in any order, as whole words, prefixes,
                            substrings or in-word letters (stg → staging)
                            the last result adds what you typed; type | and it becomes the first
-                           ↩ copy, or open a URL/path, or add  ⇧↩ paste  ⌘↩ edit  ⌥↩ delete
+                           ↩ copy, or open a URL/path, or hand "text @keyword" to another
+                           workflow, or add  ⇧↩ paste  ⌘↩ edit  ⌥↩ delete
 
 Entries are lines of  words | payload ; without a | the whole line is both.
+flows: aliases for @words, e.g. "tally=t kobold=kb wisp=l".
 
 Variables: db_file (stash path), editor (command template with {file} and {line}),
 max_results, python (interpreter, 3.9+).
@@ -661,6 +712,13 @@ max_results, python (interpreter, 3.9+).
 			<key>ypos</key>
 			<integer>300</integer>
 		</dict>
+		<key>F8EA80FA-FBF3-5E63-9B0A-0B4593040827</key>
+		<dict>
+			<key>xpos</key>
+			<integer>600</integer>
+			<key>ypos</key>
+			<integer>430</integer>
+		</dict>
 	</dict>
 	<key>variables</key>
 	<dict>
@@ -668,6 +726,8 @@ max_results, python (interpreter, 3.9+).
 		<string>~/.config/stash/stash.txt</string>
 		<key>editor</key>
 		<string>open -t {file}</string>
+		<key>flows</key>
+		<string></string>
 		<key>max_results</key>
 		<string>50</string>
 		<key>python</key>
@@ -676,7 +736,7 @@ max_results, python (interpreter, 3.9+).
 	<key>variablesdontexport</key>
 	<array/>
 	<key>version</key>
-	<string>2.1.0</string>
+	<string>2.2.0</string>
 	<key>webaddress</key>
 	<string></string>
 </dict>

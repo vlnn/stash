@@ -93,6 +93,10 @@ grafana api latency       | https://grafana.example.com/d/api-latency
 notes folder              | ~/notes
 tally open                | alfred://runtrigger/com.anokhin.tally/open/
 
+# hand-offs: enter opens Alfred with the other workflow's keyword (flows = "tally=t kobold=kb wisp=l")
+delany books              | delany @kobold
+lexer task                | parser lexer @tally
+
 # text: enter copies
 email work                | name.surname@example.com
 reply thanks review       | Thanks for the review! I've addressed the comments, PTAL.
@@ -146,10 +150,11 @@ What ↩ does depends on the payload:
 |---|---|
 | `http://…`, `https://…`, `file://…` | opens it in the default app |
 | `alfred://runtrigger/<bundle id>/<trigger>/?argument=…` | runs that workflow's external trigger |
-| a path that exists (`~/notes`, `/Users/me/doc.pdf`) | opens it (⌥↩ in Finder is up to you: see below) |
+| a path that exists (`~/notes`, `/Users/me/doc.pdf`) | opens it |
+| `text @keyword` | opens Alfred with `keyword text`, so another workflow takes over (see below) |
 | anything else | copies it to the clipboard |
 
-The subtitle says which: an entry whose payload opens shows `Open · …`. Everything else is the same for every result:
+The subtitle says which: `Open · …` or `Alfred · kb delany`. Everything else is the same for every result:
 
 | Keys | Action |
 |---|---|
@@ -161,6 +166,20 @@ The subtitle says which: an entry whose payload opens shows `Open · …`. Every
 | ⌘L | Show the payload in Large Type |
 
 The payload is copied literally: Alfred placeholders such as `{date}` inside it are not expanded. A shell one-liner is deliberately *not* run on ↩; ⇧↩ into a terminal you are looking at is one keystroke more and much harder to regret.
+
+### Handing off to another workflow
+
+A payload that ends in `@word` is a hand-off: ↩ opens Alfred with `word` as the keyword and the rest as its query, so the other workflow shows its own results and you pick there. Nothing needs to be set up in that workflow; it just sees its keyword typed.
+
+```
+delany @kb                  st delany ↩  →  Alfred shows  kb delany   (kobold lists the books)
+parser lexer @t             st parser ↩  →  Alfred shows  t parser lexer   (tally offers to start it)
+@l                          st @l ↩      →  Alfred shows  l   (wisp, newest first)
+```
+
+Write workflow names instead of keywords by listing aliases in the `flows` variable, for example `tally=t kobold=kb wisp=l`; then `parser lexer @tally` means the same as `parser lexer @t`. The subtitle shows the resolved call (`Alfred · t parser lexer`), and ⌘C still copies the payload as written.
+
+Only a trailing `@word` counts, so `me@example.com` is copied as text. A payload that genuinely ends in an `@handle` would be taken as a hand-off; ⌘C still copies it, or end the line with a full stop.
 
 ## Adding entries
 
@@ -195,6 +214,7 @@ Set these in Alfred: open the workflow and click the **[𝑥]** button.
 | `editor` | `open -t {file}` | Command used by ⌘↩. `{file}` and `{line}` are filled in. |
 | `max_results` | `50` | How many results Alfred receives. |
 | `python` | `/usr/bin/python3` | Interpreter, 3.9 or newer. Absolute path, no `~`. |
+| `flows` | empty | Aliases for `@word` hand-offs, as `name=keyword` pairs: `tally=t kobold=kb wisp=l`. |
 
 Alfred runs workflows with a minimal `PATH`, so use the full path of your editor's command line tool. Quote paths with spaces:
 
@@ -219,7 +239,7 @@ Select every object of the workflow in Alfred, copy and paste it, give the copie
 export db_file=~/notes/links.txt; exec "${python:-/usr/bin/python3}" -S -X utf8 run.py search "$1"
 ```
 
-Every script of the copy needs the same export (search, add, delete, edit, open), because Alfred does not pass a script's environment on to the objects it is connected to.
+Every script of the copy needs the same export (search, add, delete, edit, open, alfred), because Alfred does not pass a script's environment on to the objects it is connected to.
 
 ### Sync and history
 
@@ -310,7 +330,7 @@ What keeps it fast:
 
 ```bash
 uv sync
-uv run pytest                                       # 193 tests
+uv run pytest                                       # 213 tests
 uv run --python 3.9 --isolated --with pytest --with pytest-mock pytest   # what /usr/bin/python3 is on macOS
 uv run python bench.py                              # latency per keystroke
 uv run python make_plist.py                         # regenerate info.plist after changing keywords or wiring
@@ -327,8 +347,8 @@ zip -r dist/Stash.alfredworkflow info.plist icon.png run.py stash -x '*__pycache
 | `stash/entries.py` | Split a line at its first separator into an `Entry` with its searchable text |
 | `stash/matching.py` | One regex per query word, scoring, ranking |
 | `stash/store.py` | Load entries, append, delete lines; atomic, symlink-safe writes |
-| `stash/alfred.py` | Alfred Script Filter JSON: results and their copy/open action, the *Add* item, hints |
-| `stash/cli.py` | Commands `search`, `add`, `delete`, `edit`, `open`; workflow variables |
+| `stash/alfred.py` | Alfred Script Filter JSON: results and their copy/open/hand-off action, the *Add* item, hints |
+| `stash/cli.py` | Commands `search`, `add`, `delete`, `edit`, `open`, `alfred`; workflow variables |
 | `run.py` | Entry point Alfred calls |
 | `make_plist.py` | Source of `info.plist`: keywords, objects, connections, variables |
 | `tests/` | pytest suite, including a structural check of `info.plist` |

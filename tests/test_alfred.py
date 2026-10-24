@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from stash.alfred import action_of, add_item, entry_item, render, search_feedback
+from stash.alfred import action_of, add_item, entry_item, flow_of, render, search_feedback
 from stash.entries import parse_line
 
 ENTRY = parse_line("ssh prod web | ssh deploy@10.0.1.5", line_number=12)
@@ -27,6 +27,10 @@ def titles(items):
         ("/usr/bin/env python3 -c 'print(1)'", "copy"),
         ("~/nowhere/that/exists", "copy"),
         ("ftp://old.example.com", "copy"),
+        ("delany @kb", "alfred"),
+        ("@tally", "alfred"),
+        ("name.surname@example.com", "copy"),
+        ("echo @", "copy"),
     ],
 )
 def test_action_of_payload_shape(payload, action):
@@ -40,6 +44,34 @@ def test_action_of_existing_path_is_open(tmp_path, monkeypatch, spelling):
     payload = spelling.format(tmp=tmp_path, rel=os.path.join(tmp_path.name, "notes.md"))
 
     assert action_of(payload) == "open", "a path that exists on disk should open, with ~ expanded"
+
+
+FLOWS = {"tally": "t", "kobold": "kb"}
+
+
+@pytest.mark.parametrize(
+    "payload, flow",
+    [
+        ("delany @kb", ("kb", "delany")),
+        ("parser lexer @tally", ("t", "parser lexer")),
+        ("parser lexer   @tally", ("t", "parser lexer")),
+        ("@tally", ("t", "")),
+        ("@unknown", ("unknown", "")),
+        ("name.surname@example.com", None),
+        ("plain text", None),
+    ],
+)
+def test_flow_of_resolves_trailing_at_word_through_aliases(payload, flow):
+    assert flow_of(payload, FLOWS) == flow, "a trailing @word names an Alfred keyword, aliases first"
+
+
+def test_entry_item_for_flow_hands_the_query_to_alfred():
+    item = entry_item(parse_line("delany | delany @kobold"), FLOWS)
+
+    assert item["variables"] == {"action": "alfred"}, "a flow payload should route to the alfred action"
+    assert item["arg"] == "kb delany", "the arg should be the keyword and text Alfred will run"
+    assert item["subtitle"] == "Alfred · kb delany", "the subtitle should show what Alfred will be asked"
+    assert item["text"]["copy"] == "delany @kobold", "cmd-c should still copy the payload as written"
 
 
 @pytest.mark.parametrize(

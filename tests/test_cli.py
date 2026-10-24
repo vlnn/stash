@@ -3,7 +3,16 @@ import os
 
 import pytest
 
-from stash.cli import DEFAULT_DB_FILE, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS, config_from, editor_argv, main
+from stash.cli import (
+    ALFRED_SEARCH,
+    DEFAULT_DB_FILE,
+    DEFAULT_EDITOR,
+    DEFAULT_MAX_RESULTS,
+    config_from,
+    editor_argv,
+    flows_from,
+    main,
+)
 
 DATABASE = "ssh prod web | ssh deploy@10.0.1.5\nwifi guest | hunter2\n"
 
@@ -29,17 +38,17 @@ def item_titles(output):
     return [item["title"] for item in json.loads(output)["items"]]
 
 
-DEFAULTS = (os.path.expanduser(DEFAULT_DB_FILE), DEFAULT_EDITOR, DEFAULT_MAX_RESULTS)
+DEFAULTS = (os.path.expanduser(DEFAULT_DB_FILE), DEFAULT_EDITOR, DEFAULT_MAX_RESULTS, {})
 
 
 @pytest.mark.parametrize(
     "env, expected",
     [
         ({}, DEFAULTS),
-        ({"db_file": "", "editor": "", "max_results": ""}, DEFAULTS),
+        ({"db_file": "", "editor": "", "max_results": "", "flows": ""}, DEFAULTS),
         (
-            {"db_file": "~/db.txt", "editor": "code -g {file}:{line}", "max_results": "9"},
-            (os.path.expanduser("~/db.txt"), "code -g {file}:{line}", 9),
+            {"db_file": "~/db.txt", "editor": "code -g {file}:{line}", "max_results": "9", "flows": "tally=t"},
+            (os.path.expanduser("~/db.txt"), "code -g {file}:{line}", 9, {"tally": "t"}),
         ),
     ],
 )
@@ -166,6 +175,37 @@ def test_edit_reports_missing_editor(mocker, capsys, env):
 
     assert output == "Editor not found: nosuch (use a full path in the editor variable)", (
         "edit should explain how to fix a missing editor"
+    )
+
+
+@pytest.mark.parametrize(
+    "text, flows",
+    [
+        ("", {}),
+        ("tally=t kobold=kb", {"tally": "t", "kobold": "kb"}),
+        ("tally=t, kobold = kb ,wisp=l", {"tally": "t", "kobold": "kb", "wisp": "l"}),
+        ("broken tally=t", {"tally": "t"}),
+    ],
+)
+def test_flows_from_variable(text, flows):
+    assert flows_from(text) == flows, "flows should be name=keyword pairs separated by spaces or commas"
+
+
+def test_search_resolves_flow_aliases(capsys, env, db_file):
+    db_file.write_text("books | delany @kobold\n", encoding="utf-8")
+
+    [item, _] = json.loads(run(capsys, {**env, "flows": "kobold=kb"}, "search", "books"))["items"]
+
+    assert item["arg"] == "kb delany", "search should resolve @kobold through the flows variable"
+
+
+def test_alfred_replaces_process_with_osascript(mocker, capsys, env):
+    execvp = mocker.patch("stash.cli.os.execvp")
+
+    run(capsys, env, "alfred", "kb delany")
+
+    assert execvp.call_args_list == [mocker.call("osascript", ["osascript", *ALFRED_SEARCH, "kb delany"])], (
+        "alfred should ask Alfred to open with the query, passed as an argument rather than spliced into the script"
     )
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shlex
 import sys
 from typing import Callable, Mapping, NamedTuple, Optional, Sequence
@@ -12,12 +13,18 @@ from .matching import search
 DEFAULT_DB_FILE = "~/.config/stash/stash.txt"
 DEFAULT_EDITOR = "open -t {file}"
 DEFAULT_MAX_RESULTS = 50
+ALFRED_SEARCH = (
+    "-e", "on run argv",
+    "-e", 'tell application id "com.runningwithcrayons.Alfred" to search (item 1 of argv)',
+    "-e", "end run",
+)
 
 
 class Config(NamedTuple):
     db_file: str
     editor: str
     max_results: int
+    flows: dict[str, str]
 
 
 def config_from(env: Mapping[str, str]) -> Config:
@@ -25,14 +32,22 @@ def config_from(env: Mapping[str, str]) -> Config:
         db_file=os.path.expanduser(env.get("db_file") or DEFAULT_DB_FILE),
         editor=env.get("editor") or DEFAULT_EDITOR,
         max_results=int(env.get("max_results") or DEFAULT_MAX_RESULTS),
+        flows=flows_from(env.get("flows") or ""),
     )
+
+
+FLOW_PAIR = re.compile(r"([^\s=,]+)\s*=\s*([^\s=,]+)")
+
+
+def flows_from(text: str) -> dict[str, str]:
+    return dict(FLOW_PAIR.findall(text))
 
 
 def search_command(query: str, config: Config) -> str:
     entries = store.load_entries(config.db_file)
     words, *_ = SEPARATOR.split(query, 1)
     results = search(words, entries, config.max_results)
-    return alfred.render(alfred.search_feedback(results, entries, query.strip()))
+    return alfred.render(alfred.search_feedback(results, entries, query.strip(), config.flows))
 
 
 def add_command(raw: str, config: Config) -> str:
@@ -63,6 +78,10 @@ def open_command(target: str, config: Config) -> None:
     os.execvp("open", ["open", target])
 
 
+def alfred_command(query: str, config: Config) -> None:
+    os.execvp("osascript", ["osascript", *ALFRED_SEARCH, query])
+
+
 def editor_argv(template: str, file: str, line: str) -> list[str]:
     return [part.replace("{file}", file).replace("{line}", line) for part in shlex.split(template)]
 
@@ -75,6 +94,7 @@ COMMANDS: dict[str, Command] = {
     "delete": delete_command,
     "edit": edit_command,
     "open": open_command,
+    "alfred": alfred_command,
 }
 
 USAGE = f"usage: run.py {{{','.join(COMMANDS)}}} [argument]"

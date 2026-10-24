@@ -14,18 +14,21 @@ def uid(name):
     return str(uuid.uuid5(uuid.NAMESPACE_URL, f"com.vlnn.stash/{name}")).upper()
 
 
-COPY, PASTE, EDIT, DELETE, ADD, OPEN, NOTIFY, ROUTE, ROUTE_ADD, ROUTE_OPEN = map(
-    uid, ("copy", "paste", "edit", "delete", "add", "open", "notify", "route", "route-add", "route-open")
+COPY, PASTE, EDIT, DELETE, ADD, OPEN, ALFRED, NOTIFY, ROUTE = map(
+    uid, ("copy", "paste", "edit", "delete", "add", "open", "alfred", "notify", "route")
 )
+ROUTES = {"add": (ADD, uid("route-add")), "open": (OPEN, uid("route-open")), "alfred": (ALFRED, uid("route-alfred"))}
 
 README = """Fuzzy keyword search over a plain-text stash you own.
 
 st / sta / stash <words>   search; words match in any order, as whole words, prefixes,
                            substrings or in-word letters (stg → staging)
                            the last result adds what you typed; type | and it becomes the first
-                           ↩ copy, or open a URL/path, or add  ⇧↩ paste  ⌘↩ edit  ⌥↩ delete
+                           ↩ copy, or open a URL/path, or hand "text @keyword" to another
+                           workflow, or add  ⇧↩ paste  ⌘↩ edit  ⌥↩ delete
 
 Entries are lines of  words | payload ; without a | the whole line is both.
+flows: aliases for @words, e.g. "tally=t kobold=kb wisp=l".
 
 Variables: db_file (stash path), editor (command template with {file} and {line}),
 max_results, python (interpreter, 3.9+).
@@ -105,7 +108,7 @@ ROUTER = {
                 "outputlabel": action,
                 "uid": output_uid,
             }
-            for action, output_uid in (("add", ROUTE_ADD), ("open", ROUTE_OPEN))
+            for action, (_, output_uid) in ROUTES.items()
         ],
         "elselabel": "copy",
         "hideelse": False,
@@ -148,13 +151,14 @@ WORKFLOW = {
     "disabled": False,
     "name": "Stash",
     "readme": README,
-    "version": "2.1.0",
+    "version": "2.2.0",
     "webaddress": "",
     "variables": {
         "db_file": DEFAULT_DB_FILE,
         "editor": DEFAULT_EDITOR,
         "max_results": str(DEFAULT_MAX_RESULTS),
         "python": "/usr/bin/python3",
+        "flows": "",
     },
     "variablesdontexport": [],
     "objects": [
@@ -166,11 +170,12 @@ WORKFLOW = {
         run_script(DELETE, "delete"),
         run_script(ADD, "add"),
         run_script(OPEN, "open"),
+        run_script(ALFRED, "alfred"),
         NOTIFICATION,
     ],
     "connections": {
         **{uid(f"search-{keyword}"): SEARCH_LINKS for keyword in SEARCH_KEYWORDS},
-        ROUTE: [link(ADD, output_uid=ROUTE_ADD), link(OPEN, output_uid=ROUTE_OPEN), link(COPY)],
+        ROUTE: [*(link(target, output_uid=output_uid) for target, output_uid in ROUTES.values()), link(COPY)],
         EDIT: [link(NOTIFY)],
         DELETE: [link(NOTIFY)],
         ADD: [link(NOTIFY)],
@@ -181,6 +186,7 @@ WORKFLOW = {
         COPY: {"xpos": 600, "ypos": 40},
         ADD: {"xpos": 600, "ypos": 170},
         OPEN: {"xpos": 600, "ypos": 300},
+        ALFRED: {"xpos": 600, "ypos": 430},
         PASTE: {"xpos": 330, "ypos": 300},
         EDIT: {"xpos": 330, "ypos": 430},
         DELETE: {"xpos": 330, "ypos": 560},

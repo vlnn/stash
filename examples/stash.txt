@@ -21,6 +21,11 @@ docs python re            | https://docs.python.org/3/library/re.html
 notes folder              | ~/notes
 tally open                | alfred://runtrigger/com.anokhin.tally/open/
 
+# hand-offs: enter opens Alfred with the other workflow's keyword (set flows = "tally=t kobold=kb wisp=l")
+delany books              | delany @kobold
+lexer task                | parser lexer @tally
+log it                    | @wisp
+
 # text: enter copies
 email work                | name.surname@example.com
 address home              | 221B Baker Street, London NW1 6XE
