@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import shlex
+import subprocess
 import sys
 from typing import Callable, Mapping, NamedTuple, Optional, Sequence
 
@@ -78,8 +79,15 @@ def open_command(target: str, config: Config) -> None:
     os.execvp("open", ["open", target])
 
 
-def alfred_command(query: str, config: Config) -> None:
-    os.execvp("osascript", ["osascript", *ALFRED_SEARCH, query])
+def alfred_command(query: str, config: Config) -> Optional[str]:
+    result = subprocess.run(["osascript", *ALFRED_SEARCH, query], capture_output=True, text=True)
+    if result.returncode == 0:
+        return None
+    quoted = query.replace("\\", "\\\\").replace('"', '\\"')
+    return (
+        "macOS has not let Stash drive Alfred yet. Run this once in Terminal and allow it: "
+        f"osascript -e 'tell application id \"com.runningwithcrayons.Alfred\" to search \"{quoted}\"'"
+    )
 
 
 def editor_argv(template: str, file: str, line: str) -> list[str]:

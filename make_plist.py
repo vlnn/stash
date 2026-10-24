@@ -151,7 +151,7 @@ WORKFLOW = {
     "disabled": False,
     "name": "Stash",
     "readme": README,
-    "version": "2.2.0",
+    "version": "2.2.1",
     "webaddress": "",
     "variables": {
         "db_file": DEFAULT_DB_FILE,
@@ -179,6 +179,7 @@ WORKFLOW = {
         EDIT: [link(NOTIFY)],
         DELETE: [link(NOTIFY)],
         ADD: [link(NOTIFY)],
+        ALFRED: [link(NOTIFY)],
     },
     "uidata": {
         **{uid(f"search-{keyword}"): {"xpos": 40, "ypos": 40 + 130 * index} for index, keyword in enumerate(SEARCH_KEYWORDS)},

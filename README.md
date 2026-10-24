@@ -42,6 +42,11 @@ Requirements: Alfred 5 with the Powerpack, and Python 3.9 or newer. There are no
 1. Double-click `Stash.alfredworkflow` and press **Import**.
 2. Python: the default is `/usr/bin/python3`, which macOS provides once the Xcode Command Line Tools are installed (`xcode-select --install`). To use another interpreter, set the `python` variable to its **absolute path**, for example `/opt/homebrew/bin/python3` or the output of `uv python find 3.12`.
 3. Optionally point `db_file` at an existing file and set `editor` (see [Configuration](#configuration)).
+4. If you will use `@keyword` hand-offs, run this once in Terminal and click **OK** when macOS asks whether Alfred may control Alfred:
+   ```
+   osascript -e 'tell application id "com.runningwithcrayons.Alfred" to search "st"'
+   ```
+   macOS asks the first time one app drives another through AppleScript, and when the request comes from a workflow script the dialog can fail to appear. Running it from Terminal makes it show up; the permission is remembered. If you skip this, the first hand-off posts a notification with the same line.
 
 ## Quick start
 
@@ -176,6 +181,8 @@ delany @kb                  st delany ↩  →  Alfred shows  kb delany   (kobol
 parser lexer @t             st parser ↩  →  Alfred shows  t parser lexer   (tally offers to start it)
 @l                          st @l ↩      →  Alfred shows  l   (wisp, newest first)
 ```
+
+The first hand-off needs a one-time macOS permission (step 4 of [Install](#install)); until it is granted, ↩ posts a notification with the Terminal line that triggers the dialog, instead of silently doing nothing.
 
 Write workflow names instead of keywords by listing aliases in the `flows` variable, for example `tally=t kobold=kb wisp=l`; then `parser lexer @tally` means the same as `parser lexer @t`. The subtitle shows the resolved call (`Alfred · t parser lexer`), and ⌘C still copies the payload as written.
 
@@ -330,7 +337,7 @@ What keeps it fast:
 
 ```bash
 uv sync
-uv run pytest                                       # 213 tests
+uv run pytest                                       # 215 tests
 uv run --python 3.9 --isolated --with pytest --with pytest-mock pytest   # what /usr/bin/python3 is on macOS
 uv run python bench.py                              # latency per keystroke
 uv run python make_plist.py                         # regenerate info.plist after changing keywords or wiring

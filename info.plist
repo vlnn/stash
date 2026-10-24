@@ -225,6 +225,19 @@
 				<false/>
 			</dict>
 		</array>
+		<key>F8EA80FA-FBF3-5E63-9B0A-0B4593040827</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>589BBDD8-105A-5AD0-ACB3-A7ACDCC1FC90</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
 	</dict>
 	<key>createdby</key>
 	<string>vlnn</string>
@@ -736,7 +749,7 @@ max_results, python (interpreter, 3.9+).
 	<key>variablesdontexport</key>
 	<array/>
 	<key>version</key>
-	<string>2.2.0</string>
+	<string>2.2.1</string>
 	<key>webaddress</key>
 	<string></string>
 </dict>

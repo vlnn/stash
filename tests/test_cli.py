@@ -199,13 +199,26 @@ def test_search_resolves_flow_aliases(capsys, env, db_file):
     assert item["arg"] == "kb delany", "search should resolve @kobold through the flows variable"
 
 
-def test_alfred_replaces_process_with_osascript(mocker, capsys, env):
-    execvp = mocker.patch("stash.cli.os.execvp")
+def test_alfred_asks_alfred_to_search(mocker, capsys, env):
+    run_process = mocker.patch("stash.cli.subprocess.run", return_value=mocker.Mock(returncode=0, stderr=""))
 
-    run(capsys, env, "alfred", "kb delany")
+    output = run(capsys, env, "alfred", "kb delany")
 
-    assert execvp.call_args_list == [mocker.call("osascript", ["osascript", *ALFRED_SEARCH, "kb delany"])], (
-        "alfred should ask Alfred to open with the query, passed as an argument rather than spliced into the script"
+    assert run_process.call_args.args == (["osascript", *ALFRED_SEARCH, "kb delany"],), (
+        "alfred should pass the query as an argument rather than splice it into the script"
+    )
+    assert output == "", "a successful hand-off should stay silent"
+
+
+def test_alfred_explains_how_to_grant_automation_permission(mocker, capsys, env):
+    refused = mocker.Mock(returncode=1, stderr="execution error: Not authorized to send Apple events to Alfred. (-1743)")
+    mocker.patch("stash.cli.subprocess.run", return_value=refused)
+
+    output = run(capsys, env, "alfred", "kb delany")
+
+    assert output.startswith("macOS has not let Stash drive Alfred yet."), "a refused hand-off should say what happened"
+    assert "osascript -e 'tell application id \"com.runningwithcrayons.Alfred\" to search \"kb delany\"'" in output, (
+        "the notification should carry the exact Terminal line that triggers the permission dialog"
     )
 
 
