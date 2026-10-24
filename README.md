@@ -4,7 +4,7 @@ Fuzzy keyword search over a plain-text stash you own, as an Alfred workflow.
 
 - **Search** with any words, in any order, any subset of them, any part of a word: `st stg k8` finds *Kube switch to staging*.
 - **Add** by typing: whatever you searched for is always offered as a new entry, so a miss is one ↩ away from being stored.
-- **Own the data**: one entry per line in a text file you can edit, grep, sync and keep in git.
+- **Own the data**: one line per entry in a text file you can edit, grep, sync and keep in git. A line is searchable in full until you add a `|` to split what you search by from what you copy.
 - **Fast**: no dependencies, built to stay well under Alfred's "instant" threshold for a stash of a few thousand entries.
 
 ```
@@ -56,15 +56,23 @@ To explore with sample data first, set `db_file` to the `examples/stash.txt` tha
 
 ## The stash file
 
-Default location: `~/.config/stash/stash.txt`, created on the first add. One entry per line:
+Default location: `~/.config/stash/stash.txt`, created on the first add. One entry per line, and one rule:
+
+**A line is searchable in full, and copied in full, until you put a `|` in it.** Then the words *before* the first `|` are what you search by, and what comes after is what you see and copy, never searched.
 
 ```
-keywords | title | payload
+pihole update finished                                   every word searchable; copies itself
+ssh prod web | ssh deploy@10.0.1.5                       search by ssh/prod/web; copies the command
+ssh prod web | Prod web box | ssh deploy@10.0.1.5        same, shown as "Prod web box" (its words are searchable too)
 ```
+
+Use plain lines for notes, facts, anything short enough to read in the results. Add a `|` when the thing you want copied is long, cryptic or a URL, so its innards don't pollute search; add a second `|` when you also want a readable title.
+
+In full, a line is `keywords | title | payload`:
 
 | Field | Meaning |
 |---|---|
-| keywords | Words to search by, separated by spaces or commas. Required. |
+| keywords | Words to search by, separated by spaces or commas. The only required field. |
 | title | What Alfred shows as the result. Optional, defaults to the keywords. Its words are searchable too. |
 | payload | What ↩ copies. Optional, defaults to the keywords. **Never searched.** May contain `\|`. |
 
@@ -94,9 +102,10 @@ grafana api latency   | API latency dashboard     | https://grafana.example.com/
 email work            | Work email                | name.surname@example.com
 reply thanks review   | Thanks for the review     | Thanks for the review! I've addressed the comments, PTAL.
 
-# shortest forms
-wifi guest            | GuestNetwork-5G
+# plain lines: searchable in full, copied in full
+pihole update finished
 deploy checklist
+wifi guest            | GuestNetwork-5G
 ```
 
 ## Searching
@@ -128,7 +137,8 @@ The last result is always **Add: …** for what you typed (see [Adding entries](
 | `st grf lat` | API latency dashboard | `grf` is inside *grafana* |
 | `st thnk rev` | Thanks for the review | title words are searchable too |
 | `st кав` | Кава ☕ | Unicode works |
-| `st deploy` | deploy checklist | the ssh entries' payloads mention *deploy*, but payloads aren't searched |
+| `st finished` | pihole update finished | a plain line is searchable in full |
+| `st deploy` | deploy checklist | the ssh entries' payloads mention *deploy*, but text after a `\|` isn't searched |
 | `st ssh prod staging` | only *Add* | every query word must match |
 | `st kctx` | only *Add* | letters-in-order stays inside one word; type `st k ctx` |
 | `st stgaing` | only *Add* | swapped letters aren't tolerated, dropped letters are |
