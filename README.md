@@ -124,7 +124,7 @@ The last result is always **Add: …** for what you typed (see [Adding entries](
 | `st` | every entry, in file order | empty query browses the file |
 | `st prod` | ssh prod web, k8s ctx prod kube | whole-word match |
 | `st web ssh` | ssh prod web, ssh staging web | any order; prod is first in the file |
-| `st stg` | ssh staging web, k8s ctx staging kube, wifi guest GuestNetwork-5G | letters in order inside *staging*; the stray hit in *GuestNetwork-5G* ranks last |
+| `st stg` | ssh staging web, k8s ctx staging kube, wifi guest GuestNetwork-5G | letters in order inside *staging*; the same letters also occur inside *GuestNetwork-5G*, so it is listed too, last |
 | `st k8 prd` | k8s ctx prod kube | `k8` starts *k8s*, `prd` is inside *prod* |
 | `st lat` | grafana api latency | `lat` starts *latency* |
 | `st grf lat` | grafana api latency | `grf` is inside *grafana* |
