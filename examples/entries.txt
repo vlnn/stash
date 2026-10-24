@@ -1,0 +1,29 @@
+# Alfred DB: one entry per line   keywords | title | payload
+# Title and payload are optional. Lines starting with # are comments.
+# Only keywords and title words are searched, never the payload.
+
+# shell commands
+ssh prod web          | Prod web box              | ssh deploy@10.0.1.5
+ssh staging web       | Staging web box           | ssh deploy@10.0.2.5
+k8s ctx staging       | Kube switch to staging    | kubectl config use-context staging
+k8s ctx prod          | Kube switch to prod       | kubectl config use-context prod
+k8s pods failing      | Kube failing pods         | kubectl get pods -A --field-selector=status.phase!=Running
+git log graph         | Pretty git log            | git log --oneline --graph --decorate --all
+docker prune          | Docker clean everything   | docker system prune -af --volumes
+port listen who       | Who listens on port 8080  | lsof -nP -iTCP:8080 -sTCP:LISTEN | grep -v COMMAND
+uuid gen              ||                            uuidgen | tr A-Z a-z
+
+# links
+jira board sprint     | Sprint board              | https://example.atlassian.net/jira/software/projects/OPS/boards/1
+grafana api latency   | API latency dashboard     | https://grafana.example.com/d/api-latency
+docs python re        | Python re module docs     | https://docs.python.org/3/library/re.html
+
+# text snippets
+email work            | Work email                | name.surname@example.com
+address home          | Home address              | 221B Baker Street, London NW1 6XE
+reply thanks review   | Thanks for the review     | Thanks for the review! I've addressed the comments, PTAL.
+кава coffee           | Кава ☕                    | flat white, oat milk, no sugar
+
+# shortest forms
+wifi guest            | GuestNetwork-5G
+deploy checklist
