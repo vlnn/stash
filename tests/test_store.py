@@ -100,3 +100,23 @@ def test_ensure_file_keeps_existing_content(db_file):
     ensure_file(path)
 
     assert db_file.read_text(encoding="utf-8") == "a | A | 1\n", "ensure_file should never truncate the database"
+
+
+MIXED_ENCODING = "good | Good | 1\n".encode() + b"caf\xe9 latin1 | Bad byte | 2\n" + "last | Last | 3\n".encode()
+
+
+def test_delete_line_preserves_undecodable_bytes(db_file):
+    db_file.write_bytes(MIXED_ENCODING)
+
+    assert delete_line(str(db_file), "last | Last | 3") is True, "delete_line should work in a file with stray bytes"
+    assert db_file.read_bytes() == b"good | Good | 1\ncaf\xe9 latin1 | Bad byte | 2\n", (
+        "delete_line should write undecodable bytes back exactly as they were"
+    )
+
+
+def test_append_line_after_undecodable_bytes(db_file):
+    db_file.write_bytes(b"caf\xe9 | x | y")
+
+    append_line(str(db_file), "new | New | 1")
+
+    assert db_file.read_bytes() == b"caf\xe9 | x | y\nnew | New | 1\n", "append_line should not choke on stray bytes"

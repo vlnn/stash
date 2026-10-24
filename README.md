@@ -70,7 +70,7 @@ Rules:
 - To skip the title but keep a piped payload, leave the title empty: `uuid gen || uuidgen | tr A-Z a-z`.
 - Lines starting with `#` and blank lines are ignored, so comment and group freely.
 - Whitespace around fields is ignored, so you can align columns.
-- The file is UTF-8; keywords in any script work (`кава coffee`).
+- The file is UTF-8; keywords in any script work (`кава coffee`). A stray non-UTF-8 byte won't break search, and add or delete keep such bytes exactly as they were.
 
 A sample of what a real file can look like (the full one is in `examples/entries.txt`):
 
@@ -288,7 +288,7 @@ What keeps it fast:
 
 ```bash
 uv sync
-uv run pytest                                       # 169 tests
+uv run pytest                                       # 173 tests
 uv run --python 3.9 --isolated --with pytest --with pytest-mock pytest   # what /usr/bin/python3 is on macOS
 uv run python bench.py                              # latency per keystroke
 ```

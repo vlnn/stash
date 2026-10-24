@@ -4,6 +4,7 @@ import os
 from typing import Optional
 
 ENCODING = "utf-8"
+ERRORS = "surrogateescape"
 
 
 def read_bytes(path: str) -> bytes:
@@ -14,8 +15,16 @@ def read_bytes(path: str) -> bytes:
         return b""
 
 
+def decode(data: bytes) -> str:
+    return data.decode(ENCODING, ERRORS)
+
+
+def encode(text: str) -> bytes:
+    return text.encode(ENCODING, ERRORS)
+
+
 def read_text(path: str) -> str:
-    return read_bytes(path).decode(ENCODING)
+    return decode(read_bytes(path))
 
 
 def ensure_parent(path: str) -> None:
@@ -28,10 +37,10 @@ def ensure_file(path: str) -> None:
 
 
 def append_line(path: str, line: str) -> None:
-    existing = read_text(path)
-    separator = "\n" if existing and not existing.endswith("\n") else ""
+    existing = read_bytes(path)
+    separator = "\n" if existing and not existing.endswith(b"\n") else ""
     ensure_parent(path)
-    with open(path, "a", encoding=ENCODING) as file:
+    with open(path, "a", encoding=ENCODING, errors=ERRORS) as file:
         file.write(f"{separator}{line}\n")
 
 
@@ -40,7 +49,7 @@ def delete_line(path: str, target: str) -> bool:
     index = find_line(lines, target)
     if index is None:
         return False
-    write_atomically(path, "".join(lines[:index] + lines[index + 1:]).encode(ENCODING))
+    write_atomically(path, encode("".join(lines[:index] + lines[index + 1:])))
     return True
 
 

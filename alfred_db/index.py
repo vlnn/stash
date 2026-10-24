@@ -7,7 +7,7 @@ from contextlib import suppress
 from typing import NamedTuple, Optional
 
 from .matching import haystack_of
-from .store import ENCODING, read_bytes, write_atomically
+from .store import decode, read_bytes, write_atomically
 
 LINE_SEPARATOR = "\n"
 
@@ -23,7 +23,7 @@ class Index(NamedTuple):
 
 def load_index(db_path: str, cache_dir: str) -> Index:
     content = read_bytes(db_path)
-    lines = content.decode(ENCODING).split(LINE_SEPARATOR)
+    lines = decode(content).split(LINE_SEPARATOR)
     cache_path = cache_path_for(cache_dir, db_path)
     fingerprint = zlib.crc32(content)
     haystacks = cached_haystacks(cache_path, fingerprint, len(lines))

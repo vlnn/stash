@@ -193,3 +193,11 @@ def test_main_rejects_unknown_command(env, argv):
         main(argv, env)
 
     assert "usage" in str(exit_info.value), "main should print usage for unknown commands"
+
+
+def test_search_survives_undecodable_bytes(capsys, env, db_file):
+    db_file.write_bytes(DATABASE.encode() + b"caf\xe9 | Latin-1 line | x\n")
+
+    assert item_titles(run(capsys, env, "search", "")) == ["Prod web box", "Guest wifi", "Latin-1 line"], (
+        "search should still list entries when the file has a non-UTF-8 byte"
+    )

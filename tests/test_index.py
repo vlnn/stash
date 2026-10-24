@@ -88,3 +88,12 @@ def test_load_index_works_without_writable_cache(db_file, tmp_path):
     assert load_index(str(db_file), str(blocker / "cache")).has_entries, (
         "load_index should still search when the cache cannot be written"
     )
+
+
+def test_load_index_tolerates_undecodable_bytes(db_file, cache_dir):
+    db_file.write_bytes("good | Good | 1\n".encode() + b"caf\xe9 latin1 | Bad byte | 2\n")
+
+    for attempt in ("fresh", "cached"):
+        assert load_index(str(db_file), cache_dir).haystacks[0] == " good ", (
+            f"load_index ({attempt}) should index valid lines despite a stray byte elsewhere"
+        )
