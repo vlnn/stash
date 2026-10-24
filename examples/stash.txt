@@ -1,4 +1,4 @@
-# Alfred DB: one entry per line   keywords | title | payload
+# Stash: one entry per line   keywords | title | payload
 # Title and payload are optional. Lines starting with # are comments.
 # Only keywords and title words are searched, never the payload.
 

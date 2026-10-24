@@ -1,7 +1,7 @@
 import pytest
 
-from alfred_db.entries import parse_line
-from alfred_db.matching import EXACT, NO_MATCH, PREFIX, SUBSEQUENCE, SUBSTRING, search, tier, token_pattern
+from stash.entries import parse_line
+from stash.matching import EXACT, NO_MATCH, PREFIX, SUBSEQUENCE, SUBSTRING, search, tier, token_pattern
 
 LINES = [
     "ssh prod web | Prod web box | ssh deploy@10.0.1.5",

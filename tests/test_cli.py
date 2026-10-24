@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from alfred_db.cli import DEFAULT_DB_FILE, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS, config_from, editor_argv, main
+from stash.cli import DEFAULT_DB_FILE, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS, config_from, editor_argv, main
 
 DATABASE = "ssh prod web | Prod web box | ssh deploy@10.0.1.5\nwifi guest | Guest wifi | hunter2\n"
 
@@ -50,11 +50,12 @@ def test_config_from_environment(env, expected):
 @pytest.mark.parametrize(
     "argv, expected",
     [
-        (["search", "prod"], ["Prod web box"]),
-        (["search", "web", "prod"], ["Prod web box"]),
+        (["search", "prod"], ["Prod web box", "Add: prod"]),
+        (["search", "web", "prod"], ["Prod web box", "Add: web prod"]),
         (["search", ""], ["Prod web box", "Guest wifi"]),
         (["search"], ["Prod web box", "Guest wifi"]),
-        (["search", "zzz"], ["No match for 'zzz'"]),
+        (["search", "zzz"], ["Add: zzz"]),
+        (["search", "prod | Prod box | ssh prod"], ["Add: Prod box", "Prod web box"]),
     ],
 )
 def test_search_prints_alfred_items(capsys, env, argv, expected):
@@ -67,10 +68,16 @@ def test_search_limits_results(capsys, env):
     )
 
 
-def test_search_on_missing_database_explains_how_to_add(capsys, tmp_path):
+def test_search_on_missing_database_offers_to_add(capsys, tmp_path):
     output = run(capsys, {"db_file": str(tmp_path / "none.txt")}, "search", "x")
 
-    assert item_titles(output) == ["The database is empty"], "search should guide the user on an empty database"
+    assert item_titles(output) == ["Add: x"], "search on an empty stash should offer to add the query"
+
+
+def test_search_on_missing_database_with_empty_query_says_so(capsys, tmp_path):
+    output = run(capsys, {"db_file": str(tmp_path / "none.txt")}, "search", "")
+
+    assert item_titles(output) == ["The stash is empty"], "search should guide the user on an empty stash"
 
 
 def test_search_survives_undecodable_bytes(capsys, env, db_file):
@@ -78,12 +85,6 @@ def test_search_survives_undecodable_bytes(capsys, env, db_file):
 
     assert item_titles(run(capsys, env, "search", "")) == ["Prod web box", "Guest wifi", "Latin-1 line"], (
         "search should still list entries when the file has a non-UTF-8 byte"
-    )
-
-
-def test_preview_prints_single_add_item(capsys, env):
-    assert item_titles(run(capsys, env, "preview", "k8s | Kube | kubectl")) == ["Add: Kube"], (
-        "preview should show what will be added"
     )
 
 
@@ -107,14 +108,14 @@ def test_add_rejects_invalid_entry(capsys, env, db_file, raw):
 def test_added_entry_is_searchable(capsys, env):
     run(capsys, env, "add", "k8s ctx | Kube | kubectl ctx")
 
-    assert item_titles(run(capsys, env, "search", "kub")) == ["Kube"], "a freshly added entry should be found"
+    assert item_titles(run(capsys, env, "search", "kub"))[0] == "Kube", "a freshly added entry should be found"
 
 
 @pytest.mark.parametrize(
     "raw, expected_output, expected_titles",
     [
         ("wifi guest | Guest wifi | hunter2", "Deleted: wifi guest | Guest wifi | hunter2", ["Prod web box"]),
-        ("gone | Gone | x", "Not deleted: entry not found, the file may have changed", ["Prod web box", "Guest wifi"]),
+        ("gone | Gone | x", "Not deleted: entry not found, the stash may have changed", ["Prod web box", "Guest wifi"]),
     ],
 )
 def test_delete(capsys, env, raw, expected_output, expected_titles):
@@ -139,7 +140,7 @@ def test_editor_argv(template, file, line, argv):
 
 @pytest.mark.parametrize("argv, line", [(["edit", "12"], "12"), (["edit"], "1"), (["edit", ""], "1")])
 def test_edit_replaces_process_with_editor(mocker, capsys, env, db_file, argv, line):
-    execvp = mocker.patch("alfred_db.cli.os.execvp")
+    execvp = mocker.patch("stash.cli.os.execvp")
 
     run(capsys, {**env, "editor": "code -g {file}:{line}"}, *argv)
 
@@ -149,7 +150,7 @@ def test_edit_replaces_process_with_editor(mocker, capsys, env, db_file, argv, l
 
 
 def test_edit_creates_missing_database(mocker, capsys, tmp_path):
-    mocker.patch("alfred_db.cli.os.execvp")
+    mocker.patch("stash.cli.os.execvp")
     path = tmp_path / "new" / "entries.txt"
 
     run(capsys, {"db_file": str(path)}, "edit")
@@ -158,7 +159,7 @@ def test_edit_creates_missing_database(mocker, capsys, tmp_path):
 
 
 def test_edit_reports_missing_editor(mocker, capsys, env):
-    mocker.patch("alfred_db.cli.os.execvp", side_effect=FileNotFoundError)
+    mocker.patch("stash.cli.os.execvp", side_effect=FileNotFoundError)
 
     output = run(capsys, {**env, "editor": "nosuch {file}"}, "edit")
 

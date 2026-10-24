@@ -1,6 +1,6 @@
 import pytest
 
-from alfred_db.entries import Entry, parse_line, split_words
+from stash.entries import Entry, parse_line, split_words
 
 
 @pytest.mark.parametrize(

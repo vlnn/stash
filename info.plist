@@ -3,16 +3,16 @@
 <plist version="1.0">
 <dict>
 	<key>bundleid</key>
-	<string>com.vlnn.alfred-db</string>
+	<string>com.vlnn.stash</string>
 	<key>category</key>
 	<string>Productivity</string>
 	<key>connections</key>
 	<dict>
-		<key>A1D0B0E1-5E7A-4C1A-9C11-000000000001</key>
+		<key>07052A0A-EA3C-5AAA-8DAF-97E38944412B</key>
 		<array>
 			<dict>
 				<key>destinationuid</key>
-				<string>A1D0B0E1-5E7A-4C1A-9C11-000000000002</string>
+				<string>10640460-85C2-5B36-9CA9-ECB591FD52E9</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
@@ -22,7 +22,7 @@
 			</dict>
 			<dict>
 				<key>destinationuid</key>
-				<string>A1D0B0E1-5E7A-4C1A-9C11-000000000003</string>
+				<string>7161F0FE-F7F5-5324-8220-38798B1A251E</string>
 				<key>modifiers</key>
 				<integer>131072</integer>
 				<key>modifiersubtext</key>
@@ -32,17 +32,17 @@
 			</dict>
 			<dict>
 				<key>destinationuid</key>
-				<string>A1D0B0E1-5E7A-4C1A-9C11-000000000004</string>
+				<string>B24AF75F-20D9-52B3-9865-7E229D961DC7</string>
 				<key>modifiers</key>
 				<integer>1048576</integer>
 				<key>modifiersubtext</key>
-				<string>Edit this entry</string>
+				<string>Edit in your editor</string>
 				<key>vitoclose</key>
 				<false/>
 			</dict>
 			<dict>
 				<key>destinationuid</key>
-				<string>A1D0B0E1-5E7A-4C1A-9C11-000000000005</string>
+				<string>BCF27A11-BFFD-5C9A-AEED-FB0DCFDC9D1B</string>
 				<key>modifiers</key>
 				<integer>524288</integer>
 				<key>modifiersubtext</key>
@@ -51,11 +51,23 @@
 				<false/>
 			</dict>
 		</array>
-		<key>A1D0B0E1-5E7A-4C1A-9C11-000000000004</key>
+		<key>10640460-85C2-5B36-9CA9-ECB591FD52E9</key>
 		<array>
 			<dict>
 				<key>destinationuid</key>
-				<string>A1D0B0E1-5E7A-4C1A-9C11-000000000009</string>
+				<string>8B390257-0862-5AFF-A754-51D5FE1662E2</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>30F49DCE-4D4B-57C9-BFFB-A26E1227A181</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>0B9EA1E8-7FC4-53A0-A088-B7B15EE58172</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
@@ -64,11 +76,54 @@
 				<false/>
 			</dict>
 		</array>
-		<key>A1D0B0E1-5E7A-4C1A-9C11-000000000005</key>
+		<key>22FD770C-FFFB-5399-9E7D-2B5E9EFB269A</key>
 		<array>
 			<dict>
 				<key>destinationuid</key>
-				<string>A1D0B0E1-5E7A-4C1A-9C11-000000000009</string>
+				<string>10640460-85C2-5B36-9CA9-ECB591FD52E9</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>7161F0FE-F7F5-5324-8220-38798B1A251E</string>
+				<key>modifiers</key>
+				<integer>131072</integer>
+				<key>modifiersubtext</key>
+				<string>Paste into the frontmost app</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>B24AF75F-20D9-52B3-9865-7E229D961DC7</string>
+				<key>modifiers</key>
+				<integer>1048576</integer>
+				<key>modifiersubtext</key>
+				<string>Edit in your editor</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>BCF27A11-BFFD-5C9A-AEED-FB0DCFDC9D1B</string>
+				<key>modifiers</key>
+				<integer>524288</integer>
+				<key>modifiersubtext</key>
+				<string>Delete this entry</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>8B390257-0862-5AFF-A754-51D5FE1662E2</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>589BBDD8-105A-5AD0-ACB3-A7ACDCC1FC90</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
@@ -77,11 +132,11 @@
 				<false/>
 			</dict>
 		</array>
-		<key>A1D0B0E1-5E7A-4C1A-9C11-000000000006</key>
+		<key>B24AF75F-20D9-52B3-9865-7E229D961DC7</key>
 		<array>
 			<dict>
 				<key>destinationuid</key>
-				<string>A1D0B0E1-5E7A-4C1A-9C11-000000000007</string>
+				<string>589BBDD8-105A-5AD0-ACB3-A7ACDCC1FC90</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
@@ -90,11 +145,11 @@
 				<false/>
 			</dict>
 		</array>
-		<key>A1D0B0E1-5E7A-4C1A-9C11-000000000007</key>
+		<key>BCF27A11-BFFD-5C9A-AEED-FB0DCFDC9D1B</key>
 		<array>
 			<dict>
 				<key>destinationuid</key>
-				<string>A1D0B0E1-5E7A-4C1A-9C11-000000000009</string>
+				<string>589BBDD8-105A-5AD0-ACB3-A7ACDCC1FC90</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
@@ -103,15 +158,45 @@
 				<false/>
 			</dict>
 		</array>
-		<key>A1D0B0E1-5E7A-4C1A-9C11-000000000008</key>
+		<key>E1E2F735-334C-58B8-8896-AE45835C573C</key>
 		<array>
 			<dict>
 				<key>destinationuid</key>
-				<string>A1D0B0E1-5E7A-4C1A-9C11-000000000004</string>
+				<string>10640460-85C2-5B36-9CA9-ECB591FD52E9</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
 				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>7161F0FE-F7F5-5324-8220-38798B1A251E</string>
+				<key>modifiers</key>
+				<integer>131072</integer>
+				<key>modifiersubtext</key>
+				<string>Paste into the frontmost app</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>B24AF75F-20D9-52B3-9865-7E229D961DC7</string>
+				<key>modifiers</key>
+				<integer>1048576</integer>
+				<key>modifiersubtext</key>
+				<string>Edit in your editor</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>BCF27A11-BFFD-5C9A-AEED-FB0DCFDC9D1B</string>
+				<key>modifiers</key>
+				<integer>524288</integer>
+				<key>modifiersubtext</key>
+				<string>Delete this entry</string>
 				<key>vitoclose</key>
 				<false/>
 			</dict>
@@ -120,11 +205,11 @@
 	<key>createdby</key>
 	<string>vlnn</string>
 	<key>description</key>
-	<string>Fuzzy keyword search over a plain-text database</string>
+	<string>Fuzzy keyword search over a plain-text stash</string>
 	<key>disabled</key>
 	<false/>
 	<key>name</key>
-	<string>Alfred DB</string>
+	<string>Stash</string>
 	<key>objects</key>
 	<array>
 		<dict>
@@ -143,7 +228,7 @@
 				<key>escaping</key>
 				<integer>102</integer>
 				<key>keyword</key>
-				<string>db</string>
+				<string>st</string>
 				<key>queuedelaycustom</key>
 				<integer>3</integer>
 				<key>queuedelayimmediatelyinitially</key>
@@ -161,9 +246,9 @@
 				<key>scriptfile</key>
 				<string></string>
 				<key>subtext</key>
-				<string>Fuzzy search keywords and titles</string>
+				<string>Fuzzy search keywords and titles; the last result adds what you typed</string>
 				<key>title</key>
-				<string>Search Alfred DB</string>
+				<string>Search the stash</string>
 				<key>type</key>
 				<integer>0</integer>
 				<key>withspace</key>
@@ -172,7 +257,7 @@
 			<key>type</key>
 			<string>alfred.workflow.input.scriptfilter</string>
 			<key>uid</key>
-			<string>A1D0B0E1-5E7A-4C1A-9C11-000000000001</string>
+			<string>07052A0A-EA3C-5AAA-8DAF-97E38944412B</string>
 			<key>version</key>
 			<integer>3</integer>
 		</dict>
@@ -188,11 +273,11 @@
 				<key>argumenttrimmode</key>
 				<integer>0</integer>
 				<key>argumenttype</key>
-				<integer>0</integer>
+				<integer>1</integer>
 				<key>escaping</key>
 				<integer>102</integer>
 				<key>keyword</key>
-				<string>db+</string>
+				<string>sta</string>
 				<key>queuedelaycustom</key>
 				<integer>3</integer>
 				<key>queuedelayimmediatelyinitially</key>
@@ -202,17 +287,17 @@
 				<key>queuemode</key>
 				<integer>2</integer>
 				<key>runningsubtext</key>
-				<string>Parsing…</string>
+				<string>Searching…</string>
 				<key>script</key>
-				<string>exec "${python:-/usr/bin/python3}" -S -X utf8 run.py preview "$1"</string>
+				<string>exec "${python:-/usr/bin/python3}" -S -X utf8 run.py search "$1"</string>
 				<key>scriptargtype</key>
 				<integer>1</integer>
 				<key>scriptfile</key>
 				<string></string>
 				<key>subtext</key>
-				<string>keywords | title | payload</string>
+				<string>Fuzzy search keywords and titles; the last result adds what you typed</string>
 				<key>title</key>
-				<string>Add to Alfred DB</string>
+				<string>Search the stash</string>
 				<key>type</key>
 				<integer>0</integer>
 				<key>withspace</key>
@@ -221,9 +306,90 @@
 			<key>type</key>
 			<string>alfred.workflow.input.scriptfilter</string>
 			<key>uid</key>
-			<string>A1D0B0E1-5E7A-4C1A-9C11-000000000006</string>
+			<string>22FD770C-FFFB-5399-9E7D-2B5E9EFB269A</string>
 			<key>version</key>
 			<integer>3</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>alfredfiltersresults</key>
+				<false/>
+				<key>alfredfiltersresultsmatchmode</key>
+				<integer>0</integer>
+				<key>argumenttreatemptyqueryasnil</key>
+				<true/>
+				<key>argumenttrimmode</key>
+				<integer>0</integer>
+				<key>argumenttype</key>
+				<integer>1</integer>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>keyword</key>
+				<string>stash</string>
+				<key>queuedelaycustom</key>
+				<integer>3</integer>
+				<key>queuedelayimmediatelyinitially</key>
+				<true/>
+				<key>queuedelaymode</key>
+				<integer>0</integer>
+				<key>queuemode</key>
+				<integer>2</integer>
+				<key>runningsubtext</key>
+				<string>Searching…</string>
+				<key>script</key>
+				<string>exec "${python:-/usr/bin/python3}" -S -X utf8 run.py search "$1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>subtext</key>
+				<string>Fuzzy search keywords and titles; the last result adds what you typed</string>
+				<key>title</key>
+				<string>Search the stash</string>
+				<key>type</key>
+				<integer>0</integer>
+				<key>withspace</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.scriptfilter</string>
+			<key>uid</key>
+			<string>E1E2F735-334C-58B8-8896-AE45835C573C</string>
+			<key>version</key>
+			<integer>3</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>conditions</key>
+				<array>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:action}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
+						<string>add</string>
+						<key>outputlabel</key>
+						<string>add</string>
+						<key>uid</key>
+						<string>30F49DCE-4D4B-57C9-BFFB-A26E1227A181</string>
+					</dict>
+				</array>
+				<key>elselabel</key>
+				<string>copy</string>
+				<key>hideelse</key>
+				<false/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.utility.conditional</string>
+			<key>uid</key>
+			<string>10640460-85C2-5B36-9CA9-ECB591FD52E9</string>
+			<key>version</key>
+			<integer>1</integer>
 		</dict>
 		<dict>
 			<key>config</key>
@@ -240,7 +406,7 @@
 			<key>type</key>
 			<string>alfred.workflow.output.clipboard</string>
 			<key>uid</key>
-			<string>A1D0B0E1-5E7A-4C1A-9C11-000000000002</string>
+			<string>0B9EA1E8-7FC4-53A0-A088-B7B15EE58172</string>
 			<key>version</key>
 			<integer>3</integer>
 		</dict>
@@ -259,7 +425,7 @@
 			<key>type</key>
 			<string>alfred.workflow.output.clipboard</string>
 			<key>uid</key>
-			<string>A1D0B0E1-5E7A-4C1A-9C11-000000000003</string>
+			<string>7161F0FE-F7F5-5324-8220-38798B1A251E</string>
 			<key>version</key>
 			<integer>3</integer>
 		</dict>
@@ -282,7 +448,7 @@
 			<key>type</key>
 			<string>alfred.workflow.action.script</string>
 			<key>uid</key>
-			<string>A1D0B0E1-5E7A-4C1A-9C11-000000000004</string>
+			<string>B24AF75F-20D9-52B3-9865-7E229D961DC7</string>
 			<key>version</key>
 			<integer>2</integer>
 		</dict>
@@ -305,7 +471,7 @@
 			<key>type</key>
 			<string>alfred.workflow.action.script</string>
 			<key>uid</key>
-			<string>A1D0B0E1-5E7A-4C1A-9C11-000000000005</string>
+			<string>BCF27A11-BFFD-5C9A-AEED-FB0DCFDC9D1B</string>
 			<key>version</key>
 			<integer>2</integer>
 		</dict>
@@ -328,30 +494,9 @@
 			<key>type</key>
 			<string>alfred.workflow.action.script</string>
 			<key>uid</key>
-			<string>A1D0B0E1-5E7A-4C1A-9C11-000000000007</string>
+			<string>8B390257-0862-5AFF-A754-51D5FE1662E2</string>
 			<key>version</key>
 			<integer>2</integer>
-		</dict>
-		<dict>
-			<key>config</key>
-			<dict>
-				<key>argumenttype</key>
-				<integer>2</integer>
-				<key>keyword</key>
-				<string>dbedit</string>
-				<key>subtext</key>
-				<string>Open the database in your editor</string>
-				<key>text</key>
-				<string>Edit Alfred DB</string>
-				<key>withspace</key>
-				<false/>
-			</dict>
-			<key>type</key>
-			<string>alfred.workflow.input.keyword</string>
-			<key>uid</key>
-			<string>A1D0B0E1-5E7A-4C1A-9C11-000000000008</string>
-			<key>version</key>
-			<integer>1</integer>
 		</dict>
 		<dict>
 			<key>config</key>
@@ -365,98 +510,106 @@
 				<key>text</key>
 				<string>{query}</string>
 				<key>title</key>
-				<string>Alfred DB</string>
+				<string>Stash</string>
 			</dict>
 			<key>type</key>
 			<string>alfred.workflow.output.notification</string>
 			<key>uid</key>
-			<string>A1D0B0E1-5E7A-4C1A-9C11-000000000009</string>
+			<string>589BBDD8-105A-5AD0-ACB3-A7ACDCC1FC90</string>
 			<key>version</key>
 			<integer>1</integer>
 		</dict>
 	</array>
 	<key>readme</key>
-	<string>Fuzzy keyword search over a plain-text database you own.
+	<string>Fuzzy keyword search over a plain-text stash you own.
 
-db &lt;words&gt;      search; words match keywords and title words in any order,
-                as whole words, prefixes, substrings or in-word letters (stg → staging)
-                ↩ copy  ⇧↩ paste  ⌘↩ edit line  ⌥↩ delete  ⌃ show keywords  ⌘L large type
-db+ &lt;entry&gt;     add "keywords | title | payload" (title and payload optional)
-dbedit          open the database in your editor
+st / sta / stash &lt;words&gt;   search; words match keywords and title words in any order,
+                           as whole words, prefixes, substrings or in-word letters (stg → staging)
+                           the last result adds what you typed; type a | and it becomes the first
+                           ↩ copy or add  ⇧↩ paste  ⌘↩ edit in editor  ⌥↩ delete  ⌃ show keywords
 
-Variables: db_file (database path), editor (command template with {file} and {line}),
+Entries are lines of  keywords | title | payload  (title and payload optional).
+
+Variables: db_file (stash path), editor (command template with {file} and {line}),
 max_results, python (interpreter, 3.9+).
 </string>
 	<key>uidata</key>
 	<dict>
-		<key>A1D0B0E1-5E7A-4C1A-9C11-000000000001</key>
+		<key>07052A0A-EA3C-5AAA-8DAF-97E38944412B</key>
 		<dict>
 			<key>xpos</key>
 			<integer>40</integer>
 			<key>ypos</key>
 			<integer>40</integer>
 		</dict>
-		<key>A1D0B0E1-5E7A-4C1A-9C11-000000000002</key>
-		<dict>
-			<key>xpos</key>
-			<integer>330</integer>
-			<key>ypos</key>
-			<integer>20</integer>
-		</dict>
-		<key>A1D0B0E1-5E7A-4C1A-9C11-000000000003</key>
-		<dict>
-			<key>xpos</key>
-			<integer>330</integer>
-			<key>ypos</key>
-			<integer>150</integer>
-		</dict>
-		<key>A1D0B0E1-5E7A-4C1A-9C11-000000000004</key>
-		<dict>
-			<key>xpos</key>
-			<integer>330</integer>
-			<key>ypos</key>
-			<integer>280</integer>
-		</dict>
-		<key>A1D0B0E1-5E7A-4C1A-9C11-000000000005</key>
-		<dict>
-			<key>xpos</key>
-			<integer>330</integer>
-			<key>ypos</key>
-			<integer>410</integer>
-		</dict>
-		<key>A1D0B0E1-5E7A-4C1A-9C11-000000000006</key>
-		<dict>
-			<key>xpos</key>
-			<integer>40</integer>
-			<key>ypos</key>
-			<integer>540</integer>
-		</dict>
-		<key>A1D0B0E1-5E7A-4C1A-9C11-000000000007</key>
-		<dict>
-			<key>xpos</key>
-			<integer>330</integer>
-			<key>ypos</key>
-			<integer>540</integer>
-		</dict>
-		<key>A1D0B0E1-5E7A-4C1A-9C11-000000000008</key>
-		<dict>
-			<key>xpos</key>
-			<integer>40</integer>
-			<key>ypos</key>
-			<integer>280</integer>
-		</dict>
-		<key>A1D0B0E1-5E7A-4C1A-9C11-000000000009</key>
+		<key>0B9EA1E8-7FC4-53A0-A088-B7B15EE58172</key>
 		<dict>
 			<key>xpos</key>
 			<integer>600</integer>
 			<key>ypos</key>
-			<integer>410</integer>
+			<integer>40</integer>
+		</dict>
+		<key>10640460-85C2-5B36-9CA9-ECB591FD52E9</key>
+		<dict>
+			<key>xpos</key>
+			<integer>330</integer>
+			<key>ypos</key>
+			<integer>60</integer>
+		</dict>
+		<key>22FD770C-FFFB-5399-9E7D-2B5E9EFB269A</key>
+		<dict>
+			<key>xpos</key>
+			<integer>40</integer>
+			<key>ypos</key>
+			<integer>170</integer>
+		</dict>
+		<key>589BBDD8-105A-5AD0-ACB3-A7ACDCC1FC90</key>
+		<dict>
+			<key>xpos</key>
+			<integer>870</integer>
+			<key>ypos</key>
+			<integer>300</integer>
+		</dict>
+		<key>7161F0FE-F7F5-5324-8220-38798B1A251E</key>
+		<dict>
+			<key>xpos</key>
+			<integer>330</integer>
+			<key>ypos</key>
+			<integer>300</integer>
+		</dict>
+		<key>8B390257-0862-5AFF-A754-51D5FE1662E2</key>
+		<dict>
+			<key>xpos</key>
+			<integer>600</integer>
+			<key>ypos</key>
+			<integer>170</integer>
+		</dict>
+		<key>B24AF75F-20D9-52B3-9865-7E229D961DC7</key>
+		<dict>
+			<key>xpos</key>
+			<integer>330</integer>
+			<key>ypos</key>
+			<integer>430</integer>
+		</dict>
+		<key>BCF27A11-BFFD-5C9A-AEED-FB0DCFDC9D1B</key>
+		<dict>
+			<key>xpos</key>
+			<integer>330</integer>
+			<key>ypos</key>
+			<integer>560</integer>
+		</dict>
+		<key>E1E2F735-334C-58B8-8896-AE45835C573C</key>
+		<dict>
+			<key>xpos</key>
+			<integer>40</integer>
+			<key>ypos</key>
+			<integer>300</integer>
 		</dict>
 	</dict>
 	<key>variables</key>
 	<dict>
 		<key>db_file</key>
-		<string>~/.config/alfred-db/entries.txt</string>
+		<string>~/.config/stash/stash.txt</string>
 		<key>editor</key>
 		<string>open -t {file}</string>
 		<key>max_results</key>
@@ -467,7 +620,7 @@ max_results, python (interpreter, 3.9+).
 	<key>variablesdontexport</key>
 	<array/>
 	<key>version</key>
-	<string>1.0.0</string>
+	<string>2.0.0</string>
 	<key>webaddress</key>
 	<string></string>
 </dict>

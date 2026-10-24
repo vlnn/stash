@@ -6,10 +6,10 @@ import sys
 from typing import Callable, Mapping, NamedTuple, Optional, Sequence
 
 from . import alfred, store
-from .entries import parse_line
+from .entries import FIELD_SEPARATOR, parse_line
 from .matching import search
 
-DEFAULT_DB_FILE = "~/.config/alfred-db/entries.txt"
+DEFAULT_DB_FILE = "~/.config/stash/stash.txt"
 DEFAULT_EDITOR = "open -t {file}"
 DEFAULT_MAX_RESULTS = 50
 
@@ -30,12 +30,9 @@ def config_from(env: Mapping[str, str]) -> Config:
 
 def search_command(query: str, config: Config) -> str:
     entries = store.load_entries(config.db_file)
-    results = search(query, entries, config.max_results)
+    keywords, *_ = query.split(FIELD_SEPARATOR, 1)
+    results = search(keywords, entries, config.max_results)
     return alfred.render(alfred.search_feedback(results, entries, query.strip()))
-
-
-def preview_command(raw: str, config: Config) -> str:
-    return alfred.render([alfred.add_preview_item(raw)])
 
 
 def add_command(raw: str, config: Config) -> str:
@@ -49,7 +46,7 @@ def add_command(raw: str, config: Config) -> str:
 def delete_command(raw: str, config: Config) -> str:
     if store.delete_line(config.db_file, raw):
         return f"Deleted: {raw.strip()}"
-    return "Not deleted: entry not found, the file may have changed"
+    return "Not deleted: entry not found, the stash may have changed"
 
 
 def edit_command(line_number: str, config: Config) -> Optional[str]:
@@ -70,7 +67,6 @@ Command = Callable[[str, Config], Optional[str]]
 
 COMMANDS: dict[str, Command] = {
     "search": search_command,
-    "preview": preview_command,
     "add": add_command,
     "delete": delete_command,
     "edit": edit_command,

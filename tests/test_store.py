@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from alfred_db.store import append_line, delete_line, ensure_file, load_entries, read_text
+from stash.store import append_line, delete_line, ensure_file, load_entries, read_text
 
 
 @pytest.fixture

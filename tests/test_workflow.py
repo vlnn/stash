@@ -4,8 +4,9 @@ import re
 
 import pytest
 
-from alfred_db.cli import COMMANDS, DEFAULT_DB_FILE, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS
+from stash.cli import COMMANDS, DEFAULT_DB_FILE, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS
 
+CMD, ALT, SHIFT = 1 << 20, 1 << 19, 1 << 17
 PLIST_PATH = os.path.join(os.path.dirname(__file__), os.pardir, "info.plist")
 
 
@@ -15,17 +16,41 @@ def workflow():
         return plistlib.load(file)
 
 
-def test_connections_reference_existing_objects(workflow):
-    objects = {item["uid"] for item in workflow["objects"]}
+@pytest.fixture(scope="module")
+def objects(workflow):
+    return {item["uid"]: item for item in workflow["objects"]}
+
+
+@pytest.fixture(scope="module")
+def search_filters(objects):
+    return [item for item in objects.values() if item["type"] == "alfred.workflow.input.scriptfilter"]
+
+
+@pytest.fixture(scope="module")
+def conditional(objects):
+    [item] = [item for item in objects.values() if item["type"] == "alfred.workflow.utility.conditional"]
+    return item
+
+
+def destinations(workflow, objects, source, modifiers=0, output_uid=None):
+    links = workflow["connections"].get(source["uid"], [])
+    return [
+        objects[link["destinationuid"]]
+        for link in links
+        if link["modifiers"] == modifiers and link.get("sourceoutputuid") == output_uid
+    ]
+
+
+def test_connections_reference_existing_objects(workflow, objects):
     linked = set(workflow["connections"]) | {
         link["destinationuid"] for links in workflow["connections"].values() for link in links
     }
 
-    assert linked <= objects, "every connection should join objects that exist in the workflow"
+    assert linked <= objects.keys(), "every connection should join objects that exist in the workflow"
 
 
-def test_scripts_call_known_commands_fast(workflow):
-    scripts = [item["config"]["script"] for item in workflow["objects"] if "script" in item["config"]]
+def test_scripts_call_known_commands_fast(objects):
+    scripts = [item["config"]["script"] for item in objects.values() if "script" in item["config"]]
 
     for script in scripts:
         command = re.search(r"run\.py (\S+)", script).group(1)
@@ -35,6 +60,66 @@ def test_scripts_call_known_commands_fast(workflow):
             "scripts should exec python without site imports to keep keystrokes fast"
         )
         assert '"$1"' in script, "scripts should take the query as a quoted argv argument"
+
+
+def test_every_search_keyword_runs_the_same_search(search_filters):
+    assert {item["config"]["keyword"] for item in search_filters} == {"st", "sta", "stash"}, (
+        "st, sta and stash should all open the stash"
+    )
+    assert {item["config"]["script"] for item in search_filters} == {
+        'exec "${python:-/usr/bin/python3}" -S -X utf8 run.py search "$1"'
+    }, "every search keyword should run the same search script"
+
+
+def test_search_filters_rank_themselves_and_cancel_stale_runs(search_filters):
+    for item in search_filters:
+        config = item["config"]
+
+        assert config["alfredfiltersresults"] is False, "the script ranks results itself"
+        assert config["queuemode"] == 2, "a stale run should be terminated on each keystroke"
+        assert config["argumenttype"] == 1, "the argument is optional so a bare keyword browses the stash"
+
+
+@pytest.mark.parametrize(
+    "modifiers, expected_type, detail",
+    [
+        (0, "alfred.workflow.utility.conditional", None),
+        (SHIFT, "alfred.workflow.output.clipboard", ("autopaste", True)),
+        (CMD, "alfred.workflow.action.script", ("script", "run.py edit")),
+        (ALT, "alfred.workflow.action.script", ("script", "run.py delete")),
+    ],
+)
+def test_every_search_keyword_shares_the_actions(workflow, objects, search_filters, modifiers, expected_type, detail):
+    for item in search_filters:
+        [target] = destinations(workflow, objects, item, modifiers)
+
+        assert target["type"] == expected_type, f"modifier {modifiers} should lead to {expected_type}"
+        if detail:
+            key, expected = detail
+            assert expected == target["config"][key] or expected in target["config"][key], (
+                f"modifier {modifiers} should configure {key} as {expected!r}"
+            )
+
+
+def test_conditional_routes_add_items_to_add_and_the_rest_to_copy(workflow, objects, conditional):
+    [condition] = conditional["config"]["conditions"]
+    [add_target] = destinations(workflow, objects, conditional, output_uid=condition["uid"])
+    [else_target] = destinations(workflow, objects, conditional)
+
+    assert (condition["inputstring"], condition["matchstring"]) == ("{var:action}", "add"), (
+        "the conditional should test the action variable set by the Add item"
+    )
+    assert "run.py add" in add_target["config"]["script"], "the add branch should run the add command"
+    assert else_target["type"] == "alfred.workflow.output.clipboard", "everything else should copy the payload"
+    assert else_target["config"]["autopaste"] is False, "plain enter copies without pasting"
+
+
+@pytest.mark.parametrize("command", ["add", "delete", "edit"])
+def test_command_output_is_shown_as_notification(workflow, objects, command):
+    [script] = [item for item in objects.values() if f"run.py {command}" in item["config"].get("script", "")]
+    [target] = destinations(workflow, objects, script)
+
+    assert target["type"] == "alfred.workflow.output.notification", f"{command} output should be posted as notification"
 
 
 @pytest.mark.parametrize(
