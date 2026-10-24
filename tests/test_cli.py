@@ -3,15 +3,7 @@ import os
 
 import pytest
 
-from alfred_db.cli import (
-    DEFAULT_CACHE_DIR,
-    DEFAULT_DB_FILE,
-    DEFAULT_EDITOR,
-    DEFAULT_MAX_RESULTS,
-    config_from,
-    editor_argv,
-    main,
-)
+from alfred_db.cli import DEFAULT_DB_FILE, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS, config_from, editor_argv, main
 
 DATABASE = "ssh prod web | Prod web box | ssh deploy@10.0.1.5\nwifi guest | Guest wifi | hunter2\n"
 
@@ -24,13 +16,8 @@ def db_file(tmp_path):
 
 
 @pytest.fixture
-def cache_dir(tmp_path):
-    return str(tmp_path / "cache")
-
-
-@pytest.fixture
-def env(db_file, cache_dir):
-    return {"db_file": str(db_file), "alfred_workflow_cache": cache_dir}
+def env(db_file):
+    return {"db_file": str(db_file)}
 
 
 def run(capsys, env, *argv):
@@ -42,27 +29,17 @@ def item_titles(output):
     return [item["title"] for item in json.loads(output)["items"]]
 
 
-DEFAULTS = (
-    os.path.expanduser(DEFAULT_DB_FILE),
-    DEFAULT_EDITOR,
-    DEFAULT_MAX_RESULTS,
-    os.path.expanduser(DEFAULT_CACHE_DIR),
-)
+DEFAULTS = (os.path.expanduser(DEFAULT_DB_FILE), DEFAULT_EDITOR, DEFAULT_MAX_RESULTS)
 
 
 @pytest.mark.parametrize(
     "env, expected",
     [
         ({}, DEFAULTS),
-        ({"db_file": "", "editor": "", "max_results": "", "alfred_workflow_cache": ""}, DEFAULTS),
+        ({"db_file": "", "editor": "", "max_results": ""}, DEFAULTS),
         (
-            {
-                "db_file": "~/db.txt",
-                "editor": "code -g {file}:{line}",
-                "max_results": "9",
-                "alfred_workflow_cache": "/alfred/cache",
-            },
-            (os.path.expanduser("~/db.txt"), "code -g {file}:{line}", 9, "/alfred/cache"),
+            {"db_file": "~/db.txt", "editor": "code -g {file}:{line}", "max_results": "9"},
+            (os.path.expanduser("~/db.txt"), "code -g {file}:{line}", 9),
         ),
     ],
 )
@@ -84,23 +61,24 @@ def test_search_prints_alfred_items(capsys, env, argv, expected):
     assert item_titles(run(capsys, env, *argv)) == expected, f"{argv} should print matching Alfred items"
 
 
-@pytest.mark.parametrize("argv", [["search", "prod"], ["preview", "k8s | Kube | kubectl"]])
-def test_script_filters_hand_database_to_actions(capsys, env, db_file, argv):
-    variables = json.loads(run(capsys, env, *argv))["variables"]
-
-    assert variables == {"db_file": str(db_file)}, "script filters should tell edit, delete and add which database to use"
-
-
 def test_search_limits_results(capsys, env):
     assert len(item_titles(run(capsys, {**env, "max_results": "1"}, "search", ""))) == 1, (
         "search should honour max_results"
     )
 
 
-def test_search_on_missing_database_explains_how_to_add(capsys, env, tmp_path):
-    output = run(capsys, {**env, "db_file": str(tmp_path / "none.txt")}, "search", "x")
+def test_search_on_missing_database_explains_how_to_add(capsys, tmp_path):
+    output = run(capsys, {"db_file": str(tmp_path / "none.txt")}, "search", "x")
 
     assert item_titles(output) == ["The database is empty"], "search should guide the user on an empty database"
+
+
+def test_search_survives_undecodable_bytes(capsys, env, db_file):
+    db_file.write_bytes(DATABASE.encode() + b"caf\xe9 | Latin-1 line | x\n")
+
+    assert item_titles(run(capsys, env, "search", "")) == ["Prod web box", "Guest wifi", "Latin-1 line"], (
+        "search should still list entries when the file has a non-UTF-8 byte"
+    )
 
 
 def test_preview_prints_single_add_item(capsys, env):
@@ -151,10 +129,12 @@ def test_delete(capsys, env, raw, expected_output, expected_titles):
         ("code -g {file}:{line}", "/db/e.txt", "3", ["code", "-g", "/db/e.txt:3"]),
         ("/usr/local/bin/subl {file}:{line}", "/my db/e.txt", "3", ["/usr/local/bin/subl", "/my db/e.txt:3"]),
         ("'/Applications/My Editor' +{line} {file}", "/db/e.txt", "7", ["/Applications/My Editor", "+7", "/db/e.txt"]),
+        ("vim '+{line}' {file}", "/db/{odd}.txt", "2", ["vim", "+2", "/db/{odd}.txt"]),
+        ("ed {typo} {file}", "/db/e.txt", "2", ["ed", "{typo}", "/db/e.txt"]),
     ],
 )
 def test_editor_argv(template, file, line, argv):
-    assert editor_argv(template, file, line) == argv, "editor_argv should fill the template without splitting paths"
+    assert editor_argv(template, file, line) == argv, "editor_argv should fill placeholders without choking on braces"
 
 
 @pytest.mark.parametrize("argv, line", [(["edit", "12"], "12"), (["edit"], "1"), (["edit", ""], "1")])
@@ -168,11 +148,11 @@ def test_edit_replaces_process_with_editor(mocker, capsys, env, db_file, argv, l
     )
 
 
-def test_edit_creates_missing_database(mocker, capsys, env, tmp_path):
+def test_edit_creates_missing_database(mocker, capsys, tmp_path):
     mocker.patch("alfred_db.cli.os.execvp")
     path = tmp_path / "new" / "entries.txt"
 
-    run(capsys, {**env, "db_file": str(path)}, "edit")
+    run(capsys, {"db_file": str(path)}, "edit")
 
     assert path.is_file(), "edit should create the database so the editor has something to open"
 
@@ -193,11 +173,3 @@ def test_main_rejects_unknown_command(env, argv):
         main(argv, env)
 
     assert "usage" in str(exit_info.value), "main should print usage for unknown commands"
-
-
-def test_search_survives_undecodable_bytes(capsys, env, db_file):
-    db_file.write_bytes(DATABASE.encode() + b"caf\xe9 | Latin-1 line | x\n")
-
-    assert item_titles(run(capsys, env, "search", "")) == ["Prod web box", "Guest wifi", "Latin-1 line"], (
-        "search should still list entries when the file has a non-UTF-8 byte"
-    )

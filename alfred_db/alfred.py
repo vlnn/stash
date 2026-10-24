@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Mapping, Sequence
+from typing import Any, Sequence
 
 from .entries import Entry, parse_line
 
@@ -31,8 +31,8 @@ def hint_item(title: str, subtitle: str) -> Item:
     return {"title": title, "subtitle": subtitle, "valid": False}
 
 
-def search_feedback(results: Sequence[Entry], has_entries: bool, query: str) -> list[Item]:
-    if not has_entries:
+def search_feedback(results: Sequence[Entry], entries: Sequence[Entry], query: str) -> list[Item]:
+    if not entries:
         return [hint_item("The database is empty", f"Add an entry with: db+ {FORMAT_HINT}")]
     if not results:
         return [hint_item(f"No match for '{query}'", f"Add it with: db+ {query} | title | payload")]
@@ -50,5 +50,5 @@ def add_preview_item(raw: str) -> Item:
     }
 
 
-def render(items: Sequence[Item], variables: Mapping[str, str]) -> str:
-    return json.dumps({"variables": dict(variables), "items": list(items)})
+def render(items: Sequence[Item]) -> str:
+    return json.dumps({"items": list(items)})

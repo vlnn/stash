@@ -7,20 +7,17 @@ from typing import Callable, Mapping, NamedTuple, Optional, Sequence
 
 from . import alfred, store
 from .entries import parse_line
-from .index import load_index
 from .matching import search
 
 DEFAULT_DB_FILE = "~/.config/alfred-db/entries.txt"
 DEFAULT_EDITOR = "open -t {file}"
 DEFAULT_MAX_RESULTS = 50
-DEFAULT_CACHE_DIR = "~/.cache/alfred-db"
 
 
 class Config(NamedTuple):
     db_file: str
     editor: str
     max_results: int
-    cache_dir: str
 
 
 def config_from(env: Mapping[str, str]) -> Config:
@@ -28,23 +25,17 @@ def config_from(env: Mapping[str, str]) -> Config:
         db_file=os.path.expanduser(env.get("db_file") or DEFAULT_DB_FILE),
         editor=env.get("editor") or DEFAULT_EDITOR,
         max_results=int(env.get("max_results") or DEFAULT_MAX_RESULTS),
-        cache_dir=os.path.expanduser(env.get("alfred_workflow_cache") or DEFAULT_CACHE_DIR),
     )
 
 
 def search_command(query: str, config: Config) -> str:
-    index = load_index(config.db_file, config.cache_dir)
-    positions = search(query, index.haystacks, config.max_results)
-    results = [parse_line(index.lines[position], position + 1) for position in positions]
-    return alfred.render(alfred.search_feedback(results, index.has_entries, query.strip()), action_variables(config))
+    entries = store.load_entries(config.db_file)
+    results = search(query, entries, config.max_results)
+    return alfred.render(alfred.search_feedback(results, entries, query.strip()))
 
 
 def preview_command(raw: str, config: Config) -> str:
-    return alfred.render([alfred.add_preview_item(raw)], action_variables(config))
-
-
-def action_variables(config: Config) -> dict[str, str]:
-    return {"db_file": config.db_file}
+    return alfred.render([alfred.add_preview_item(raw)])
 
 
 def add_command(raw: str, config: Config) -> str:
@@ -72,7 +63,7 @@ def edit_command(line_number: str, config: Config) -> Optional[str]:
 
 
 def editor_argv(template: str, file: str, line: str) -> list[str]:
-    return [part.format(file=file, line=line) for part in shlex.split(template)]
+    return [part.replace("{file}", file).replace("{line}", line) for part in shlex.split(template)]
 
 
 Command = Callable[[str, Config], Optional[str]]

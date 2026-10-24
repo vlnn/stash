@@ -193,13 +193,13 @@ If the editor can't be found, a notification tells you so.
 
 ### Several databases
 
-Duplicate the `db` Script Filter in Alfred (right-click, Copy, Paste), give it its own keyword such as `links`, and start its script with an export:
+Select every object of the workflow in Alfred, copy and paste it, give the copies their own keywords such as `links`, `links+` and `linksedit`, and start each copied script with an export:
 
 ```bash
 export db_file=~/notes/links.txt; exec "${python:-/usr/bin/python3}" -S -X utf8 run.py search "$1"
 ```
 
-Connect it to the same actions as `db`. Results carry their database path to the actions, so ⌘↩ and ⌥↩ edit and delete in `links.txt`, not the default file. Do the same with `db+` to add to it.
+Every script of the copy needs the same export (search, preview, add, delete, edit), because Alfred does not pass a script's environment on to the objects it is connected to.
 
 ### Sync and history
 
@@ -260,19 +260,19 @@ The `||` keeps pipes in the saved command intact.
 
 Alfred starts a new process on every keystroke, so the whole run counts, not just the search. Medians per keystroke, measured on a Linux cloud VM with Python 3.9 (an Apple Silicon Mac is typically faster):
 
-| Entries | Per keystroke | First keystroke after the file changed |
-|---|---|---|
-| 1,000 | ~35 ms | ~40 ms |
-| 10,000 | ~45–55 ms | ~90 ms |
-| 50,000 | ~70–95 ms, ~125 ms for a single letter | ~330 ms |
+| Entries | Per keystroke |
+|---|---|
+| 1,000 | ~35–45 ms |
+| 3,000 | ~50–60 ms |
+| 10,000 | ~120 ms |
 
-About 25 ms of that is starting Python and importing modules, which no pure-Python workflow avoids. Reproduce with `uv run python bench.py --python /usr/bin/python3`; add `--stress` for a vocabulary where most queries match most entries.
+About 25 ms of that is starting Python and importing modules, which no pure-Python workflow avoids; the rest is reading and parsing the file (~6 ms per 1,000 lines) and matching (~1.5 ms per 1,000 lines). Reproduce with `uv run python bench.py --python /usr/bin/python3`; add `--stress` for a vocabulary where most queries match most entries.
+
+The design is deliberately the simple one: the file is parsed on every keystroke and there is no cache or index. That stays instant for the few hundred to few thousand entries a personal database has. An earlier version cached the searchable text keyed by file checksum and scanned it with hand-tuned string checks, which held 10,000 entries at ~50 ms and 50,000 at ~100 ms, at the cost of an extra module and a cache directory; it is in the git history (tag `v1.0-cached`) if you ever need it.
 
 What keeps it fast:
 
-- The searchable text of every line is cached in Alfred's cache folder, keyed by a checksum of the file content, so any change (editor, git checkout, sync) refreshes it and unchanged files skip parsing entirely.
-- Only the shown results are parsed into entries; everything else stays plain strings.
-- Each query word is compiled into a regex that scans a word without backtracking, and ranking runs as list comprehensions rather than per-entry function calls.
+- Each query word compiles to one regex whose alternatives are ordered from whole word to in-word letters, so a single `match` returns both whether and how well the word matches, and the in-word pattern never backtracks.
 - Python runs with `-S` (no `site` import) and the code avoids heavy modules: `dataclasses` alone costs ~12 ms and `pathlib` ~9 ms per start, so `NamedTuple`, `os.path` and `os.execvp` take their place.
 - Alfred is set to run the script immediately and to cancel a still-running search when you type the next letter.
 
@@ -288,7 +288,7 @@ What keeps it fast:
 
 ```bash
 uv sync
-uv run pytest                                       # 173 tests
+uv run pytest                                       # 143 tests
 uv run --python 3.9 --isolated --with pytest --with pytest-mock pytest   # what /usr/bin/python3 is on macOS
 uv run python bench.py                              # latency per keystroke
 ```
@@ -301,10 +301,9 @@ zip -r dist/AlfredDB.alfredworkflow info.plist icon.png run.py alfred_db -x '*__
 
 | Path | Responsibility |
 |---|---|
-| `alfred_db/entries.py` | Parse a line into an `Entry` |
-| `alfred_db/matching.py` | Searchable text per line, tiers, ranking |
-| `alfred_db/index.py` | Load lines and searchable text, with the content-keyed cache |
-| `alfred_db/store.py` | Read, append, delete lines; atomic, symlink-safe writes |
+| `alfred_db/entries.py` | Parse a line into an `Entry` with its searchable text |
+| `alfred_db/matching.py` | One regex per query word, scoring, ranking |
+| `alfred_db/store.py` | Load entries, append, delete lines; atomic, symlink-safe writes |
 | `alfred_db/alfred.py` | Alfred Script Filter JSON |
 | `alfred_db/cli.py` | Commands `search`, `preview`, `add`, `delete`, `edit`; workflow variables |
 | `run.py` | Entry point Alfred calls |

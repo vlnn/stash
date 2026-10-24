@@ -12,30 +12,21 @@ class Entry(NamedTuple):
     keywords: Keywords
     title: str
     payload: str
+    haystack: str
     line_number: int = 0
     raw: str = ""
 
 
 def parse_line(line: str, line_number: int = 0) -> Optional[Entry]:
-    fields = entry_fields(line)
-    if fields is None:
-        return None
-    keywords, rest = fields
-    title, payload = title_and_payload(rest, fallback=" ".join(keywords))
-    return Entry(keywords, title, payload, line_number, line.strip())
-
-
-def entry_fields(line: str) -> Optional[tuple[Keywords, list[str]]]:
     text = line.strip()
-    if is_skippable(text):
+    if not text or text.startswith(COMMENT_PREFIX):
         return None
     keywords_field, *rest = split_fields(text)
     keywords = split_words(keywords_field)
-    return (keywords, rest) if keywords else None
-
-
-def is_skippable(text: str) -> bool:
-    return not text or text.startswith(COMMENT_PREFIX)
+    if not keywords:
+        return None
+    title, payload = title_and_payload(rest, fallback=" ".join(keywords))
+    return Entry(keywords, title, payload, haystack_of(keywords, title), line_number, text)
 
 
 def split_fields(text: str) -> list[str]:
@@ -45,6 +36,11 @@ def split_fields(text: str) -> list[str]:
 def title_and_payload(rest: list[str], fallback: str) -> tuple[str, str]:
     title, payload = [""] * (2 - len(rest)) + rest
     return title or fallback, payload or fallback
+
+
+def haystack_of(keywords: Keywords, title: str) -> str:
+    words = dict.fromkeys(" ".join(keywords + split_words(title)).lower().split())
+    return f" {' '.join(words)} "
 
 
 def split_words(text: str) -> Keywords:

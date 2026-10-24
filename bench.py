@@ -1,7 +1,6 @@
 import argparse
 import os
 import random
-import shutil
 import statistics
 import string
 import subprocess
@@ -56,24 +55,13 @@ def measure(argv, env):
     return summary([milliseconds(argv, env) for _ in range(RUNS)])
 
 
-def measure_cold(argv, env):
-    def without_cache():
-        shutil.rmtree(env["alfred_workflow_cache"], ignore_errors=True)
-        return milliseconds(argv, env)
-
-    return summary([without_cache() for _ in range(RUNS)])
-
-
 def bench_size(python, directory, size, stress):
     rng = random.Random(42)
     vocabulary = (stress_vocabulary if stress else realistic_vocabulary)(rng, 3_000)
-    cache = os.path.join(directory, f"cache-{size}")
-    env = {**os.environ, "db_file": write_database(directory, size, vocabulary, rng), "alfred_workflow_cache": cache}
+    env = {**os.environ, "db_file": write_database(directory, size, vocabulary, rng)}
     search = [python, "-S", "-X", "utf8", "run.py", "search"]
-    queries = queries_for(vocabulary)
-    print(f"{size:>6} entries  first query after edit {measure_cold([*search, queries[2]], env)}")
-    for query in queries:
-        print(f"{size:>6} entries  query {query!r:16}       {measure([*search, query], env)}")
+    for query in queries_for(vocabulary):
+        print(f"{size:>6} entries  query {query!r:16} {measure([*search, query], env)}")
 
 
 def main():
@@ -81,7 +69,7 @@ def main():
     parser.add_argument("--python", default=sys.executable)
     parser.add_argument("--stress", action="store_true", help="tiny vocabulary, most queries match most entries")
     args = parser.parse_args()
-    print(f"{'python startup only':44} {measure([args.python, '-S', '-c', 'pass'], os.environ)}")
+    print(f"{'python startup only':38} {measure([args.python, '-S', '-c', 'pass'], os.environ)}")
     with tempfile.TemporaryDirectory() as directory:
         for size in SIZES:
             bench_size(args.python, directory, size, args.stress)

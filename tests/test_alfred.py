@@ -44,22 +44,22 @@ def test_entry_item_ctrl_reveals_keywords_without_action():
 
 
 @pytest.mark.parametrize(
-    "results, has_entries, expected_titles",
+    "results, entries, expected_titles",
     [
-        ([ENTRY], True, ["Prod web box"]),
-        ([], True, ["No match for 'zzz'"]),
-        ([], False, ["The database is empty"]),
+        ([ENTRY], [ENTRY], ["Prod web box"]),
+        ([], [ENTRY], ["No match for 'zzz'"]),
+        ([], [], ["The database is empty"]),
     ],
 )
-def test_search_feedback(results, has_entries, expected_titles):
-    titles = [item["title"] for item in search_feedback(results, has_entries, "zzz")]
+def test_search_feedback(results, entries, expected_titles):
+    titles = [item["title"] for item in search_feedback(results, entries, "zzz")]
 
     assert titles == expected_titles, "search_feedback should show results or explain why there are none"
 
 
-@pytest.mark.parametrize("has_entries", [False, True])
-def test_search_feedback_hints_are_not_actionable(has_entries):
-    hint = search_feedback([], has_entries, "zzz")[0]
+@pytest.mark.parametrize("entries", [[], [ENTRY]])
+def test_search_feedback_hints_are_not_actionable(entries):
+    hint = search_feedback([], entries, "zzz")[0]
 
     assert hint["valid"] is False, "hint items should not trigger copy on enter"
 
@@ -88,9 +88,7 @@ def test_add_preview_item_explains_format_for_invalid_input(raw):
 
 
 def test_render_wraps_items_as_ascii_safe_json():
-    output = render([{"title": "Кава ☕"}], {"db_file": "/db/кава.txt"})
+    output = render([{"title": "Кава ☕"}])
 
     assert output.isascii(), "render should escape non-ASCII so any locale can print it"
-    assert json.loads(output) == {"variables": {"db_file": "/db/кава.txt"}, "items": [{"title": "Кава ☕"}]}, (
-        "render should produce Alfred script filter JSON with variables for downstream actions"
-    )
+    assert json.loads(output) == {"items": [{"title": "Кава ☕"}]}, "render should produce Alfred script filter JSON"

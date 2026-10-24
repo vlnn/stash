@@ -40,6 +40,20 @@ def test_parse_line_remembers_position_and_source():
     assert entry.raw == "wifi guest | Guest | hunter2", "parse_line should keep the stripped source line for deletion"
 
 
+@pytest.mark.parametrize(
+    "line, haystack",
+    [
+        ("ssh prod web | Prod web box | ssh deploy@10.0.1.5", " ssh prod web box "),
+        ("Kube, CTX | Switch | kubectl", " kube ctx switch "),
+        ("kw only | payload is not searchable", " kw only "),
+        ("logs || tail -f app.log | grep ERROR", " logs "),
+        ("wifi guest", " wifi guest "),
+    ],
+)
+def test_haystack_holds_lowercase_unique_keywords_and_title_words(line, haystack):
+    assert parse_line(line).haystack == haystack, "haystack should hold the searchable words, space-delimited"
+
+
 def test_entry_is_hashable_value():
     first = parse_line("a | b | c")
     second = parse_line("a | b | c")
