@@ -36,11 +36,15 @@ def search_command(query: str, config: Config) -> str:
     index = load_index(config.db_file, config.cache_dir)
     positions = search(query, index.haystacks, config.max_results)
     results = [parse_line(index.lines[position], position + 1) for position in positions]
-    return alfred.render(alfred.search_feedback(results, index.has_entries, query.strip()))
+    return alfred.render(alfred.search_feedback(results, index.has_entries, query.strip()), action_variables(config))
 
 
 def preview_command(raw: str, config: Config) -> str:
-    return alfred.render([alfred.add_preview_item(raw)])
+    return alfred.render([alfred.add_preview_item(raw)], action_variables(config))
+
+
+def action_variables(config: Config) -> dict[str, str]:
+    return {"db_file": config.db_file}
 
 
 def add_command(raw: str, config: Config) -> str:

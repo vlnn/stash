@@ -88,7 +88,9 @@ def test_add_preview_item_explains_format_for_invalid_input(raw):
 
 
 def test_render_wraps_items_as_ascii_safe_json():
-    output = render([{"title": "Кава ☕"}])
+    output = render([{"title": "Кава ☕"}], {"db_file": "/db/кава.txt"})
 
     assert output.isascii(), "render should escape non-ASCII so any locale can print it"
-    assert json.loads(output) == {"items": [{"title": "Кава ☕"}]}, "render should produce Alfred script filter JSON"
+    assert json.loads(output) == {"variables": {"db_file": "/db/кава.txt"}, "items": [{"title": "Кава ☕"}]}, (
+        "render should produce Alfred script filter JSON with variables for downstream actions"
+    )

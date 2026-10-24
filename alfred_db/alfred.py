@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 
 from .entries import Entry, parse_line
 
@@ -50,5 +50,5 @@ def add_preview_item(raw: str) -> Item:
     }
 
 
-def render(items: Sequence[Item]) -> str:
-    return json.dumps({"items": list(items)})
+def render(items: Sequence[Item], variables: Mapping[str, str]) -> str:
+    return json.dumps({"variables": dict(variables), "items": list(items)})

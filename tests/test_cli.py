@@ -84,6 +84,13 @@ def test_search_prints_alfred_items(capsys, env, argv, expected):
     assert item_titles(run(capsys, env, *argv)) == expected, f"{argv} should print matching Alfred items"
 
 
+@pytest.mark.parametrize("argv", [["search", "prod"], ["preview", "k8s | Kube | kubectl"]])
+def test_script_filters_hand_database_to_actions(capsys, env, db_file, argv):
+    variables = json.loads(run(capsys, env, *argv))["variables"]
+
+    assert variables == {"db_file": str(db_file)}, "script filters should tell edit, delete and add which database to use"
+
+
 def test_search_limits_results(capsys, env):
     assert len(item_titles(run(capsys, {**env, "max_results": "1"}, "search", ""))) == 1, (
         "search should honour max_results"
