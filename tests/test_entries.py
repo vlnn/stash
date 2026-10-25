@@ -17,6 +17,12 @@ from stash.entries import Entry, in_scope, is_scope_name, parse_line, split_scop
         ("  k8s   ctx  |  kubectl ctx  ", "k8s   ctx", "kubectl ctx"),
         ("k8s,ctx, staging | kubectl ctx staging", "k8s,ctx, staging", "kubectl ctx staging"),
         ("note |", "note", "note"),
+        ("printf 'a\\nb'", "printf 'a\\nb'", "printf 'a\\nb'"),
+        ("C:\\Users\\me\\Documents", "C:\\Users\\me\\Documents", "C:\\Users\\me\\Documents"),
+        ("regex \\d+ digits", "regex \\d+ digits", "regex \\d+ digits"),
+        ("latex \\ alpha", "latex", "alpha"),
+        ("tab\t\\\tsep", "tab", "sep"),
+        ("win path \\ C:\\Users\\me", "win path", "C:\\Users\\me"),
     ],
 )
 def test_parse_line_splits_at_the_first_separator_only(line, label, payload):

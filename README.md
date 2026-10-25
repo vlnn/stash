@@ -83,7 +83,7 @@ find pyc \ find . -name '*.pyc' -exec rm {} \;           \ works as the separato
 
 Rules:
 
-- `|` and `\` are both separators, so use whichever your keyboard makes easier; only the first one on the line counts.
+- `|` and `\` are both separators, so use whichever your keyboard makes easier; only the first one on the line counts. A `\` counts only with whitespace on both sides (or at the very start or end of the line), so `regex \d+`, `C:\Users\me` and `printf 'a\nb'` stay whole as plain lines.
 - Search words are split on spaces and commas; the payload is never searched.
 - A separator with nothing after it (`note |`) copies the words themselves.
 - Lines starting with `#` and blank lines are ignored, so comment and group freely. To stash something that starts with `#`, write `| #FF8800`.

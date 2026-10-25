@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import NamedTuple
 
-SEPARATOR = re.compile(r"[|\\]")
+SEPARATOR = re.compile(r"\||(?:(?<=\s)|^)\\(?=\s|$)")
 SCOPE_NAME = re.compile(r"[\w-]+")
 SCOPE_PREFIX = re.compile(rf"^({SCOPE_NAME.pattern})/\s*")
 COMMENT_PREFIX = "#"
