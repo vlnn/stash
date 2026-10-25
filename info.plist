@@ -772,8 +772,8 @@ offers a default, the clipboard is always offered); {{date}}, {{time}} and
 {{clipboard}} fill themselves.
 flows: aliases for @words, e.g. "tally=t kobold=kb wisp=l".
 
-Variables: db_dir (stash folder), editor (command template with {file} and {line}),
-max_results, python (interpreter, 3.9+).
+Configure Workflow… sets the stash folder, the editor, the interpreter,
+hand-off aliases and the number of results.
 </string>
 	<key>uidata</key>
 	<dict>
@@ -869,19 +869,116 @@ max_results, python (interpreter, 3.9+).
 			<integer>560</integer>
 		</dict>
 	</dict>
+	<key>userconfigurationconfig</key>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>~/.config/stash</string>
+				<key>placeholder</key>
+				<string>~/.config/stash</string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>default.txt holds the root entries; every other name.txt in the folder is a scope. ~ is expanded.</string>
+			<key>label</key>
+			<string>Stash folder</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>db_dir</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>open -t {file}</string>
+				<key>placeholder</key>
+				<string>code -g {file}:{line}</string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>Command run by ⌘↩, with {file} and {line} filled in. Use full paths: Alfred runs with a minimal PATH.</string>
+			<key>label</key>
+			<string>Editor</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>editor</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>/usr/bin/python3</string>
+				<key>placeholder</key>
+				<string>/usr/bin/python3</string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>Interpreter, 3.9 or newer, as an absolute path (no ~). /usr/bin/python3 comes with the Xcode tools.</string>
+			<key>label</key>
+			<string>Python</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>python</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string></string>
+				<key>placeholder</key>
+				<string>tally=t kobold=kb</string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>Workflow names for @word hand-offs, as name=keyword pairs: tally=t kobold=kb wisp=l</string>
+			<key>label</key>
+			<string>Hand-off aliases</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>flows</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>50</string>
+				<key>placeholder</key>
+				<string>50</string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>How many rows Alfred receives per keystroke, scope rows and Add included.</string>
+			<key>label</key>
+			<string>Max results</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>max_results</string>
+		</dict>
+	</array>
 	<key>variables</key>
-	<dict>
-		<key>db_dir</key>
-		<string>~/.config/stash</string>
-		<key>editor</key>
-		<string>open -t {file}</string>
-		<key>flows</key>
-		<string></string>
-		<key>max_results</key>
-		<string>50</string>
-		<key>python</key>
-		<string>/usr/bin/python3</string>
-	</dict>
+	<dict/>
 	<key>variablesdontexport</key>
 	<array/>
 	<key>version</key>

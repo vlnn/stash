@@ -154,6 +154,11 @@ def test_command_output_is_shown_as_notification(workflow, objects, command):
     assert target["type"] == "alfred.workflow.output.notification", f"{command} output should be posted as notification"
 
 
+@pytest.fixture(scope="module")
+def settings(workflow):
+    return {item["variable"]: item for item in workflow["userconfigurationconfig"]}
+
+
 @pytest.mark.parametrize(
     "variable, default",
     [
@@ -164,5 +169,16 @@ def test_command_output_is_shown_as_notification(workflow, objects, command):
         ("flows", ""),
     ],
 )
-def test_variables_match_code_defaults(workflow, variable, default):
-    assert workflow["variables"][variable] == default, f"workflow variable {variable} should default to {default!r}"
+def test_settings_match_code_defaults(settings, variable, default):
+    assert settings[variable]["config"]["default"] == default, f"setting {variable} should default to {default!r}"
+
+
+def test_settings_are_editable_text_fields_with_help(settings):
+    for item in settings.values():
+        assert item["type"] == "textfield", "every setting is a text field, so Configure Workflow… can show it"
+        assert item["label"] and item["description"], "every setting explains itself in the configuration sheet"
+        assert item["config"]["required"] is False, "every setting has a working default"
+
+
+def test_no_plain_variables_shadow_the_settings(workflow):
+    assert workflow["variables"] == {}, "values live in user configuration only, so there is one place to edit them"

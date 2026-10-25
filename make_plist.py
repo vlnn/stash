@@ -41,9 +41,55 @@ offers a default, the clipboard is always offered); {{date}}, {{time}} and
 {{clipboard}} fill themselves.
 flows: aliases for @words, e.g. "tally=t kobold=kb wisp=l".
 
-Variables: db_dir (stash folder), editor (command template with {file} and {line}),
-max_results, python (interpreter, 3.9+).
+Configure Workflow… sets the stash folder, the editor, the interpreter,
+hand-off aliases and the number of results.
 """
+
+
+def setting(variable, label, default, description, placeholder=""):
+    return {
+        "type": "textfield",
+        "variable": variable,
+        "label": label,
+        "description": description,
+        "config": {"default": default, "placeholder": placeholder or default, "required": False, "trim": True},
+    }
+
+
+SETTINGS = [
+    setting(
+        "db_dir",
+        "Stash folder",
+        DEFAULT_DB_DIR,
+        "default.txt holds the root entries; every other name.txt in the folder is a scope. ~ is expanded.",
+    ),
+    setting(
+        "editor",
+        "Editor",
+        DEFAULT_EDITOR,
+        "Command run by ⌘↩, with {file} and {line} filled in. Use full paths: Alfred runs with a minimal PATH.",
+        "code -g {file}:{line}",
+    ),
+    setting(
+        "python",
+        "Python",
+        "/usr/bin/python3",
+        "Interpreter, 3.9 or newer, as an absolute path (no ~). /usr/bin/python3 comes with the Xcode tools.",
+    ),
+    setting(
+        "flows",
+        "Hand-off aliases",
+        "",
+        "Workflow names for @word hand-offs, as name=keyword pairs: tally=t kobold=kb wisp=l",
+        "tally=t kobold=kb",
+    ),
+    setting(
+        "max_results",
+        "Max results",
+        str(DEFAULT_MAX_RESULTS),
+        "How many rows Alfred receives per keystroke, scope rows and Add included.",
+    ),
+]
 
 
 def search_filter(keyword):
@@ -180,13 +226,8 @@ WORKFLOW = {
     "readme": README,
     "version": "3.0.0",
     "webaddress": "",
-    "variables": {
-        "db_dir": DEFAULT_DB_DIR,
-        "editor": DEFAULT_EDITOR,
-        "max_results": str(DEFAULT_MAX_RESULTS),
-        "python": "/usr/bin/python3",
-        "flows": "",
-    },
+    "userconfigurationconfig": SETTINGS,
+    "variables": {},
     "variablesdontexport": [],
     "objects": [
         *(search_filter(keyword) for keyword in SEARCH_KEYWORDS),

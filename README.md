@@ -46,8 +46,8 @@ st stg k8
 Requirements: Alfred 5 with the Powerpack, and Python 3.9 or newer. There are no packages to install.
 
 1. Double-click `Stash.alfredworkflow` and press **Import**.
-2. Python: the default is `/usr/bin/python3`, which macOS provides once the Xcode Command Line Tools are installed (`xcode-select --install`). To use another interpreter, set the `python` variable to its **absolute path**, for example `/opt/homebrew/bin/python3` or the output of `uv python find 3.12`.
-3. Optionally point `db_dir` at an existing folder and set `editor` (see [Configuration](#configuration)).
+2. Alfred shows the configuration sheet. Python: the default is `/usr/bin/python3`, which macOS provides once the Xcode Command Line Tools are installed (`xcode-select --install`). To use another interpreter, set **Python** to its **absolute path**, for example `/opt/homebrew/bin/python3` or the output of `uv python find 3.12`.
+3. Optionally point **Stash folder** at an existing folder and set **Editor** (see [Configuration](#configuration)); all of it can be changed later with **Configure Workflow…**.
 4. If you will use `@keyword` hand-offs, run this once in Terminal and click **OK** when macOS asks whether Alfred may control Alfred:
    ```
    osascript -e 'tell application id "com.runningwithcrayons.Alfred" to search "st"'
@@ -281,7 +281,7 @@ Entries are appended at the end of `default.txt`, or of the scope's file when th
 
 ## Configuration
 
-Set these in Alfred: open the workflow and click the **[𝑥]** button.
+Set these in Alfred: open the workflow and press **Configure Workflow…** (the cog at the top right of the workflow, or right-click it in the list). Alfred also shows this sheet when you import the workflow. The fields are text fields with a default each, so leaving one blank keeps the default.
 
 | Variable | Default | Meaning |
 |---|---|---|
@@ -417,7 +417,7 @@ What keeps it fast:
 
 ```bash
 uv sync
-make test           # pytest on the project interpreter                      (347 tests)
+make test           # pytest on the project interpreter                      (349 tests)
 make test-system    # the same on /usr/bin/python3, the interpreter the workflow runs on
 make lint           # ruff check + format
 make check          # build dist/Stash.alfredworkflow and run it the way Alfred would
