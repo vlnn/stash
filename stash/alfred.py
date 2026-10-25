@@ -15,7 +15,7 @@ NO_FLOWS: Flows = {}
 NO_VALUES: Values = {}
 
 FORMAT_HINT = "words | payload"
-FOLDER_ICON = {"type": "filetype", "path": "public.folder"}
+SCOPE_ICON = {"path": "scope.png"}
 OPENABLE_SCHEMES = ("http://", "https://", "file://", "alfred://")
 TRAILING_FLOW = re.compile(r"^(?:(?P<text>.*\S)\s+)?@(?P<name>\S+)$")
 LEADING_FLOW = re.compile(r"^@(?P<name>\S+)(?:\s+(?P<text>\S.*))?$")
@@ -184,7 +184,7 @@ def scope_item(scope: str, count: int) -> Item:
         "title": f"{scope}/",
         "subtitle": f"{count} {noun} · ↩ to browse",
         "autocomplete": f"{scope}/ ",
-        "icon": FOLDER_ICON,
+        "icon": SCOPE_ICON,
         **INVALID,
         "mods": {"cmd": {**open_editor(scope), "valid": True}, "alt": INVALID, "shift": INVALID},
     }

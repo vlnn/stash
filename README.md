@@ -7,7 +7,7 @@ Fuzzy keyword search over a plain-text stash you own, as an Alfred workflow.
 - **Add** by typing: whatever you searched for is always offered as a new entry, so a miss is one ↩ away from being stored.
 - **Run** by typing: a hand-off, a link or a `{{blank}}` typed straight into the field gets a *Run* row that acts on it without storing anything.
 - **Own the data**: one line per entry in text files you can edit, grep, sync and keep in git. The format is one rule: everything after the first `|` is the payload.
-- **Scope** when the list gets long: every `name.txt` next to the main file is a scope; `st name/` searches inside it, and `st` shows scopes first.
+- **Scope** when the list gets long: every `name.txt` next to the main file is a scope; `st name/` searches inside it, and scoped entries still show up at the root.
 - **Fill in the blanks**: a payload with `{{host}}` asks for `host` on ↩ and copies, opens or pastes the result; `{{date}}`, `{{time}}` and `{{clipboard}}` fill themselves.
 - **Fast**: no dependencies, built to stay well under Alfred's "instant" threshold for a stash of a few thousand entries.
 
@@ -158,15 +158,17 @@ Press ⇥ (Tab) on a result to put its words into the query.
 A scope is a second file in the stash folder: `~/.config/stash/checklists.txt` is the scope `checklists`. Its lines are ordinary entries; the file name is all that makes it a scope. A name must be something you can type before a slash, so letters, digits, `_` and `-`.
 
 ```
-st                    checklists/  ·  then the root entries  ·  then the entries of every scope
-st ck                 checklists/  ·  root entries matching ck  ·  scoped entries matching ck  ·  Add: ck
+st                    the root entries  ·  then the entries of every scope
+st ck                 root entries matching ck  ·  scoped entries matching ck  ·  Add: ck
 st checklists/        everything in checklists.txt, like a bare st does for the root
 st checklists/ rel    release checklist  ·  Add: rel
 st checklists/ pack | passport, charger      ↩ appends to checklists.txt
 st recipes/ pasta | 500g                     ↩ creates recipes.txt with that entry
 ```
 
-Results come in three tiers, each ranked as in [Searching](#searching): scope rows whose names match, root entries, then entries from all scopes. A scope row has a folder icon, says how many entries it holds, and ↩ on it puts `checklists/ ` into the query, which is the whole mechanism: a query that starts with `name/` searches only that scope, and everything else (*Add*, ⌘↩, ⌥↩) acts on that scope's file. Backspace over the slash to leave. At the root, a scoped entry's subtitle starts with its scope (`checklists · …`); inside the scope it looks like any other entry.
+Results come in tiers, each ranked as in [Searching](#searching): root entries, then entries from all scopes. A query that starts with `name/` searches only that scope, and everything else (*Add*, ⌘↩, ⌥↩) acts on that scope's file; that is the whole mechanism. Backspace over the slash to leave. At the root, a scoped entry's subtitle starts with its scope (`checklists · …`); inside the scope it looks like any other entry.
+
+Turn on **List scopes** in the configuration to also get a row per scope ahead of the entries: `st` then lists every scope, `st ck` the scopes whose names match. A scope row says how many entries it holds, and ↩ on it puts `checklists/ ` into the query.
 
 A scope exists exactly when its file does. There is no "create scope": add the first entry under `name/` and the file appears, with the *Add* row saying so beforehand. To remove a scope, delete the file. ⌘↩ on a scope row opens its file; ⌥↩ does nothing there, since deleting a whole file is not something a keystroke should do.
 
@@ -292,6 +294,7 @@ Set these in Alfred: open the workflow and press **Configure Workflow…** (the 
 | `max_results` | `50` | How many results Alfred receives. |
 | `python` | `/usr/bin/python3` | Interpreter, 3.9 or newer. Absolute path, no `~`. |
 | `flows` | empty | Aliases for `@word` hand-offs, as `name=keyword` pairs: `tally=t kobold=kb wisp=l`. |
+| `show_scopes` | off | Also list a row per scope at the root, with its entry count. `name/` works either way. |
 
 Alfred runs workflows with a minimal `PATH`, so use the full path of your editor's command line tool. Quote paths with spaces:
 
@@ -444,7 +447,7 @@ git tag v3.0.0 && git push origin v3.0.0
 | `stash/cli.py` | Commands `search`, `add`, `delete`, `edit`, `open`, `alfred`, `prompt`, `resolve`, `fill`; workflow variables |
 | `run.py` | Entry point Alfred calls |
 | `make_plist.py` | Source of `info.plist`: keywords, the prompt filter, the router, connections, variables |
-| `scripts/build.py`, `scripts/smoke.py` | Build the bundle; run it the way Alfred would |
+| `scripts/build.py`, `scripts/smoke.py`, `scripts/make_icons.py` | Build the bundle; run it the way Alfred would; draw `scope.png` (📒 on the icon's tile) |
 | `Makefile`, `.github/workflows/ci.yml` | The targets above, and CI that runs them |
 | `tests/` | pytest suite, including a structural check of `info.plist` |
 | `bench.py` | End-to-end latency benchmark |

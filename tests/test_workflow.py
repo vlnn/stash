@@ -198,17 +198,22 @@ def settings(workflow):
         ("max_results", str(DEFAULT_MAX_RESULTS)),
         ("python", "/usr/bin/python3"),
         ("flows", ""),
+        ("show_scopes", False),
     ],
 )
 def test_settings_match_code_defaults(settings, variable, default):
     assert settings[variable]["config"]["default"] == default, f"setting {variable} should default to {default!r}"
 
 
-def test_settings_are_editable_text_fields_with_help(settings):
+def test_settings_are_editable_fields_with_help(settings):
     for item in settings.values():
-        assert item["type"] == "textfield", "every setting is a text field, so Configure Workflow… can show it"
+        assert item["type"] in ("textfield", "checkbox"), "every setting is a field Configure Workflow… can show"
         assert item["label"] and item["description"], "every setting explains itself in the configuration sheet"
         assert item["config"]["required"] is False, "every setting has a working default"
+
+
+def test_scope_icon_ships_with_the_workflow():
+    assert os.path.isfile(os.path.join(os.path.dirname(PLIST_PATH), "scope.png")), "scope rows need their icon"
 
 
 def test_no_plain_variables_shadow_the_settings(workflow):

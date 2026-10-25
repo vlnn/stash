@@ -3,7 +3,7 @@
 import plistlib
 import uuid
 
-from stash.cli import DEFAULT_DB_DIR, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS
+from stash.cli import DEFAULT_DB_DIR, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS, DEFAULT_SHOW_SCOPES
 
 PYTHON = 'exec "${python:-/usr/bin/python3}" -S -X utf8 run.py'
 CMD, ALT, CTRL, SHIFT = 1 << 20, 1 << 19, 1 << 18, 1 << 17
@@ -39,7 +39,7 @@ st / sta / stash <words>   search (or press ⌘⌥⌃⇧L); words match in any o
 
 Entries are lines of  words | payload ; without a | the whole line is both.
 The stash is a folder: default.txt holds the root, every other name.txt is a scope.
-st name/ <words>   searches inside a scope; scope rows come first, ↩ enters one.
+st name/ <words>   searches inside a scope (turn on "List scopes" to see scope rows at the root).
 {{name}} in a payload asks for a value on ↩, one prompt per name ({{name=default}}
 offers a default, the clipboard is always offered); {{date}}, {{time}} and
 {{clipboard}} fill themselves; the clipboard is read on ↩, never while you type.
@@ -93,6 +93,13 @@ SETTINGS = [
         str(DEFAULT_MAX_RESULTS),
         "How many rows Alfred receives per keystroke, scope rows and Add included.",
     ),
+    {
+        "type": "checkbox",
+        "variable": "show_scopes",
+        "label": "List scopes",
+        "description": "Also list a row per scope at the root, with its entry count. name/ works either way.",
+        "config": {"default": DEFAULT_SHOW_SCOPES, "required": False},
+    },
 ]
 
 

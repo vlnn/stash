@@ -7,7 +7,7 @@ import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUNDLE = os.path.join(ROOT, "dist", "Stash.alfredworkflow")
-FILES = ("info.plist", "icon.png", "run.py")
+FILES = ("info.plist", "icon.png", "scope.png", "run.py")
 PACKAGE = "stash"
 
 

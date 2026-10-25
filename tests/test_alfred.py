@@ -4,7 +4,7 @@ import os
 import pytest
 
 from stash.alfred import (
-    FOLDER_ICON,
+    SCOPE_ICON,
     action_of,
     add_item,
     entry_item,
@@ -255,7 +255,7 @@ def test_scope_item_browses_on_enter_and_looks_like_a_folder():
     assert item["valid"] is False and item["autocomplete"] == "grocery/ ", (
         "enter on an invalid row autocompletes, which drops the user into the scope"
     )
-    assert item["icon"] == FOLDER_ICON, "a scope row should be told from an entry by its folder icon"
+    assert item["icon"] == SCOPE_ICON == {"path": "scope.png"}, "a scope row should carry its own icon from the bundle"
     assert item["mods"]["cmd"] == {"arg": "grocery/ 1", "subtitle": "Open grocery/ in your editor", "valid": True}, (
         "cmd on a scope row opens its file"
     )

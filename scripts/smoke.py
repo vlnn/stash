@@ -68,6 +68,7 @@ def main(bundle_path, python):
             "db_dir": os.path.join(directory, "stash"),
             "editor": "echo opened {file}:{line}",
             "flows": "kobold=kb",
+            "show_scopes": "1",
         }
         check(titles(run(bundle_dir, scripts, "search", "", env)) == ["The stash is empty"], "an empty stash says so")
         check(

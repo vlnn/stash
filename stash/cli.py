@@ -11,12 +11,14 @@ from collections.abc import Mapping, Sequence
 from typing import Callable, NamedTuple, Optional
 
 from . import alfred, snippets, store
-from .entries import SEPARATOR, parse_line, split_scope
+from .entries import SEPARATOR, Entry, parse_line, split_scope
 from .matching import search, search_scopes
 
 DEFAULT_DB_DIR = "~/.config/stash"
 DEFAULT_EDITOR = "open -t {file}"
 DEFAULT_MAX_RESULTS = 50
+DEFAULT_SHOW_SCOPES = False
+TRUE = ("1", "true", "yes", "on")
 ALFRED_SEARCH = (
     "-e",
     "on run argv",
@@ -38,6 +40,7 @@ class Config(NamedTuple):
     editor: str
     max_results: int
     flows: dict[str, str]
+    show_scopes: bool = DEFAULT_SHOW_SCOPES
     prompt: Prompt = Prompt()
 
 
@@ -47,8 +50,13 @@ def config_from(env: Mapping[str, str]) -> Config:
         editor=env.get("editor") or DEFAULT_EDITOR,
         max_results=int(env.get("max_results") or DEFAULT_MAX_RESULTS),
         flows=flows_from(env.get("flows") or ""),
+        show_scopes=is_true(env.get("show_scopes") or ""),
         prompt=Prompt(env.get("template") or "", json.loads(env.get("filled") or "{}"), env.get("finish") or ""),
     )
+
+
+def is_true(text: str) -> bool:
+    return text.strip().lower() in TRUE
 
 
 def read_clipboard() -> str:
@@ -95,13 +103,17 @@ def root_search(words: str, query: str, config: Config) -> list[alfred.Item]:
     root = store.load_scope(config.db_dir)
     scopes = store.load_scopes(config.db_dir)
     scoped = [entry for entries in scopes.values() for entry in entries]
-    rows = [alfred.scope_item(name, len(scopes[name])) for name in search_scopes(words, list(scopes))]
+    rows = scope_rows(words, scopes) if config.show_scopes else []
     hits = [*search(words, root, config.max_results), *search(words, scoped, config.max_results)]
     hits = hits[: max(config.max_results - len(rows), 0)]
     reserved = clock_values()
     matches = [*rows, *(alfred.entry_item(entry, config.flows, "", reserved) for entry in hits)]
     hint = alfred.root_hint(not (root or scoped), query)
     return alfred.feedback(matches, query, hint, reserved=reserved, flows=config.flows)
+
+
+def scope_rows(words: str, scopes: Mapping[str, list[Entry]]) -> list[alfred.Item]:
+    return [alfred.scope_item(name, len(scopes[name])) for name in search_scopes(words, list(scopes))]
 
 
 def prompt_command(query: str, config: Config) -> str:

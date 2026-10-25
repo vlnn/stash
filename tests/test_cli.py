@@ -45,6 +45,11 @@ def env(db_dir):
     return {"db_dir": str(db_dir)}
 
 
+@pytest.fixture
+def scoped_env(env):
+    return {**env, "show_scopes": "1"}
+
+
 def run(capsys, env, *argv):
     main(list(argv), env)
     return capsys.readouterr().out.strip()
@@ -54,21 +59,28 @@ def item_titles(output):
     return [item["title"] for item in json.loads(output)["items"]]
 
 
-DEFAULTS = (os.path.expanduser(DEFAULT_DB_DIR), DEFAULT_EDITOR, DEFAULT_MAX_RESULTS, {}, Prompt())
+DEFAULTS = (os.path.expanduser(DEFAULT_DB_DIR), DEFAULT_EDITOR, DEFAULT_MAX_RESULTS, {}, False, Prompt())
 
 
 @pytest.mark.parametrize(
     "env, expected",
     [
         ({}, DEFAULTS),
-        ({"db_dir": "", "editor": "", "max_results": "", "flows": ""}, DEFAULTS),
+        ({"db_dir": "", "editor": "", "max_results": "", "flows": "", "show_scopes": ""}, DEFAULTS),
+        ({"show_scopes": "0"}, DEFAULTS),
         (
-            {"db_dir": "~/db", "editor": "code -g {file}:{line}", "max_results": "9", "flows": "tally=t"},
-            (os.path.expanduser("~/db"), "code -g {file}:{line}", 9, {"tally": "t"}, Prompt()),
+            {
+                "db_dir": "~/db",
+                "editor": "code -g {file}:{line}",
+                "max_results": "9",
+                "flows": "tally=t",
+                "show_scopes": "1",
+            },
+            (os.path.expanduser("~/db"), "code -g {file}:{line}", 9, {"tally": "t"}, True, Prompt()),
         ),
         (
             {"template": "ssh {{host}}", "filled": '{"port": "22"}', "finish": "paste"},
-            (*DEFAULTS[:4], Prompt("ssh {{host}}", {"port": "22"}, "paste")),
+            (*DEFAULTS[:5], Prompt("ssh {{host}}", {"port": "22"}, "paste")),
         ),
     ],
 )
@@ -279,8 +291,8 @@ def test_main_rejects_unknown_command(env, argv):
         ("recipes/ pasta", ["Add: pasta"]),
     ],
 )
-def test_search_tiers_scopes_root_and_scoped_entries(capsys, env, grocery, query, expected):
-    assert item_titles(run(capsys, env, "search", query)) == expected, (
+def test_search_tiers_scopes_root_and_scoped_entries(capsys, scoped_env, grocery, query, expected):
+    assert item_titles(run(capsys, scoped_env, "search", query)) == expected, (
         "scope rows come first, then root entries, then scoped entries; name/ narrows to one scope"
     )
 
@@ -293,8 +305,23 @@ def test_search_marks_scoped_entries_at_the_root_but_not_inside_their_scope(caps
     assert inside["subtitle"] == "sourdough", "inside its scope an entry looks like any other"
 
 
-def test_search_counts_scope_rows_against_max_results(capsys, env, grocery):
-    assert item_titles(run(capsys, {**env, "max_results": "2"}, "search", "")) == ["grocery/", "ssh prod web"], (
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        ("", ["ssh prod web", "wifi guest", "milk eggs", "bread"]),
+        ("gro", ["Add: gro"]),
+        ("grocery/", ["milk eggs", "bread"]),
+        ("grocery/ milk", ["milk eggs", "Add: milk"]),
+    ],
+)
+def test_search_hides_scope_rows_by_default_but_name_slash_still_narrows(capsys, env, grocery, query, expected):
+    assert item_titles(run(capsys, env, "search", query)) == expected, (
+        "without show_scopes no scope row is listed, while entering a scope by typing name/ keeps working"
+    )
+
+
+def test_search_counts_scope_rows_against_max_results(capsys, scoped_env, grocery):
+    assert item_titles(run(capsys, {**scoped_env, "max_results": "2"}, "search", "")) == ["grocery/", "ssh prod web"], (
         "max_results should cap the whole list, scope rows included"
     )
 
@@ -302,9 +329,11 @@ def test_search_counts_scope_rows_against_max_results(capsys, env, grocery):
 def test_search_with_only_scopes_lists_them(capsys, tmp_path):
     (tmp_path / "grocery.txt").write_text(GROCERY, encoding="utf-8")
 
-    assert item_titles(run(capsys, {"db_dir": str(tmp_path)}, "search", "")) == ["grocery/", "milk eggs", "bread"], (
-        "a stash with scopes and no default.txt is not empty"
-    )
+    assert item_titles(run(capsys, {"db_dir": str(tmp_path), "show_scopes": "1"}, "search", "")) == [
+        "grocery/",
+        "milk eggs",
+        "bread",
+    ], "a stash with scopes and no default.txt is not empty"
 
 
 def test_add_into_scope_creates_its_file(capsys, env, db_dir):
