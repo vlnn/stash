@@ -3,12 +3,24 @@ import os
 
 import pytest
 
-from stash.alfred import action_of, add_item, entry_item, flow_of, render, search_feedback
+from stash.alfred import (
+    FOLDER_ICON,
+    action_of,
+    add_item,
+    entry_item,
+    feedback,
+    flow_of,
+    render,
+    root_hint,
+    scope_hint,
+    scope_item,
+)
 from stash.entries import parse_line
 
 ENTRY = parse_line("ssh prod web | ssh deploy@10.0.1.5", line_number=12)
 OTHER = parse_line("wifi guest | hunter2", line_number=13)
 PLAIN = parse_line("pihole update finished", line_number=14)
+SCOPED = parse_line("bread | sourdough", line_number=2, scope="grocery")
 
 
 def titles(items):
@@ -123,7 +135,9 @@ def test_entry_item_ctrl_shows_line_without_action():
     ctrl = entry_item(ENTRY)["mods"]["ctrl"]
 
     assert ctrl["valid"] is False, "ctrl modifier should only inform, not trigger an action"
-    assert ctrl["subtitle"] == "Line 12 · copy", "ctrl modifier should show where the entry lives and what enter does"
+    assert ctrl["subtitle"] == "Line 12 of the stash · copy", (
+        "ctrl modifier should show where the entry lives and what enter does"
+    )
 
 
 @pytest.mark.parametrize(
@@ -158,31 +172,115 @@ def test_add_item_is_absent_for_text_that_is_not_an_entry(raw):
     assert add_item(raw) is None, "add_item should offer nothing for text that cannot be stored"
 
 
+ADD = "Add: prod"
+
+
 @pytest.mark.parametrize(
-    "results, entries, query, expected",
+    "matches, query, expected",
     [
-        ([ENTRY], [ENTRY, OTHER], "prod", ["ssh prod web", "Add: prod"]),
-        ([ENTRY, OTHER], [ENTRY, OTHER], "", ["ssh prod web", "wifi guest"]),
-        ([], [ENTRY], "zzz", ["Add: zzz"]),
-        ([ENTRY], [ENTRY], "prod | p", ["Add: prod", "ssh prod web"]),
-        ([ENTRY], [ENTRY], "prod \\ p", ["Add: prod", "ssh prod web"]),
-        ([], [], "new | n", ["Add: new"]),
-        ([], [], "", ["The stash is empty"]),
-        ([], [ENTRY], "|", ["No match for '|'"]),
+        (["ssh prod web"], "prod", ["ssh prod web", ADD]),
+        (["ssh prod web", "wifi guest"], "", ["ssh prod web", "wifi guest"]),
+        ([], "prod", [ADD]),
+        (["ssh prod web"], "prod | p", [ADD, "ssh prod web"]),
+        (["ssh prod web"], "prod \\ p", [ADD, "ssh prod web"]),
+        ([], "", ["hint"]),
+        ([], "|", ["hint"]),
     ],
 )
-def test_search_feedback_lists_matches_and_offers_to_add(results, entries, query, expected):
-    assert titles(search_feedback(results, entries, query)) == expected, (
-        "search_feedback should list matches, offer to add the query, and put Add first once a separator is typed"
+def test_feedback_lists_matches_and_offers_to_add(matches, query, expected):
+    items = [{"title": title} for title in matches]
+
+    assert titles(feedback(items, query, {"title": "hint"})) == expected, (
+        "feedback should list matches, offer to add the query, put Add first once a separator is typed, "
+        "and fall back to the hint when there is nothing to show"
     )
 
 
-@pytest.mark.parametrize("entries, query", [([], ""), ([ENTRY], "|")])
-def test_search_feedback_hints_are_not_actionable_except_for_editing(entries, query):
-    hint = search_feedback([], entries, query)[0]
+def test_feedback_inside_a_scope_adds_there():
+    [addition] = feedback([], "pasta | 500g", {"title": "hint"}, "recipes", new_scope=True)
 
+    assert addition["arg"] == "recipes/ pasta | 500g", "the add action should receive the scope with the line"
+    assert addition["subtitle"] == "500g · new scope recipes/", "adding to a scope that does not exist yet says so"
+    assert addition["mods"]["cmd"]["arg"] == "recipes/ 1", "cmd on the add row opens the scope's file"
+
+
+@pytest.mark.parametrize(
+    "stash_empty, query, title",
+    [(True, "", "The stash is empty"), (False, "|", "No match for '|'")],
+)
+def test_root_hint(stash_empty, query, title):
+    hint = root_hint(stash_empty, query)
+
+    assert hint["title"] == title, "the root hint should say whether the stash is empty or the query matched nothing"
     assert hint["valid"] is False, "hint items should not copy anything on enter"
     assert hint["mods"]["cmd"]["arg"] == "1", "cmd on a hint should still open the editor"
+
+
+@pytest.mark.parametrize(
+    "exists, title, editor_arg",
+    [(False, "New scope recipes/", "recipes/ 1"), (True, "recipes/ is empty", "recipes/ 1")],
+)
+def test_scope_hint(exists, title, editor_arg):
+    hint = scope_hint("recipes", exists)
+
+    assert hint["title"] == title, "the scope hint should tell a new scope from an empty one"
+    assert hint["valid"] is False, "hint items should not copy anything on enter"
+    assert hint["mods"]["cmd"] == {"arg": editor_arg, "subtitle": "Open recipes/ in your editor", "valid": True}, (
+        "cmd on a scope hint should open that scope's file"
+    )
+
+
+def test_scope_item_browses_on_enter_and_looks_like_a_folder():
+    item = scope_item("grocery", 12)
+
+    assert item["title"] == "grocery/", "a scope row shows its name as it is typed"
+    assert item["subtitle"] == "12 entries · ↩ to browse", "a scope row says how much is inside"
+    assert item["valid"] is False and item["autocomplete"] == "grocery/ ", (
+        "enter on an invalid row autocompletes, which drops the user into the scope"
+    )
+    assert item["icon"] == FOLDER_ICON, "a scope row should be told from an entry by its folder icon"
+    assert item["mods"]["cmd"] == {"arg": "grocery/ 1", "subtitle": "Open grocery/ in your editor", "valid": True}, (
+        "cmd on a scope row opens its file"
+    )
+    assert [item["mods"][key]["valid"] for key in ("alt", "shift")] == [False, False], (
+        "a whole scope is not deleted or pasted from a keystroke"
+    )
+
+
+def test_scope_item_counts_one_entry_in_the_singular():
+    assert scope_item("grocery", 1)["subtitle"] == "1 entry · ↩ to browse", "grammar"
+
+
+@pytest.mark.parametrize(
+    "key, expected",
+    [
+        ("uid", "grocery/ bread|sourdough"),
+        ("title", "bread"),
+        ("subtitle", "grocery · sourdough"),
+        ("autocomplete", "grocery/ bread"),
+    ],
+)
+def test_entry_item_of_scoped_entry_seen_from_the_root(key, expected):
+    assert entry_item(SCOPED)[key] == expected, f"a scoped entry at the root should carry its scope in {key}"
+
+
+def test_entry_item_of_scoped_entry_seen_inside_its_scope_drops_the_origin():
+    assert entry_item(SCOPED, within="grocery")["subtitle"] == "sourdough", "inside a scope the origin is implied"
+
+
+@pytest.mark.parametrize(
+    "modifier, arg, subtitle",
+    [
+        ("cmd", "grocery/ 2", "Edit line 2 of grocery/"),
+        ("alt", "grocery/ bread | sourdough", "Delete: bread | sourdough"),
+        ("ctrl", None, "Line 2 of grocery/ · copy"),
+    ],
+)
+def test_entry_item_of_scoped_entry_routes_modifiers_to_its_file(modifier, arg, subtitle):
+    mod = entry_item(SCOPED)["mods"][modifier]
+
+    assert mod.get("arg") == arg, f"{modifier} on a scoped entry should name the scope so the action finds the file"
+    assert mod["subtitle"] == subtitle, f"{modifier} subtitle should name the scope"
 
 
 def test_render_wraps_items_as_ascii_safe_json():

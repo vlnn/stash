@@ -29,10 +29,11 @@ def database_line(rng, vocabulary):
 
 
 def write_database(directory, size, vocabulary, rng):
-    path = os.path.join(directory, f"db-{size}.txt")
-    with open(path, "w", encoding="utf-8") as file:
+    db_dir = os.path.join(directory, f"db-{size}")
+    os.makedirs(db_dir)
+    with open(os.path.join(db_dir, "default.txt"), "w", encoding="utf-8") as file:
         file.writelines(database_line(rng, vocabulary) for _ in range(size))
-    return path
+    return db_dir
 
 
 def queries_for(vocabulary):
@@ -58,7 +59,7 @@ def measure(argv, env):
 def bench_size(python, directory, size, stress):
     rng = random.Random(42)
     vocabulary = (stress_vocabulary if stress else realistic_vocabulary)(rng, 3_000)
-    env = {**os.environ, "db_file": write_database(directory, size, vocabulary, rng)}
+    env = {**os.environ, "db_dir": write_database(directory, size, vocabulary, rng)}
     search = [python, "-S", "-X", "utf8", "run.py", "search"]
     for query in queries_for(vocabulary):
         print(f"{size:>6} entries  query {query!r:16} {measure([*search, query], env)}")

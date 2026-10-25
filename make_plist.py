@@ -3,7 +3,7 @@
 import plistlib
 import uuid
 
-from stash.cli import DEFAULT_DB_FILE, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS
+from stash.cli import DEFAULT_DB_DIR, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS
 
 PYTHON = 'exec "${python:-/usr/bin/python3}" -S -X utf8 run.py'
 CMD, ALT, SHIFT = 1 << 20, 1 << 19, 1 << 17
@@ -28,9 +28,11 @@ st / sta / stash <words>   search; words match in any order, as whole words, pre
                            workflow, or add  ⇧↩ paste  ⌘↩ edit  ⌥↩ delete
 
 Entries are lines of  words | payload ; without a | the whole line is both.
+The stash is a folder: default.txt holds the root, every other name.txt is a scope.
+st name/ <words>   searches inside a scope; scope rows come first, ↩ enters one.
 flows: aliases for @words, e.g. "tally=t kobold=kb wisp=l".
 
-Variables: db_file (stash path), editor (command template with {file} and {line}),
+Variables: db_dir (stash folder), editor (command template with {file} and {line}),
 max_results, python (interpreter, 3.9+).
 """
 
@@ -154,7 +156,7 @@ WORKFLOW = {
     "version": "2.2.1",
     "webaddress": "",
     "variables": {
-        "db_file": DEFAULT_DB_FILE,
+        "db_dir": DEFAULT_DB_DIR,
         "editor": DEFAULT_EDITOR,
         "max_results": str(DEFAULT_MAX_RESULTS),
         "python": "/usr/bin/python3",

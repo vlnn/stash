@@ -5,7 +5,7 @@ import pytest
 
 from stash.cli import (
     ALFRED_SEARCH,
-    DEFAULT_DB_FILE,
+    DEFAULT_DB_DIR,
     DEFAULT_EDITOR,
     DEFAULT_MAX_RESULTS,
     config_from,
@@ -17,16 +17,30 @@ from stash.cli import (
 DATABASE = "ssh prod web | ssh deploy@10.0.1.5\nwifi guest | hunter2\n"
 
 
+GROCERY = "milk eggs | 2L and a dozen\nbread | sourdough\n"
+
+
 @pytest.fixture
-def db_file(tmp_path):
-    path = tmp_path / "entries.txt"
-    path.write_text(DATABASE, encoding="utf-8")
+def db_dir(tmp_path):
+    (tmp_path / "default.txt").write_text(DATABASE, encoding="utf-8")
+    return tmp_path
+
+
+@pytest.fixture
+def db_file(db_dir):
+    return db_dir / "default.txt"
+
+
+@pytest.fixture
+def grocery(db_dir):
+    path = db_dir / "grocery.txt"
+    path.write_text(GROCERY, encoding="utf-8")
     return path
 
 
 @pytest.fixture
-def env(db_file):
-    return {"db_file": str(db_file)}
+def env(db_dir):
+    return {"db_dir": str(db_dir)}
 
 
 def run(capsys, env, *argv):
@@ -38,17 +52,17 @@ def item_titles(output):
     return [item["title"] for item in json.loads(output)["items"]]
 
 
-DEFAULTS = (os.path.expanduser(DEFAULT_DB_FILE), DEFAULT_EDITOR, DEFAULT_MAX_RESULTS, {})
+DEFAULTS = (os.path.expanduser(DEFAULT_DB_DIR), DEFAULT_EDITOR, DEFAULT_MAX_RESULTS, {})
 
 
 @pytest.mark.parametrize(
     "env, expected",
     [
         ({}, DEFAULTS),
-        ({"db_file": "", "editor": "", "max_results": "", "flows": ""}, DEFAULTS),
+        ({"db_dir": "", "editor": "", "max_results": "", "flows": ""}, DEFAULTS),
         (
-            {"db_file": "~/db.txt", "editor": "code -g {file}:{line}", "max_results": "9", "flows": "tally=t"},
-            (os.path.expanduser("~/db.txt"), "code -g {file}:{line}", 9, {"tally": "t"}),
+            {"db_dir": "~/db", "editor": "code -g {file}:{line}", "max_results": "9", "flows": "tally=t"},
+            (os.path.expanduser("~/db"), "code -g {file}:{line}", 9, {"tally": "t"}),
         ),
     ],
 )
@@ -79,13 +93,13 @@ def test_search_limits_results(capsys, env):
 
 
 def test_search_on_missing_database_offers_to_add(capsys, tmp_path):
-    output = run(capsys, {"db_file": str(tmp_path / "none.txt")}, "search", "x")
+    output = run(capsys, {"db_dir": str(tmp_path / "none")}, "search", "x")
 
     assert item_titles(output) == ["Add: x"], "search on an empty stash should offer to add the query"
 
 
 def test_search_on_missing_database_with_empty_query_says_so(capsys, tmp_path):
-    output = run(capsys, {"db_file": str(tmp_path / "none.txt")}, "search", "")
+    output = run(capsys, {"db_dir": str(tmp_path / "none")}, "search", "")
 
     assert item_titles(output) == ["The stash is empty"], "search should guide the user on an empty stash"
 
@@ -161,11 +175,11 @@ def test_edit_replaces_process_with_editor(mocker, capsys, env, db_file, argv, l
 
 def test_edit_creates_missing_database(mocker, capsys, tmp_path):
     mocker.patch("stash.cli.os.execvp")
-    path = tmp_path / "new" / "entries.txt"
+    path = tmp_path / "new"
 
-    run(capsys, {"db_file": str(path)}, "edit")
+    run(capsys, {"db_dir": str(path)}, "edit")
 
-    assert path.is_file(), "edit should create the database so the editor has something to open"
+    assert (path / "default.txt").is_file(), "edit should create the database so the editor has something to open"
 
 
 def test_edit_reports_missing_editor(mocker, capsys, env):
@@ -241,3 +255,89 @@ def test_main_rejects_unknown_command(env, argv):
         main(argv, env)
 
     assert "usage" in str(exit_info.value), "main should print usage for unknown commands"
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        ("", ["grocery/", "ssh prod web", "wifi guest", "milk eggs", "bread"]),
+        ("gro", ["grocery/", "Add: gro"]),
+        ("eggs", ["milk eggs", "Add: eggs"]),
+        ("e", ["grocery/", "wifi guest", "ssh prod web", "milk eggs", "bread", "Add: e"]),
+        ("grocery/", ["milk eggs", "bread"]),
+        ("grocery/ milk", ["milk eggs", "Add: milk"]),
+        ("grocery/bread", ["bread", "Add: bread"]),
+        ("grocery/ prod", ["Add: prod"]),
+        ("grocery/ pasta | 500g", ["Add: pasta"]),
+        ("recipes/", ["New scope recipes/"]),
+        ("recipes/ pasta", ["Add: pasta"]),
+    ],
+)
+def test_search_tiers_scopes_root_and_scoped_entries(capsys, env, grocery, query, expected):
+    assert item_titles(run(capsys, env, "search", query)) == expected, (
+        "scope rows come first, then root entries, then scoped entries; name/ narrows to one scope"
+    )
+
+
+def test_search_marks_scoped_entries_at_the_root_but_not_inside_their_scope(capsys, env, grocery):
+    [at_root, _] = json.loads(run(capsys, env, "search", "bread"))["items"]
+    [inside, _] = json.loads(run(capsys, env, "search", "grocery/ bread"))["items"]
+
+    assert at_root["subtitle"] == "grocery · sourdough", "a scoped hit at the root should say where it lives"
+    assert inside["subtitle"] == "sourdough", "inside its scope an entry looks like any other"
+
+
+def test_search_counts_scope_rows_against_max_results(capsys, env, grocery):
+    assert item_titles(run(capsys, {**env, "max_results": "2"}, "search", "")) == ["grocery/", "ssh prod web"], (
+        "max_results should cap the whole list, scope rows included"
+    )
+
+
+def test_search_with_only_scopes_lists_them(capsys, tmp_path):
+    (tmp_path / "grocery.txt").write_text(GROCERY, encoding="utf-8")
+
+    assert item_titles(run(capsys, {"db_dir": str(tmp_path)}, "search", "")) == ["grocery/", "milk eggs", "bread"], (
+        "a stash with scopes and no default.txt is not empty"
+    )
+
+
+def test_add_into_scope_creates_its_file(capsys, env, db_dir):
+    output = run(capsys, env, "add", "recipes/ pasta | 500g, 10 min")
+
+    assert output == "Added to recipes/: pasta", "add should say which scope received the entry"
+    assert (db_dir / "recipes.txt").read_text(encoding="utf-8") == "pasta | 500g, 10 min\n", (
+        "the first entry of a scope should create its file without the scope prefix"
+    )
+    assert (db_dir / "default.txt").read_text(encoding="utf-8") == DATABASE, "the root should be untouched"
+
+
+def test_delete_from_scope(capsys, env, grocery):
+    assert run(capsys, env, "delete", "grocery/ bread | sourdough") == "Deleted: bread | sourdough", (
+        "delete should remove the line from the scope's file"
+    )
+    assert grocery.read_text(encoding="utf-8") == "milk eggs | 2L and a dozen\n", "only that line should go"
+
+
+def test_delete_from_scope_reports_unknown_entry(capsys, env, grocery):
+    assert run(capsys, env, "delete", "grocery/ ssh prod web | ssh deploy@10.0.1.5").startswith("Not deleted"), (
+        "a root entry is not found in a scope's file"
+    )
+
+
+def test_edit_opens_the_scope_file_at_the_line(mocker, capsys, env, db_dir):
+    execvp = mocker.patch("stash.cli.os.execvp")
+
+    run(capsys, {**env, "editor": "code -g {file}:{line}"}, "edit", "recipes/ 4")
+
+    assert execvp.call_args_list == [mocker.call("code", ["code", "-g", f"{db_dir / 'recipes.txt'}:4"])], (
+        "edit should open the scope's file"
+    )
+    assert (db_dir / "recipes.txt").is_file(), "edit should create the scope's file so the editor can open it"
+
+
+def test_search_in_an_empty_scope_says_so(capsys, env, db_dir):
+    (db_dir / "grocery.txt").write_text("# nothing yet\n", encoding="utf-8")
+
+    assert item_titles(run(capsys, env, "search", "grocery/")) == ["grocery/ is empty"], (
+        "a scope file without entries should be told apart from a scope that does not exist"
+    )

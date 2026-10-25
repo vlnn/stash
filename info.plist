@@ -641,9 +641,11 @@ st / sta / stash &lt;words&gt;   search; words match in any order, as whole word
                            workflow, or add  ⇧↩ paste  ⌘↩ edit  ⌥↩ delete
 
 Entries are lines of  words | payload ; without a | the whole line is both.
+The stash is a folder: default.txt holds the root, every other name.txt is a scope.
+st name/ &lt;words&gt;   searches inside a scope; scope rows come first, ↩ enters one.
 flows: aliases for @words, e.g. "tally=t kobold=kb wisp=l".
 
-Variables: db_file (stash path), editor (command template with {file} and {line}),
+Variables: db_dir (stash folder), editor (command template with {file} and {line}),
 max_results, python (interpreter, 3.9+).
 </string>
 	<key>uidata</key>
@@ -735,8 +737,8 @@ max_results, python (interpreter, 3.9+).
 	</dict>
 	<key>variables</key>
 	<dict>
-		<key>db_file</key>
-		<string>~/.config/stash/stash.txt</string>
+		<key>db_dir</key>
+		<string>~/.config/stash</string>
 		<key>editor</key>
 		<string>open -t {file}</string>
 		<key>flows</key>

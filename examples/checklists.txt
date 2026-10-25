@@ -1,0 +1,5 @@
+# A scope: every name.txt next to default.txt is one. Search it with  st checklists/ <words>
+# or press ↩ on the checklists/ row; its entries also show up in any search, after the root ones.
+release checklist         | changelog, bump version, tag, build, upload, announce
+travel packing            | passport, charger, adapter, headphones, meds
+new machine setup         | xcode-select --install, brew, dotfiles, ssh keys, alfred

@@ -9,10 +9,10 @@ from collections.abc import Mapping, Sequence
 from typing import Callable, NamedTuple, Optional
 
 from . import alfred, store
-from .entries import SEPARATOR, parse_line
-from .matching import search
+from .entries import SEPARATOR, parse_line, split_scope
+from .matching import search, search_scopes
 
-DEFAULT_DB_FILE = "~/.config/stash/stash.txt"
+DEFAULT_DB_DIR = "~/.config/stash"
 DEFAULT_EDITOR = "open -t {file}"
 DEFAULT_MAX_RESULTS = 50
 ALFRED_SEARCH = (
@@ -26,7 +26,7 @@ ALFRED_SEARCH = (
 
 
 class Config(NamedTuple):
-    db_file: str
+    db_dir: str
     editor: str
     max_results: int
     flows: dict[str, str]
@@ -34,7 +34,7 @@ class Config(NamedTuple):
 
 def config_from(env: Mapping[str, str]) -> Config:
     return Config(
-        db_file=os.path.expanduser(env.get("db_file") or DEFAULT_DB_FILE),
+        db_dir=os.path.expanduser(env.get("db_dir") or DEFAULT_DB_DIR),
         editor=env.get("editor") or DEFAULT_EDITOR,
         max_results=int(env.get("max_results") or DEFAULT_MAX_RESULTS),
         flows=flows_from(env.get("flows") or ""),
@@ -49,29 +49,51 @@ def flows_from(text: str) -> dict[str, str]:
 
 
 def search_command(query: str, config: Config) -> str:
-    entries = store.load_entries(config.db_file)
-    words, *_ = SEPARATOR.split(query, 1)
-    results = search(words, entries, config.max_results)
-    return alfred.render(alfred.search_feedback(results, entries, query.strip(), config.flows))
+    scope, rest = split_scope(query)
+    words, *_ = SEPARATOR.split(rest, 1)
+    items = scoped_search(scope, words, rest.strip(), config) if scope else root_search(words, rest.strip(), config)
+    return alfred.render(items)
+
+
+def scoped_search(scope: str, words: str, query: str, config: Config) -> list[alfred.Item]:
+    path = store.scope_path(config.db_dir, scope)
+    entries = store.load_entries(path, scope)
+    matches = [alfred.entry_item(entry, config.flows, scope) for entry in search(words, entries, config.max_results)]
+    exists = os.path.exists(path)
+    return alfred.feedback(matches, query, alfred.scope_hint(scope, exists), scope, new_scope=not exists)
+
+
+def root_search(words: str, query: str, config: Config) -> list[alfred.Item]:
+    root = store.load_scope(config.db_dir)
+    scopes = store.load_scopes(config.db_dir)
+    scoped = [entry for entries in scopes.values() for entry in entries]
+    rows = [alfred.scope_item(name, len(scopes[name])) for name in search_scopes(words, list(scopes))]
+    hits = [*search(words, root, config.max_results), *search(words, scoped, config.max_results)]
+    matches = [*rows, *(alfred.entry_item(entry, config.flows) for entry in hits)][: config.max_results]
+    return alfred.feedback(matches, query, alfred.root_hint(not (root or scoped), query))
 
 
 def add_command(raw: str, config: Config) -> str:
-    entry = parse_line(raw)
+    scope, line = split_scope(raw)
+    entry = parse_line(line)
     if entry is None:
         return f"Nothing added, expected: {alfred.FORMAT_HINT}"
-    store.append_line(config.db_file, entry.raw)
-    return f"Added: {entry.label}"
+    store.append_line(store.scope_path(config.db_dir, scope), entry.raw)
+    return f"Added to {scope}/: {entry.label}" if scope else f"Added: {entry.label}"
 
 
 def delete_command(raw: str, config: Config) -> str:
-    if store.delete_line(config.db_file, raw):
-        return f"Deleted: {raw.strip()}"
+    scope, line = split_scope(raw)
+    if store.delete_line(store.scope_path(config.db_dir, scope), line):
+        return f"Deleted: {line.strip()}"
     return "Not deleted: entry not found, the stash may have changed"
 
 
-def edit_command(line_number: str, config: Config) -> str | None:
-    store.ensure_file(config.db_file)
-    argv = editor_argv(config.editor, config.db_file, line_number or "1")
+def edit_command(target: str, config: Config) -> str | None:
+    scope, line_number = split_scope(target)
+    path = store.scope_path(config.db_dir, scope)
+    store.ensure_file(path)
+    argv = editor_argv(config.editor, path, line_number or "1")
     try:
         os.execvp(argv[0], argv)
     except FileNotFoundError:

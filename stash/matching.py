@@ -4,7 +4,7 @@ import heapq
 import re
 from collections.abc import Sequence
 
-from .entries import Entry, split_words
+from .entries import Entry, haystack_of, split_words
 
 EXACT, PREFIX, SUBSTRING, SUBSEQUENCE, NO_MATCH = 4, 3, 2, 1, 0
 
@@ -44,3 +44,12 @@ def search(query: str, entries: Sequence[Entry], limit: int) -> list[Entry]:
         return list(entries[:limit])
     hits = [(score(patterns, entry), entry) for entry in entries]
     return [entry for _, entry in heapq.nsmallest(limit, [hit for hit in hits if hit[0]], key=rank)]
+
+
+def scope_entry(name: str, position: int) -> Entry:
+    return Entry(name, name, haystack_of((name,)), position)
+
+
+def search_scopes(query: str, names: Sequence[str]) -> list[str]:
+    candidates = [scope_entry(name, position) for position, name in enumerate(names)]
+    return [entry.label for entry in search(query, candidates, len(candidates))]

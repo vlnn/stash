@@ -54,7 +54,7 @@ def main(bundle_path, python):
         env = {
             **os.environ,
             "python": python,
-            "db_file": os.path.join(directory, "stash", "stash.txt"),
+            "db_dir": os.path.join(directory, "stash"),
             "editor": "echo opened {file}:{line}",
             "flows": "kobold=kb",
         }
@@ -72,7 +72,7 @@ def main(bundle_path, python):
         [hand_off, _] = json.loads(run(bundle_dir, scripts, "search", "books", env))["items"]
         check(hand_off["variables"] == {"action": "alfred"} and hand_off["arg"] == "kb delany", "@word hands off")
         check(titles(run(bundle_dir, scripts, "search", "кав", env))[0] == "кава coffee", "unicode searches")
-        check(run(bundle_dir, scripts, "edit", "2", env).endswith("stash.txt:2"), "edit opens the editor at the line")
+        check(run(bundle_dir, scripts, "edit", "2", env).endswith("default.txt:2"), "edit opens the editor at the line")
         check(
             run(bundle_dir, scripts, "delete", "logs | tail -f app.log | grep ERROR", env).startswith("Deleted:"),
             "delete removes a line",
@@ -80,6 +80,19 @@ def main(bundle_path, python):
         check(
             titles(run(bundle_dir, scripts, "search", "", env)) == ["ssh prod", "books", "кава coffee"],
             "the rest is intact",
+        )
+        check(
+            run(bundle_dir, scripts, "add", "grocery/ milk eggs | 2L", env) == "Added to grocery/: milk eggs",
+            "add into a scope creates it",
+        )
+        [scope_row, *_] = json.loads(run(bundle_dir, scripts, "search", "", env))["items"]
+        check(scope_row["title"] == "grocery/" and scope_row["autocomplete"] == "grocery/ ", "scope rows come first")
+        check(
+            titles(run(bundle_dir, scripts, "search", "grocery/ mil", env)) == ["milk eggs", "Add: mil"],
+            "name/ narrows",
+        )
+        check(
+            run(bundle_dir, scripts, "edit", "grocery/ 1", env).endswith("grocery.txt:1"), "edit opens the scope file"
         )
 
 

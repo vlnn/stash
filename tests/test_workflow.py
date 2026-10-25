@@ -4,7 +4,7 @@ import re
 
 import pytest
 
-from stash.cli import COMMANDS, DEFAULT_DB_FILE, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS
+from stash.cli import COMMANDS, DEFAULT_DB_DIR, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS
 
 CMD, ALT, SHIFT = 1 << 20, 1 << 19, 1 << 17
 PLIST_PATH = os.path.join(os.path.dirname(__file__), os.pardir, "info.plist")
@@ -130,7 +130,7 @@ def test_command_output_is_shown_as_notification(workflow, objects, command):
 @pytest.mark.parametrize(
     "variable, default",
     [
-        ("db_file", DEFAULT_DB_FILE),
+        ("db_dir", DEFAULT_DB_DIR),
         ("editor", DEFAULT_EDITOR),
         ("max_results", str(DEFAULT_MAX_RESULTS)),
         ("python", "/usr/bin/python3"),

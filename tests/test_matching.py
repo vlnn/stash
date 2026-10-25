@@ -1,7 +1,7 @@
 import pytest
 
 from stash.entries import parse_line
-from stash.matching import EXACT, NO_MATCH, PREFIX, SUBSEQUENCE, SUBSTRING, search, tier, token_pattern
+from stash.matching import EXACT, NO_MATCH, PREFIX, SUBSEQUENCE, SUBSTRING, search, search_scopes, tier, token_pattern
 
 LINES = [
     "ssh prod web | ssh deploy@10.0.1.5",
@@ -99,3 +99,20 @@ def test_search_with_empty_query_lists_entries_in_file_order(query):
 @pytest.mark.parametrize("limit", [1, 2])
 def test_search_respects_limit(limit):
     assert len(found_labels("web", limit=limit)) == limit, "search should return at most limit entries"
+
+
+SCOPES = ["aws", "checklists", "zsh", "chk"]
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        ("", ["aws", "checklists", "zsh", "chk"]),
+        ("chk", ["chk", "checklists"]),
+        ("ck", ["checklists", "chk"]),
+        ("zsh aws", []),
+        ("nothing", []),
+    ],
+)
+def test_search_scopes_ranks_names_like_words(query, expected):
+    assert search_scopes(query, SCOPES) == expected, "scope names should match and rank the way entry words do"

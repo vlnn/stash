@@ -4,6 +4,8 @@ import re
 from typing import NamedTuple
 
 SEPARATOR = re.compile(r"[|\\]")
+SCOPE_NAME = re.compile(r"[\w-]+")
+SCOPE_PREFIX = re.compile(rf"^({SCOPE_NAME.pattern})/\s*")
 COMMENT_PREFIX = "#"
 
 Keywords = tuple[str, ...]
@@ -15,9 +17,10 @@ class Entry(NamedTuple):
     haystack: str
     line_number: int = 0
     raw: str = ""
+    scope: str = ""
 
 
-def parse_line(line: str, line_number: int = 0) -> Entry | None:
+def parse_line(line: str, line_number: int = 0, scope: str = "") -> Entry | None:
     text = line.strip()
     if not text or text.startswith(COMMENT_PREFIX):
         return None
@@ -25,7 +28,7 @@ def parse_line(line: str, line_number: int = 0) -> Entry | None:
     keywords = split_words(SEPARATOR.sub(" ", label))
     if not keywords:
         return None
-    return Entry(label, payload, haystack_of(keywords), line_number, text)
+    return Entry(label, payload, haystack_of(keywords), line_number, text, scope)
 
 
 def split_record(text: str) -> tuple[str, str]:
@@ -34,6 +37,22 @@ def split_record(text: str) -> tuple[str, str]:
         return text, text
     label, payload = head.strip(), tail[0].strip()
     return label or payload, payload or label
+
+
+def split_scope(text: str) -> tuple[str, str]:
+    stripped = text.lstrip()
+    found = SCOPE_PREFIX.match(stripped)
+    if found is None:
+        return "", stripped
+    return found.group(1), stripped[found.end() :]
+
+
+def in_scope(scope: str, text: str) -> str:
+    return f"{scope}/ {text}" if scope else text
+
+
+def is_scope_name(name: str) -> bool:
+    return SCOPE_NAME.fullmatch(name) is not None
 
 
 def has_separator(text: str) -> bool:

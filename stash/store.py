@@ -2,9 +2,24 @@ from __future__ import annotations
 
 import os
 
-from .entries import Entry, parse_line
+from .entries import Entry, is_scope_name, parse_line
 
 TEXT = {"encoding": "utf-8", "errors": "surrogateescape", "newline": ""}
+ROOT = "default"
+EXTENSION = ".txt"
+
+
+def scope_path(db_dir: str, scope: str = "") -> str:
+    return os.path.join(db_dir, f"{scope or ROOT}{EXTENSION}")
+
+
+def scope_names(db_dir: str) -> list[str]:
+    try:
+        names = os.listdir(db_dir)
+    except FileNotFoundError:
+        return []
+    stems = (name[: -len(EXTENSION)] for name in names if name.endswith(EXTENSION))
+    return sorted(stem for stem in stems if stem != ROOT and is_scope_name(stem))
 
 
 def read_text(path: str) -> str:
@@ -15,9 +30,18 @@ def read_text(path: str) -> str:
         return ""
 
 
-def load_entries(path: str) -> list[Entry]:
-    parsed = (parse_line(line, number) for number, line in enumerate(read_text(path).split("\n"), start=1))
+def load_entries(path: str, scope: str = "") -> list[Entry]:
+    lines = enumerate(read_text(path).split("\n"), start=1)
+    parsed = (parse_line(line, number, scope) for number, line in lines)
     return [entry for entry in parsed if entry]
+
+
+def load_scope(db_dir: str, scope: str = "") -> list[Entry]:
+    return load_entries(scope_path(db_dir, scope), scope)
+
+
+def load_scopes(db_dir: str) -> dict[str, list[Entry]]:
+    return {scope: load_scope(db_dir, scope) for scope in scope_names(db_dir)}
 
 
 def ensure_parent(path: str) -> None:
