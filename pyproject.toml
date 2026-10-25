@@ -10,7 +10,15 @@ dependencies = []
 dev = [
     "pytest>=8",
     "pytest-mock>=3.14",
+    "ruff>=0.8",
 ]
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

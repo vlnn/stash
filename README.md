@@ -337,16 +337,19 @@ What keeps it fast:
 
 ```bash
 uv sync
-uv run pytest                                       # 215 tests
-uv run --python 3.9 --isolated --with pytest --with pytest-mock pytest   # what /usr/bin/python3 is on macOS
-uv run python bench.py                              # latency per keystroke
-uv run python make_plist.py                         # regenerate info.plist after changing keywords or wiring
+make test           # pytest on the project interpreter                      (215 tests)
+make test-system    # the same on /usr/bin/python3, the interpreter the workflow runs on
+make lint           # ruff check + format
+make check          # build dist/Stash.alfredworkflow and run it the way Alfred would
+make bench          # latency per keystroke; PYTHON=/path/to/python3 to pick the interpreter
 ```
 
-Build the installable workflow (same in bash and fish):
+`make check` unzips the bundle into a temporary folder and drives every script from its `info.plist` through `bash`, exactly as Alfred does, against a throwaway stash: add with pipes, search, hand-off, edit, delete.
+
+CI (`.github/workflows/ci.yml`) runs lint and the tests on Python 3.9 and 3.13 on Linux, then the tests and `make check` on macOS with `/usr/bin/python3`, and uploads the bundle. Every push to the default branch republishes it as the `latest` pre-release; a `v*` tag makes a proper release with notes. To cut one:
 
 ```bash
-zip -r dist/Stash.alfredworkflow info.plist icon.png run.py stash -x '*__pycache__*'
+git tag v2.3.0 && git push origin v2.3.0
 ```
 
 | Path | Responsibility |
@@ -358,6 +361,8 @@ zip -r dist/Stash.alfredworkflow info.plist icon.png run.py stash -x '*__pycache
 | `stash/cli.py` | Commands `search`, `add`, `delete`, `edit`, `open`, `alfred`; workflow variables |
 | `run.py` | Entry point Alfred calls |
 | `make_plist.py` | Source of `info.plist`: keywords, objects, connections, variables |
+| `scripts/build.py`, `scripts/smoke.py` | Build the bundle; run it the way Alfred would |
+| `Makefile`, `.github/workflows/ci.yml` | The targets above, and CI that runs them |
 | `tests/` | pytest suite, including a structural check of `info.plist` |
 | `bench.py` | End-to-end latency benchmark |
 | `examples/stash.txt` | Sample stash |

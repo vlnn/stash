@@ -5,7 +5,8 @@ import re
 import shlex
 import subprocess
 import sys
-from typing import Callable, Mapping, NamedTuple, Optional, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Callable, NamedTuple, Optional
 
 from . import alfred, store
 from .entries import SEPARATOR, parse_line
@@ -15,9 +16,12 @@ DEFAULT_DB_FILE = "~/.config/stash/stash.txt"
 DEFAULT_EDITOR = "open -t {file}"
 DEFAULT_MAX_RESULTS = 50
 ALFRED_SEARCH = (
-    "-e", "on run argv",
-    "-e", 'tell application id "com.runningwithcrayons.Alfred" to search (item 1 of argv)',
-    "-e", "end run",
+    "-e",
+    "on run argv",
+    "-e",
+    'tell application id "com.runningwithcrayons.Alfred" to search (item 1 of argv)',
+    "-e",
+    "end run",
 )
 
 
@@ -65,7 +69,7 @@ def delete_command(raw: str, config: Config) -> str:
     return "Not deleted: entry not found, the stash may have changed"
 
 
-def edit_command(line_number: str, config: Config) -> Optional[str]:
+def edit_command(line_number: str, config: Config) -> str | None:
     store.ensure_file(config.db_file)
     argv = editor_argv(config.editor, config.db_file, line_number or "1")
     try:
@@ -79,14 +83,14 @@ def open_command(target: str, config: Config) -> None:
     os.execvp("open", ["open", target])
 
 
-def alfred_command(query: str, config: Config) -> Optional[str]:
+def alfred_command(query: str, config: Config) -> str | None:
     result = subprocess.run(["osascript", *ALFRED_SEARCH, query], capture_output=True, text=True)
     if result.returncode == 0:
         return None
     quoted = query.replace("\\", "\\\\").replace('"', '\\"')
     return (
         "macOS has not let Stash drive Alfred yet. Run this once in Terminal and allow it: "
-        f"osascript -e 'tell application id \"com.runningwithcrayons.Alfred\" to search \"{quoted}\"'"
+        f'osascript -e \'tell application id "com.runningwithcrayons.Alfred" to search "{quoted}"\''
     )
 
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import heapq
 import re
-from typing import Sequence
+from collections.abc import Sequence
 
 from .entries import Entry, split_words
 

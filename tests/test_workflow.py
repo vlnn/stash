@@ -101,7 +101,9 @@ def test_every_search_keyword_shares_the_actions(workflow, objects, search_filte
             )
 
 
-@pytest.mark.parametrize("action, command", [("add", "run.py add"), ("open", "run.py open"), ("alfred", "run.py alfred")])
+@pytest.mark.parametrize(
+    "action, command", [("add", "run.py add"), ("open", "run.py open"), ("alfred", "run.py alfred")]
+)
 def test_conditional_routes_actions_to_their_scripts(workflow, objects, conditional, action, command):
     [condition] = [c for c in conditional["config"]["conditions"] if c["matchstring"] == action]
     [target] = destinations(workflow, objects, conditional, output_uid=condition["uid"])

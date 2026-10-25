@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 SEPARATOR = re.compile(r"[|\\]")
 COMMENT_PREFIX = "#"
@@ -17,7 +17,7 @@ class Entry(NamedTuple):
     raw: str = ""
 
 
-def parse_line(line: str, line_number: int = 0) -> Optional[Entry]:
+def parse_line(line: str, line_number: int = 0) -> Entry | None:
     text = line.strip()
     if not text or text.startswith(COMMENT_PREFIX):
         return None

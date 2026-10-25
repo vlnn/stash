@@ -3,12 +3,14 @@ from __future__ import annotations
 import json
 import os
 import re
-from typing import Any, Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from .entries import Entry, has_separator, parse_line
 
 Item = dict[str, Any]
 Flows = Mapping[str, str]
+NO_FLOWS: Flows = {}
 
 FORMAT_HINT = "words | payload"
 OPEN_EDITOR = {"arg": "1", "subtitle": "Open the stash in your editor"}
@@ -17,7 +19,7 @@ FLOW = re.compile(r"^(?:(?P<text>.*\S)\s+)?@(?P<name>\S+)$")
 LABELS = {"copy": "Copy", "open": "Open", "alfred": "Alfred"}
 
 
-def flow_of(payload: str, flows: Flows) -> Optional[tuple[str, str]]:
+def flow_of(payload: str, flows: Flows) -> tuple[str, str] | None:
     found = FLOW.match(payload)
     if found is None:
         return None
@@ -26,7 +28,7 @@ def flow_of(payload: str, flows: Flows) -> Optional[tuple[str, str]]:
 
 
 def action_of(payload: str) -> str:
-    if flow_of(payload, {}):
+    if flow_of(payload, NO_FLOWS):
         return "alfred"
     if payload.startswith(OPENABLE_SCHEMES) or os.path.exists(os.path.expanduser(payload)):
         return "open"
@@ -42,7 +44,7 @@ def arg_of(entry: Entry, action: str, flows: Flows) -> str:
     return entry.payload
 
 
-def entry_item(entry: Entry, flows: Flows = {}) -> Item:
+def entry_item(entry: Entry, flows: Flows = NO_FLOWS) -> Item:
     action = action_of(entry.payload)
     arg = arg_of(entry, action, flows)
     return {
@@ -69,7 +71,7 @@ def subtitle_of(entry: Entry, action: str, arg: str) -> str:
     return entry.payload if action == "copy" else f"{LABELS[action]} · {entry.payload}"
 
 
-def add_item(raw: str) -> Optional[Item]:
+def add_item(raw: str) -> Item | None:
     entry = parse_line(raw)
     if entry is None:
         return None
@@ -87,7 +89,9 @@ def hint_item(title: str, subtitle: str) -> Item:
     return {"title": title, "subtitle": subtitle, "valid": False, "mods": {"cmd": {**OPEN_EDITOR, "valid": True}}}
 
 
-def search_feedback(results: Sequence[Entry], entries: Sequence[Entry], query: str, flows: Flows = {}) -> list[Item]:
+def search_feedback(
+    results: Sequence[Entry], entries: Sequence[Entry], query: str, flows: Flows = NO_FLOWS
+) -> list[Item]:
     addition = add_item(query)
     matches = [entry_item(entry, flows) for entry in results]
     if addition is None:

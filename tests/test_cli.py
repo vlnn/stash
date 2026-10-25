@@ -211,13 +211,15 @@ def test_alfred_asks_alfred_to_search(mocker, capsys, env):
 
 
 def test_alfred_explains_how_to_grant_automation_permission(mocker, capsys, env):
-    refused = mocker.Mock(returncode=1, stderr="execution error: Not authorized to send Apple events to Alfred. (-1743)")
+    refused = mocker.Mock(
+        returncode=1, stderr="execution error: Not authorized to send Apple events to Alfred. (-1743)"
+    )
     mocker.patch("stash.cli.subprocess.run", return_value=refused)
 
     output = run(capsys, env, "alfred", "kb delany")
 
     assert output.startswith("macOS has not let Stash drive Alfred yet."), "a refused hand-off should say what happened"
-    assert "osascript -e 'tell application id \"com.runningwithcrayons.Alfred\" to search \"kb delany\"'" in output, (
+    assert 'osascript -e \'tell application id "com.runningwithcrayons.Alfred" to search "kb delany"\'' in output, (
         "the notification should carry the exact Terminal line that triggers the permission dialog"
     )
 

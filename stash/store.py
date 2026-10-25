@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from typing import Optional
 
 from .entries import Entry, parse_line
 
@@ -43,11 +42,11 @@ def delete_line(path: str, target: str) -> bool:
     index = find_line(lines, target)
     if index is None:
         return False
-    write_atomically(path, "".join(lines[:index] + lines[index + 1:]))
+    write_atomically(path, "".join(lines[:index] + lines[index + 1 :]))
     return True
 
 
-def find_line(lines: list[str], target: str) -> Optional[int]:
+def find_line(lines: list[str], target: str) -> int | None:
     wanted = target.strip()
     return next((index for index, line in enumerate(lines) if line.strip() == wanted), None)
 

@@ -182,7 +182,10 @@ WORKFLOW = {
         ALFRED: [link(NOTIFY)],
     },
     "uidata": {
-        **{uid(f"search-{keyword}"): {"xpos": 40, "ypos": 40 + 130 * index} for index, keyword in enumerate(SEARCH_KEYWORDS)},
+        **{
+            uid(f"search-{keyword}"): {"xpos": 40, "ypos": 40 + 130 * index}
+            for index, keyword in enumerate(SEARCH_KEYWORDS)
+        },
         ROUTE: {"xpos": 330, "ypos": 60},
         COPY: {"xpos": 600, "ypos": 40},
         ADD: {"xpos": 600, "ypos": 170},

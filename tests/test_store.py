@@ -123,7 +123,7 @@ def test_ensure_file_keeps_existing_content(db_file):
     assert db_file.read_text(encoding="utf-8") == "a | A | 1\n", "ensure_file should never truncate the database"
 
 
-MIXED_ENCODING = "good | 1\n".encode() + b"caf\xe9 latin1 | 2\n" + "last | 3\n".encode()
+MIXED_ENCODING = b"good | 1\n" + b"caf\xe9 latin1 | 2\n" + b"last | 3\n"
 
 
 def test_load_entries_tolerates_undecodable_bytes(db_file):
