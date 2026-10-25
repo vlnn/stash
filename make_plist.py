@@ -14,10 +14,16 @@ def uid(name):
     return str(uuid.uuid5(uuid.NAMESPACE_URL, f"com.vlnn.stash/{name}")).upper()
 
 
-COPY, PASTE, EDIT, DELETE, ADD, OPEN, ALFRED, NOTIFY, ROUTE = map(
-    uid, ("copy", "paste", "edit", "delete", "add", "open", "alfred", "notify", "route")
+COPY, PASTE, EDIT, DELETE, ADD, OPEN, ALFRED, PROMPT, NOTIFY, ROUTE = map(
+    uid, ("copy", "paste", "edit", "delete", "add", "open", "alfred", "prompt", "notify", "route")
 )
-ROUTES = {"add": (ADD, uid("route-add")), "open": (OPEN, uid("route-open")), "alfred": (ALFRED, uid("route-alfred"))}
+ROUTES = {
+    "add": (ADD, uid("route-add")),
+    "open": (OPEN, uid("route-open")),
+    "alfred": (ALFRED, uid("route-alfred")),
+    "fill": (PROMPT, uid("route-fill")),
+    "paste": (PASTE, uid("route-paste")),
+}
 
 README = """Fuzzy keyword search over a plain-text stash you own.
 
@@ -30,6 +36,9 @@ st / sta / stash <words>   search; words match in any order, as whole words, pre
 Entries are lines of  words | payload ; without a | the whole line is both.
 The stash is a folder: default.txt holds the root, every other name.txt is a scope.
 st name/ <words>   searches inside a scope; scope rows come first, ↩ enters one.
+{{name}} in a payload asks for a value on ↩, one prompt per name ({{name=default}}
+offers a default, the clipboard is always offered); {{date}}, {{time}} and
+{{clipboard}} fill themselves.
 flows: aliases for @words, e.g. "tally=t kobold=kb wisp=l".
 
 Variables: db_dir (stash folder), editor (command template with {file} and {line}),
@@ -62,6 +71,21 @@ def search_filter(keyword):
             "title": "Search the stash",
             "type": 0,
             "withspace": True,
+        },
+    }
+
+
+def prompt_filter():
+    return {
+        "type": "alfred.workflow.input.scriptfilter",
+        "uid": PROMPT,
+        "version": 3,
+        "config": {
+            **search_filter("")["config"],
+            "script": f'{PYTHON} prompt "$1"',
+            "subtext": "Type a value; ↩ takes the selected row",
+            "title": "Fill in the blanks",
+            "withspace": False,
         },
     }
 
@@ -140,10 +164,11 @@ def link(destination, modifiers=0, subtext="", output_uid=None):
 
 SEARCH_LINKS = [
     link(ROUTE),
-    link(PASTE, SHIFT, "Paste into the frontmost app"),
+    link(ROUTE, SHIFT, "Paste into the frontmost app"),
     link(EDIT, CMD, "Edit in your editor"),
     link(DELETE, ALT, "Delete this entry"),
 ]
+PROMPT_LINKS = [link(ROUTE), link(ROUTE, SHIFT, "Paste once filled")]
 
 WORKFLOW = {
     "bundleid": "com.vlnn.stash",
@@ -153,7 +178,7 @@ WORKFLOW = {
     "disabled": False,
     "name": "Stash",
     "readme": README,
-    "version": "2.2.1",
+    "version": "3.0.0",
     "webaddress": "",
     "variables": {
         "db_dir": DEFAULT_DB_DIR,
@@ -165,6 +190,7 @@ WORKFLOW = {
     "variablesdontexport": [],
     "objects": [
         *(search_filter(keyword) for keyword in SEARCH_KEYWORDS),
+        prompt_filter(),
         ROUTER,
         clipboard(COPY, autopaste=False),
         clipboard(PASTE, autopaste=True),
@@ -177,6 +203,7 @@ WORKFLOW = {
     ],
     "connections": {
         **{uid(f"search-{keyword}"): SEARCH_LINKS for keyword in SEARCH_KEYWORDS},
+        PROMPT: PROMPT_LINKS,
         ROUTE: [*(link(target, output_uid=output_uid) for target, output_uid in ROUTES.values()), link(COPY)],
         EDIT: [link(NOTIFY)],
         DELETE: [link(NOTIFY)],
@@ -190,13 +217,14 @@ WORKFLOW = {
         },
         ROUTE: {"xpos": 330, "ypos": 60},
         COPY: {"xpos": 600, "ypos": 40},
-        ADD: {"xpos": 600, "ypos": 170},
-        OPEN: {"xpos": 600, "ypos": 300},
-        ALFRED: {"xpos": 600, "ypos": 430},
-        PASTE: {"xpos": 330, "ypos": 300},
+        PASTE: {"xpos": 600, "ypos": 170},
+        ADD: {"xpos": 600, "ypos": 300},
+        OPEN: {"xpos": 600, "ypos": 430},
+        ALFRED: {"xpos": 600, "ypos": 560},
+        PROMPT: {"xpos": 600, "ypos": 690},
         EDIT: {"xpos": 330, "ypos": 430},
         DELETE: {"xpos": 330, "ypos": 560},
-        NOTIFY: {"xpos": 870, "ypos": 300},
+        NOTIFY: {"xpos": 870, "ypos": 430},
     },
 }
 

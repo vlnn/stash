@@ -1,5 +1,6 @@
 import json
 import os
+import time
 
 import pytest
 
@@ -8,6 +9,7 @@ from stash.cli import (
     DEFAULT_DB_DIR,
     DEFAULT_EDITOR,
     DEFAULT_MAX_RESULTS,
+    Prompt,
     config_from,
     editor_argv,
     flows_from,
@@ -52,7 +54,7 @@ def item_titles(output):
     return [item["title"] for item in json.loads(output)["items"]]
 
 
-DEFAULTS = (os.path.expanduser(DEFAULT_DB_DIR), DEFAULT_EDITOR, DEFAULT_MAX_RESULTS, {})
+DEFAULTS = (os.path.expanduser(DEFAULT_DB_DIR), DEFAULT_EDITOR, DEFAULT_MAX_RESULTS, {}, Prompt())
 
 
 @pytest.mark.parametrize(
@@ -62,7 +64,11 @@ DEFAULTS = (os.path.expanduser(DEFAULT_DB_DIR), DEFAULT_EDITOR, DEFAULT_MAX_RESU
         ({"db_dir": "", "editor": "", "max_results": "", "flows": ""}, DEFAULTS),
         (
             {"db_dir": "~/db", "editor": "code -g {file}:{line}", "max_results": "9", "flows": "tally=t"},
-            (os.path.expanduser("~/db"), "code -g {file}:{line}", 9, {"tally": "t"}),
+            (os.path.expanduser("~/db"), "code -g {file}:{line}", 9, {"tally": "t"}, Prompt()),
+        ),
+        (
+            {"template": "ssh {{host}}", "filled": '{"port": "22"}', "finish": "paste"},
+            (*DEFAULTS[:4], Prompt("ssh {{host}}", {"port": "22"}, "paste")),
         ),
     ],
 )
@@ -341,3 +347,131 @@ def test_search_in_an_empty_scope_says_so(capsys, env, db_dir):
     assert item_titles(run(capsys, env, "search", "grocery/")) == ["grocery/ is empty"], (
         "a scope file without entries should be told apart from a scope that does not exist"
     )
+
+
+NOON = time.strptime("2026-10-25 12:05", "%Y-%m-%d %H:%M")
+TEMPLATES = "ssh {{host}} -p {{port=22}} | ssh root@{{host}} -p {{port=22}}\nstamp | note of {{date}} {{time}}\n"
+
+
+@pytest.fixture
+def frozen_clock(mocker):
+    mocker.patch("stash.cli.time.localtime", return_value=NOON)
+    return mocker.patch("stash.cli.read_clipboard", return_value="from clipboard")
+
+
+@pytest.fixture
+def templates(db_file):
+    db_file.write_text(TEMPLATES, encoding="utf-8")
+
+
+def test_search_resolves_reserved_names_and_leaves_the_rest_for_the_prompt(capsys, env, templates, frozen_clock):
+    [stamp, ssh, _] = json.loads(run(capsys, env, "search", "s"))["items"]
+
+    assert stamp["variables"] == {"action": "copy"} and stamp["arg"] == "note of 2026-10-25 12:05", (
+        "date and time fill themselves, so the entry copies as usual"
+    )
+    assert (
+        ssh["variables"]["action"] == "fill" and ssh["variables"]["template"] == "ssh root@{{host}} -p {{port=22}}"
+    ), "an entry with placeholders routes to the prompt with its template"
+    assert ssh["subtitle"] == "Fill host, port · ssh root@{{host}} -p {{port=22}}", "the subtitle previews the template"
+    assert frozen_clock.call_count == 0, "the clipboard is not read unless an entry mentions it"
+
+
+def test_search_previews_the_clipboard_only_when_mentioned(capsys, env, db_file, frozen_clock):
+    db_file.write_text("wrap | echo '{{clipboard}}'\n", encoding="utf-8")
+
+    [item, _] = json.loads(run(capsys, env, "search", "wrap"))["items"]
+
+    assert item["arg"] == "echo 'from clipboard'", "{{clipboard}} should be filled from the clipboard at search time"
+
+
+def test_add_row_previews_reserved_names(capsys, env, frozen_clock):
+    [*_, addition] = json.loads(run(capsys, env, "search", "note | today is {{date}}"))["items"]
+
+    assert addition["subtitle"] == "today is 2026-10-25", "typing {{date}} should show what it will become"
+    assert addition["arg"] == "note | today is {{date}}", "the stored line keeps the placeholder"
+
+
+def prompt(capsys, env, query, template, filled="{}", finish=""):
+    state = {"template": template, "filled": filled, "finish": finish}
+    return json.loads(run(capsys, {**env, **state}, "prompt", query))["items"]
+
+
+def test_prompt_first_step_offers_default_and_clipboard(capsys, env, frozen_clock):
+    [default, clipboard] = prompt(capsys, env, "", "ssh {{host=10.0.0.1}} -p {{port}}")
+
+    assert default["title"] == "host (1/2): 10.0.0.1   (default)", "the default comes first when nothing is typed"
+    assert clipboard["title"] == "host (1/2): from clipboard   (clipboard)", "the clipboard is always one row away"
+    assert default["subtitle"] == "ssh 10.0.0.1 -p {{port}}", "each row previews the payload with that value"
+    assert default["variables"] == {
+        "action": "fill",
+        "template": "ssh {{host=10.0.0.1}} -p {{port}}",
+        "filled": '{"host": "10.0.0.1"}',
+        "finish": "",
+    }, "a non-final step routes back to the prompt with the value recorded"
+    assert default["arg"] == "", "a non-final step passes no argument, so the next prompt opens empty"
+
+
+def test_prompt_typed_value_comes_first(capsys, env, frozen_clock):
+    [typed, *_] = prompt(capsys, env, "db.example.com", "ssh {{host=10.0.0.1}}")
+
+    assert typed["title"] == "host (1/1): db.example.com", "what you type is the first row"
+
+
+def test_prompt_last_step_performs_the_entry_action(capsys, env, frozen_clock):
+    [typed, _] = prompt(capsys, env, "2222", "ssh {{host}} -p {{port}}", '{"host": "h"}')
+
+    assert typed["title"] == "port (2/2): 2222", "the counter shows which step this is"
+    assert typed["variables"] == {"action": "copy"} and typed["arg"] == "ssh h -p 2222", (
+        "the last step carries the filled payload to the usual action"
+    )
+    assert typed["subtitle"] == "Copy · ssh h -p 2222", "the last step says what enter will do"
+    assert typed["mods"]["shift"] == {
+        "arg": "ssh h -p 2222",
+        "variables": {"action": "paste"},
+        "subtitle": "Paste into the frontmost app",
+    }, "shift-enter on the last step pastes the result"
+
+
+def test_prompt_last_step_opens_urls_and_hands_off_flows(capsys, env, frozen_clock):
+    [url, _] = prompt(capsys, env, "OPS-12", "https://jira.example.com/browse/{{ticket}}")
+    [flow, _] = prompt(capsys, {**env, "flows": "kobold=kb"}, "delany", "{{title}} @kobold")
+
+    assert url["variables"] == {"action": "open"} and url["arg"] == "https://jira.example.com/browse/OPS-12", (
+        "a filled URL opens"
+    )
+    assert flow["variables"] == {"action": "alfred"} and flow["arg"] == "kb delany", "a filled hand-off hands off"
+
+
+def test_prompt_remembers_paste_requested_before_filling(capsys, env, frozen_clock):
+    [typed, _] = prompt(capsys, env, "h", "ssh {{host}}", finish="paste")
+
+    assert typed["variables"] == {"action": "paste"}, "shift-enter on the entry means paste once everything is filled"
+
+
+def test_prompt_without_candidates_asks_for_a_value(capsys, env, mocker):
+    mocker.patch("stash.cli.read_clipboard", return_value="")
+
+    [hint] = prompt(capsys, env, "", "ssh {{host}}")
+
+    assert hint["title"] == "host (1/1)" and hint["valid"] is False, "with nothing to offer the prompt just waits"
+
+
+def test_prompt_with_everything_filled_finishes(capsys, env, frozen_clock):
+    [done] = prompt(capsys, env, "", "ssh {{host}}", '{"host": "h"}')
+
+    assert done["arg"] == "ssh h" and done["variables"] == {"action": "copy"}, "nothing pending means act"
+
+
+@pytest.mark.parametrize(
+    "argv, expected",
+    [
+        (["ssh {{host}} -p {{port}}", "host=10.0.0.1", "port=22"], "ssh 10.0.0.1 -p 22"),
+        (["{{date}} {{time}} {{clipboard}}"], "2026-10-25 12:05 from clipboard"),
+        (["ssh {{host=h}} -p {{port}}", "port=1"], "ssh {{host=h}} -p 1"),
+        (["plain"], "plain"),
+        ([], ""),
+    ],
+)
+def test_fill_prints_the_filled_payload(capsys, env, frozen_clock, argv, expected):
+    assert run(capsys, env, "fill", *argv) == expected, "fill should take name=value pairs and resolve reserved names"

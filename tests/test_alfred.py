@@ -10,6 +10,7 @@ from stash.alfred import (
     entry_item,
     feedback,
     flow_of,
+    prompt_items,
     render,
     root_hint,
     scope_hint,
@@ -288,3 +289,47 @@ def test_render_wraps_items_as_ascii_safe_json():
 
     assert output.isascii(), "render should escape non-ASCII so any locale can print it"
     assert json.loads(output) == {"items": [{"title": "Кава ☕"}]}, "render should produce Alfred script filter JSON"
+
+
+def test_entry_item_shift_pastes_the_payload_through_the_router():
+    assert entry_item(ENTRY)["mods"]["shift"] == {
+        "arg": "ssh deploy@10.0.1.5",
+        "variables": {"action": "paste"},
+        "subtitle": "Paste into the frontmost app",
+    }, "shift-enter should route to paste with the payload as written"
+
+
+TEMPLATE = parse_line("ssh box | ssh {{user=root}}@{{host}} since {{date}}", line_number=3)
+
+
+def test_entry_item_with_placeholders_routes_to_the_prompt():
+    item = entry_item(TEMPLATE, reserved={"date": "2026-10-25"})
+
+    assert item["variables"] == {
+        "action": "fill",
+        "template": "ssh {{user=root}}@{{host}} since 2026-10-25",
+        "filled": "{}",
+        "finish": "",
+    }, "reserved names are resolved before the prompt, the rest travels as the template"
+    assert item["arg"] == "", "nothing is passed as argument so the prompt opens with an empty field"
+    assert item["subtitle"] == "Fill user, host · ssh {{user=root}}@{{host}} since 2026-10-25", "preview and names"
+    assert item["text"] == {
+        "copy": "ssh {{user=root}}@{{host}} since {{date}}",
+        "largetype": "ssh {{user=root}}@{{host}} since 2026-10-25",
+    }, "cmd-c copies the line as written, large type shows the preview"
+    assert item["mods"]["shift"]["variables"]["finish"] == "paste", "shift-enter asks to paste once filled"
+    assert item["mods"]["ctrl"]["subtitle"] == "Line 3 of the stash · fill", "ctrl says the entry prompts"
+
+
+def test_add_item_previews_reserved_names_but_stores_the_placeholder():
+    item = add_item("stamp | {{date}} {{host}}", reserved={"date": "2026-10-25"})
+
+    assert item["subtitle"] == "2026-10-25 {{host}}", "the add row previews what date becomes"
+    assert item["arg"] == "stamp | {{date}} {{host}}", "the stored line keeps every placeholder"
+
+
+def test_prompt_items_offer_empty_default_but_not_empty_clipboard():
+    [row] = prompt_items("x {{sep=}} y", {}, "", "", {}, lambda: "")
+
+    assert row["title"] == "sep (1/1): (empty)   (default)", "an explicit empty default is a real choice"
+    assert row["arg"] == "x  y", "the empty default fills in as nothing"

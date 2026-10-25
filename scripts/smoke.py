@@ -50,7 +50,8 @@ def main(bundle_path, python):
         with zipfile.ZipFile(bundle_path) as bundle:
             bundle.extractall(bundle_dir)
         scripts = scripts_of(bundle_dir)
-        check(set(scripts) == {"search", "add", "delete", "edit", "open", "alfred"}, "the bundle wires every command")
+        commands = {"search", "add", "delete", "edit", "open", "alfred", "prompt"}
+        check(set(scripts) == commands, "the bundle wires every command")
         env = {
             **os.environ,
             "python": python,
@@ -94,6 +95,15 @@ def main(bundle_path, python):
         check(
             run(bundle_dir, scripts, "edit", "grocery/ 1", env).endswith("grocery.txt:1"), "edit opens the scope file"
         )
+        run(bundle_dir, scripts, "add", "ssh box | ssh {{user=root}}@{{host}}", env)
+        [box, _] = json.loads(run(bundle_dir, scripts, "search", "box", env))["items"]
+        check(box["variables"]["action"] == "fill", "an entry with placeholders routes to the prompt")
+        step_env = {**env, "template": box["variables"]["template"], "filled": "{}", "finish": ""}
+        [default, *_] = json.loads(run(bundle_dir, scripts, "prompt", "", step_env))["items"]
+        check(default["variables"]["filled"] == '{"user": "root"}', "the prompt offers the default")
+        step_env = {**step_env, "filled": default["variables"]["filled"]}
+        [typed, *_] = json.loads(run(bundle_dir, scripts, "prompt", "10.0.0.1", step_env))["items"]
+        check(typed["arg"] == "ssh root@10.0.0.1" and typed["variables"] == {"action": "copy"}, "the last step copies")
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ Fuzzy keyword search over a plain-text stash you own, as an Alfred workflow.
 - **Add** by typing: whatever you searched for is always offered as a new entry, so a miss is one ↩ away from being stored.
 - **Own the data**: one line per entry in text files you can edit, grep, sync and keep in git. The format is one rule: everything after the first `|` is the payload.
 - **Scope** when the list gets long: every `name.txt` next to the main file is a scope; `st name/` searches inside it, and `st` shows scopes first.
+- **Fill in the blanks**: a payload with `{{host}}` asks for `host` on ↩ and copies, opens or pastes the result; `{{date}}`, `{{time}}` and `{{clipboard}}` fill themselves.
 - **Fast**: no dependencies, built to stay well under Alfred's "instant" threshold for a stash of a few thousand entries.
 
 ```
@@ -28,6 +29,7 @@ st stg k8
 - [The stash folder](#the-stash-folder)
 - [Searching](#searching)
 - [Scopes](#scopes)
+- [Placeholders](#placeholders)
 - [Actions on a result](#actions-on-a-result)
 - [Adding entries](#adding-entries)
 - [Editing and deleting](#editing-and-deleting)
@@ -178,6 +180,7 @@ What ↩ does depends on the payload:
 | `alfred://runtrigger/<bundle id>/<trigger>/?argument=…` | runs that workflow's external trigger |
 | a path that exists (`~/notes`, `/Users/me/doc.pdf`) | opens it |
 | `text @keyword` | opens Alfred with `keyword text`, so another workflow takes over (see below) |
+| anything with `{{name}}` in it | asks for each name first, then does one of the above with the result (see [Placeholders](#placeholders)) |
 | anything else | copies it to the clipboard |
 
 The subtitle says which: `Open · …` or `Alfred · kb delany`. Everything else is the same for every result:
@@ -191,7 +194,7 @@ The subtitle says which: `Open · …` or `Alfred · kb delany`. Everything else
 | ⌘C | Copy the payload as written (Alfred's own copy shortcut) |
 | ⌘L | Show the payload in Large Type |
 
-The payload is copied literally: Alfred placeholders such as `{date}` inside it are not expanded. A shell one-liner is deliberately *not* run on ↩; ⇧↩ into a terminal you are looking at is one keystroke more and much harder to regret.
+The payload is copied literally: Alfred's own placeholders such as `{date}` inside it are not expanded; Stash's `{{date}}` is (see [Placeholders](#placeholders)). A shell one-liner is deliberately *not* run on ↩; ⇧↩ into a terminal you are looking at is one keystroke more and much harder to regret.
 
 ### Handing off to another workflow
 
@@ -208,6 +211,35 @@ The first hand-off needs a one-time macOS permission (step 4 of [Install](#insta
 Write workflow names instead of keywords by listing aliases in the `flows` variable, for example `tally=t kobold=kb wisp=l`; then `parser lexer @tally` means the same as `parser lexer @t`. The subtitle shows the resolved call (`Alfred · t parser lexer`), and ⌘C still copies the payload as written.
 
 Only a trailing `@word` counts, so `me@example.com` is copied as text. A payload that genuinely ends in an `@handle` would be taken as a hand-off; ⌘C still copies it, or end the line with a full stop.
+
+## Placeholders
+
+A payload can leave blanks to be filled when it is used:
+
+```
+ssh box        | ssh {{user=root}}@{{host}} -p {{port=22}}
+jira ticket    | https://example.atlassian.net/browse/{{ticket}}
+wrap code      | ```\n{{clipboard}}\n```
+standup        | {{date}} standup: {{done}} / {{next}}
+```
+
+`{{name}}` is a blank; `name` is letters, digits, `_` and `-`, so `{}`, `${VAR}`, `{"a": 1}` and `{{ not a name }}` are left alone. `{{name=value}}` gives it a default, which is used literally (nothing is evaluated). The same name twice is one blank.
+
+Three names fill themselves and are never asked for: `{{date}}` is today as `2026-10-25`, `{{time}}` is now as `14:05`, and `{{clipboard}}` is the clipboard. You see what they become before you press anything: the subtitle of a result, and of the *Add* row while you type one, shows the payload with them resolved.
+
+↩ on an entry with other blanks opens one prompt per name, in order of first appearance. The row's title is `host (1/2): …` and its subtitle is the payload as it stands; the rows are what you have typed, the default if there is one, and the clipboard, in that order. ↩ takes the selected row and moves to the next name; on the last one ↩ does what the entry would normally do with the result: copy it, open it if it is a URL or a path, hand it off if it ends in `@keyword`. ⇧↩ on the entry, or on the last row, pastes instead. Esc abandons with nothing copied.
+
+```
+st box ↩                 user (1/3): root   (default)               ssh root@{{host}} -p {{port=22}}
+                         user (1/3): 10.0.0.9   (clipboard)         ssh 10.0.0.9@{{host}} -p {{port=22}}
+↩                        host (2/3): 10.0.0.9   (clipboard)         ssh root@10.0.0.9 -p {{port=22}}
+db.example.com ↩         port (3/3): 22   (default)                 Copy · ssh root@db.example.com -p 22
+↩                        copied: ssh root@db.example.com -p 22
+```
+
+The counter is how many ↩ remain, so with the clipboard holding the host and the defaults doing the rest it is three.
+
+Entries without blanks are untouched by any of this; ↩ still copies on the spot.
 
 ## Adding entries
 
@@ -304,6 +336,13 @@ python3 ~/.stash/run.py add 'logs api | kubectl logs -f deploy/api | grep -v hea
 python3 ~/.stash/run.py add 'checklists/ pack | passport, charger'
 ```
 
+Fill a payload's blanks with `name=value` pairs (`{{date}}`, `{{time}}` and `{{clipboard}}` resolve on their own):
+
+```bash
+python3 ~/.stash/run.py fill 'ssh {{user=root}}@{{host}} on {{date}}' user=deploy host=10.0.0.1
+ssh deploy@10.0.0.1 on 2026-10-25
+```
+
 Save the command you just ran under some keywords, so the next time it's one `st` away.
 
 fish, in `~/.config/fish/functions/stash.fish`:
@@ -354,7 +393,7 @@ What keeps it fast:
 - Swapped letters (`stgaing`) don't match; dropped letters (`stgng`) do.
 - Letters-in-order matching stays within one word: `kctx` won't find `k8s ctx`, `k ctx` will.
 - Words are split on spaces and commas only, so `kube:` is a word and `kube` matches it as a prefix, not a whole word.
-- Payloads are single lines.
+- Payloads are single lines, and a default inside `{{name=…}}` can't contain braces.
 - Scopes do not nest, and a root entry whose first word ends in `/` (`foo/ bar`) can't be reached as such: `st foo/` means the scope `foo`.
 - A path payload opens only if it exists when you search; a command that happens to start with `/` is copied, not run.
 - It's a plain-text file: don't store secrets you wouldn't keep in a dotfile.
@@ -363,7 +402,7 @@ What keeps it fast:
 
 ```bash
 uv sync
-make test           # pytest on the project interpreter                      (215 tests)
+make test           # pytest on the project interpreter                      (332 tests)
 make test-system    # the same on /usr/bin/python3, the interpreter the workflow runs on
 make lint           # ruff check + format
 make check          # build dist/Stash.alfredworkflow and run it the way Alfred would
@@ -375,7 +414,7 @@ make bench          # latency per keystroke; PYTHON=/path/to/python3 to pick the
 CI (`.github/workflows/ci.yml`) runs lint and the tests on Python 3.9 and 3.13 on Linux, then the tests and `make check` on macOS with `/usr/bin/python3`, and uploads the bundle. Every push to the default branch republishes it as the `latest` pre-release; a `v*` tag makes a proper release with notes. To cut one:
 
 ```bash
-git tag v2.3.0 && git push origin v2.3.0
+git tag v3.0.0 && git push origin v3.0.0
 ```
 
 | Path | Responsibility |
@@ -383,10 +422,11 @@ git tag v2.3.0 && git push origin v2.3.0
 | `stash/entries.py` | Split a line at its first separator into an `Entry` with its searchable text; the `name/` scope prefix |
 | `stash/matching.py` | One regex per query word, scoring, ranking |
 | `stash/store.py` | The stash folder: `default.txt` and the scope files; load, append, delete lines; atomic, symlink-safe writes |
-| `stash/alfred.py` | Alfred Script Filter JSON: results and their copy/open/hand-off action, scope rows, the *Add* item, hints |
-| `stash/cli.py` | Commands `search`, `add`, `delete`, `edit`, `open`, `alfred`; workflow variables |
+| `stash/snippets.py` | `{{name}}` and `{{name=default}}` placeholders, the reserved `date`, `time` and `clipboard`, filling |
+| `stash/alfred.py` | Alfred Script Filter JSON: results and their copy/open/hand-off/fill action, scope rows, the *Add* item, prompt rows, hints |
+| `stash/cli.py` | Commands `search`, `add`, `delete`, `edit`, `open`, `alfred`, `prompt`, `fill`; workflow variables |
 | `run.py` | Entry point Alfred calls |
-| `make_plist.py` | Source of `info.plist`: keywords, objects, connections, variables |
+| `make_plist.py` | Source of `info.plist`: keywords, the prompt filter, the router, connections, variables |
 | `scripts/build.py`, `scripts/smoke.py` | Build the bundle; run it the way Alfred would |
 | `Makefile`, `.github/workflows/ci.yml` | The targets above, and CI that runs them |
 | `tests/` | pytest suite, including a structural check of `info.plist` |

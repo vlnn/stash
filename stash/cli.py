@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 import shlex
 import subprocess
 import sys
+import time
 from collections.abc import Mapping, Sequence
 from typing import Callable, NamedTuple, Optional
 
-from . import alfred, store
+from . import alfred, snippets, store
 from .entries import SEPARATOR, parse_line, split_scope
 from .matching import search, search_scopes
 
@@ -25,11 +27,18 @@ ALFRED_SEARCH = (
 )
 
 
+class Prompt(NamedTuple):
+    template: str = ""
+    values: dict[str, str] = {}
+    finish: str = ""
+
+
 class Config(NamedTuple):
     db_dir: str
     editor: str
     max_results: int
     flows: dict[str, str]
+    prompt: Prompt = Prompt()
 
 
 def config_from(env: Mapping[str, str]) -> Config:
@@ -38,7 +47,19 @@ def config_from(env: Mapping[str, str]) -> Config:
         editor=env.get("editor") or DEFAULT_EDITOR,
         max_results=int(env.get("max_results") or DEFAULT_MAX_RESULTS),
         flows=flows_from(env.get("flows") or ""),
+        prompt=Prompt(env.get("template") or "", json.loads(env.get("filled") or "{}"), env.get("finish") or ""),
     )
+
+
+def read_clipboard() -> str:
+    try:
+        return subprocess.run(["pbpaste"], capture_output=True, text=True).stdout
+    except OSError:
+        return ""
+
+
+def reserved_for(texts: Sequence[str]) -> dict[str, str]:
+    return snippets.reserved_values(time.localtime(), read_clipboard, tuple(texts))
 
 
 FLOW_PAIR = re.compile(r"([^\s=,]+)\s*=\s*([^\s=,]+)")
@@ -58,9 +79,12 @@ def search_command(query: str, config: Config) -> str:
 def scoped_search(scope: str, words: str, query: str, config: Config) -> list[alfred.Item]:
     path = store.scope_path(config.db_dir, scope)
     entries = store.load_entries(path, scope)
-    matches = [alfred.entry_item(entry, config.flows, scope) for entry in search(words, entries, config.max_results)]
+    hits = search(words, entries, config.max_results)
+    reserved = reserved_for([*(entry.payload for entry in hits), query])
+    matches = [alfred.entry_item(entry, config.flows, scope, reserved) for entry in hits]
     exists = os.path.exists(path)
-    return alfred.feedback(matches, query, alfred.scope_hint(scope, exists), scope, new_scope=not exists)
+    hint = alfred.scope_hint(scope, exists)
+    return alfred.feedback(matches, query, hint, scope, new_scope=not exists, reserved=reserved)
 
 
 def root_search(words: str, query: str, config: Config) -> list[alfred.Item]:
@@ -69,8 +93,21 @@ def root_search(words: str, query: str, config: Config) -> list[alfred.Item]:
     scoped = [entry for entries in scopes.values() for entry in entries]
     rows = [alfred.scope_item(name, len(scopes[name])) for name in search_scopes(words, list(scopes))]
     hits = [*search(words, root, config.max_results), *search(words, scoped, config.max_results)]
-    matches = [*rows, *(alfred.entry_item(entry, config.flows) for entry in hits)][: config.max_results]
-    return alfred.feedback(matches, query, alfred.root_hint(not (root or scoped), query))
+    hits = hits[: max(config.max_results - len(rows), 0)]
+    reserved = reserved_for([*(entry.payload for entry in hits), query])
+    matches = [*rows, *(alfred.entry_item(entry, config.flows, "", reserved) for entry in hits)]
+    return alfred.feedback(matches, query, alfred.root_hint(not (root or scoped), query), reserved=reserved)
+
+
+def prompt_command(query: str, config: Config) -> str:
+    template, values, finish = config.prompt
+    return alfred.render(alfred.prompt_items(template, values, finish, query.strip(), config.flows, read_clipboard))
+
+
+def fill_command(arguments: Sequence[str], config: Config) -> str:
+    template, *pairs = arguments or [""]
+    values = {**reserved_for([template]), **snippets.assignments(pairs)}
+    return snippets.fill(template, values)
 
 
 def add_command(raw: str, config: Config) -> str:
@@ -120,15 +157,25 @@ def editor_argv(template: str, file: str, line: str) -> list[str]:
     return [part.replace("{file}", file).replace("{line}", line) for part in shlex.split(template)]
 
 
-Command = Callable[[str, Config], Optional[str]]
+Command = Callable[[Sequence[str], Config], Optional[str]]
+
+
+def text_command(command: Callable[[str, Config], str | None]) -> Command:
+    def run(arguments: Sequence[str], config: Config) -> str | None:
+        return command(" ".join(arguments), config)
+
+    return run
+
 
 COMMANDS: dict[str, Command] = {
-    "search": search_command,
-    "add": add_command,
-    "delete": delete_command,
-    "edit": edit_command,
-    "open": open_command,
-    "alfred": alfred_command,
+    "search": text_command(search_command),
+    "add": text_command(add_command),
+    "delete": text_command(delete_command),
+    "edit": text_command(edit_command),
+    "open": text_command(open_command),
+    "alfred": text_command(alfred_command),
+    "prompt": text_command(prompt_command),
+    "fill": fill_command,
 }
 
 USAGE = f"usage: run.py {{{','.join(COMMANDS)}}} [argument]"
@@ -138,6 +185,6 @@ def main(argv: Sequence[str], env: Mapping[str, str]) -> None:
     if not argv or argv[0] not in COMMANDS:
         sys.exit(USAGE)
     command, *arguments = argv
-    output = COMMANDS[command](" ".join(arguments), config_from(env))
+    output = COMMANDS[command](arguments, config_from(env))
     if output is not None:
         print(output)

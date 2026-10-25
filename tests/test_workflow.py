@@ -22,8 +22,19 @@ def objects(workflow):
 
 
 @pytest.fixture(scope="module")
-def search_filters(objects):
+def script_filters(objects):
     return [item for item in objects.values() if item["type"] == "alfred.workflow.input.scriptfilter"]
+
+
+@pytest.fixture(scope="module")
+def search_filters(script_filters):
+    return [item for item in script_filters if item["config"]["keyword"]]
+
+
+@pytest.fixture(scope="module")
+def prompt_filter(script_filters):
+    [item] = [item for item in script_filters if not item["config"]["keyword"]]
+    return item
 
 
 @pytest.fixture(scope="module")
@@ -71,8 +82,8 @@ def test_every_search_keyword_runs_the_same_search(search_filters):
     }, "every search keyword should run the same search script"
 
 
-def test_search_filters_rank_themselves_and_cancel_stale_runs(search_filters):
-    for item in search_filters:
+def test_search_filters_rank_themselves_and_cancel_stale_runs(script_filters):
+    for item in script_filters:
         config = item["config"]
 
         assert config["alfredfiltersresults"] is False, "the script ranks results itself"
@@ -84,7 +95,7 @@ def test_search_filters_rank_themselves_and_cancel_stale_runs(search_filters):
     "modifiers, expected_type, detail",
     [
         (0, "alfred.workflow.utility.conditional", None),
-        (SHIFT, "alfred.workflow.output.clipboard", ("autopaste", True)),
+        (SHIFT, "alfred.workflow.utility.conditional", None),
         (CMD, "alfred.workflow.action.script", ("script", "run.py edit")),
         (ALT, "alfred.workflow.action.script", ("script", "run.py delete")),
     ],
@@ -102,7 +113,8 @@ def test_every_search_keyword_shares_the_actions(workflow, objects, search_filte
 
 
 @pytest.mark.parametrize(
-    "action, command", [("add", "run.py add"), ("open", "run.py open"), ("alfred", "run.py alfred")]
+    "action, command",
+    [("add", "run.py add"), ("open", "run.py open"), ("alfred", "run.py alfred"), ("fill", "run.py prompt")],
 )
 def test_conditional_routes_actions_to_their_scripts(workflow, objects, conditional, action, command):
     [condition] = [c for c in conditional["config"]["conditions"] if c["matchstring"] == action]
@@ -110,6 +122,21 @@ def test_conditional_routes_actions_to_their_scripts(workflow, objects, conditio
 
     assert condition["inputstring"] == "{var:action}", "the conditional should test the action variable items set"
     assert command in target["config"]["script"], f"the {action} branch should run {command}"
+
+
+def test_conditional_routes_paste_to_autopaste(workflow, objects, conditional):
+    [condition] = [c for c in conditional["config"]["conditions"] if c["matchstring"] == "paste"]
+    [target] = destinations(workflow, objects, conditional, output_uid=condition["uid"])
+
+    assert target["type"] == "alfred.workflow.output.clipboard" and target["config"]["autopaste"] is True, (
+        "the paste branch should copy and paste"
+    )
+
+
+def test_prompt_filter_feeds_the_router_on_every_step(workflow, objects, prompt_filter, conditional):
+    assert 'run.py prompt "$1"' in prompt_filter["config"]["script"], "the prompt is a script filter without keyword"
+    assert destinations(workflow, objects, prompt_filter) == [conditional], "enter on a prompt row goes to the router"
+    assert destinations(workflow, objects, prompt_filter, SHIFT) == [conditional], "so does shift-enter"
 
 
 def test_conditional_copies_everything_else(workflow, objects, conditional):

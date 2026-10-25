@@ -22,7 +22,7 @@
 			</dict>
 			<dict>
 				<key>destinationuid</key>
-				<string>7161F0FE-F7F5-5324-8220-38798B1A251E</string>
+				<string>10640460-85C2-5B36-9CA9-ECB591FD52E9</string>
 				<key>modifiers</key>
 				<integer>131072</integer>
 				<key>modifiersubtext</key>
@@ -91,6 +91,30 @@
 			</dict>
 			<dict>
 				<key>destinationuid</key>
+				<string>9B493E65-F10D-58A0-B58B-AB12C5C806C1</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>6C9DE403-2176-5069-AC27-15A6398759A4</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>7161F0FE-F7F5-5324-8220-38798B1A251E</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>E7A4EC07-7B0B-50E6-90CB-1B0D99A8A2EC</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
 				<string>0B9EA1E8-7FC4-53A0-A088-B7B15EE58172</string>
 				<key>modifiers</key>
 				<integer>0</integer>
@@ -114,7 +138,7 @@
 			</dict>
 			<dict>
 				<key>destinationuid</key>
-				<string>7161F0FE-F7F5-5324-8220-38798B1A251E</string>
+				<string>10640460-85C2-5B36-9CA9-ECB591FD52E9</string>
 				<key>modifiers</key>
 				<integer>131072</integer>
 				<key>modifiersubtext</key>
@@ -152,6 +176,29 @@
 				<integer>0</integer>
 				<key>modifiersubtext</key>
 				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>9B493E65-F10D-58A0-B58B-AB12C5C806C1</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>10640460-85C2-5B36-9CA9-ECB591FD52E9</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>10640460-85C2-5B36-9CA9-ECB591FD52E9</string>
+				<key>modifiers</key>
+				<integer>131072</integer>
+				<key>modifiersubtext</key>
+				<string>Paste once filled</string>
 				<key>vitoclose</key>
 				<false/>
 			</dict>
@@ -196,7 +243,7 @@
 			</dict>
 			<dict>
 				<key>destinationuid</key>
-				<string>7161F0FE-F7F5-5324-8220-38798B1A251E</string>
+				<string>10640460-85C2-5B36-9CA9-ECB591FD52E9</string>
 				<key>modifiers</key>
 				<integer>131072</integer>
 				<key>modifiersubtext</key>
@@ -399,6 +446,55 @@
 		<dict>
 			<key>config</key>
 			<dict>
+				<key>alfredfiltersresults</key>
+				<false/>
+				<key>alfredfiltersresultsmatchmode</key>
+				<integer>0</integer>
+				<key>argumenttreatemptyqueryasnil</key>
+				<true/>
+				<key>argumenttrimmode</key>
+				<integer>0</integer>
+				<key>argumenttype</key>
+				<integer>1</integer>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>keyword</key>
+				<string></string>
+				<key>queuedelaycustom</key>
+				<integer>3</integer>
+				<key>queuedelayimmediatelyinitially</key>
+				<true/>
+				<key>queuedelaymode</key>
+				<integer>0</integer>
+				<key>queuemode</key>
+				<integer>2</integer>
+				<key>runningsubtext</key>
+				<string>Searching…</string>
+				<key>script</key>
+				<string>exec "${python:-/usr/bin/python3}" -S -X utf8 run.py prompt "$1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>subtext</key>
+				<string>Type a value; ↩ takes the selected row</string>
+				<key>title</key>
+				<string>Fill in the blanks</string>
+				<key>type</key>
+				<integer>0</integer>
+				<key>withspace</key>
+				<false/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.scriptfilter</string>
+			<key>uid</key>
+			<string>9B493E65-F10D-58A0-B58B-AB12C5C806C1</string>
+			<key>version</key>
+			<integer>3</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
 				<key>conditions</key>
 				<array>
 					<dict>
@@ -442,6 +538,34 @@
 						<string>alfred</string>
 						<key>uid</key>
 						<string>3BFE7FED-2F10-5353-9036-5336A67FAB4B</string>
+					</dict>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:action}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
+						<string>fill</string>
+						<key>outputlabel</key>
+						<string>fill</string>
+						<key>uid</key>
+						<string>6C9DE403-2176-5069-AC27-15A6398759A4</string>
+					</dict>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:action}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
+						<string>paste</string>
+						<key>outputlabel</key>
+						<string>paste</string>
+						<key>uid</key>
+						<string>E7A4EC07-7B0B-50E6-90CB-1B0D99A8A2EC</string>
 					</dict>
 				</array>
 				<key>elselabel</key>
@@ -643,6 +767,9 @@ st / sta / stash &lt;words&gt;   search; words match in any order, as whole word
 Entries are lines of  words | payload ; without a | the whole line is both.
 The stash is a folder: default.txt holds the root, every other name.txt is a scope.
 st name/ &lt;words&gt;   searches inside a scope; scope rows come first, ↩ enters one.
+{{name}} in a payload asks for a value on ↩, one prompt per name ({{name=default}}
+offers a default, the clipboard is always offered); {{date}}, {{time}} and
+{{clipboard}} fill themselves.
 flows: aliases for @words, e.g. "tally=t kobold=kb wisp=l".
 
 Variables: db_dir (stash folder), editor (command template with {file} and {line}),
@@ -683,28 +810,35 @@ max_results, python (interpreter, 3.9+).
 			<key>xpos</key>
 			<integer>870</integer>
 			<key>ypos</key>
-			<integer>300</integer>
+			<integer>430</integer>
 		</dict>
 		<key>5C10BA80-0C15-5F76-B7F0-F3D331295CAB</key>
 		<dict>
 			<key>xpos</key>
 			<integer>600</integer>
 			<key>ypos</key>
-			<integer>300</integer>
+			<integer>430</integer>
 		</dict>
 		<key>7161F0FE-F7F5-5324-8220-38798B1A251E</key>
 		<dict>
 			<key>xpos</key>
-			<integer>330</integer>
+			<integer>600</integer>
 			<key>ypos</key>
-			<integer>300</integer>
+			<integer>170</integer>
 		</dict>
 		<key>8B390257-0862-5AFF-A754-51D5FE1662E2</key>
 		<dict>
 			<key>xpos</key>
 			<integer>600</integer>
 			<key>ypos</key>
-			<integer>170</integer>
+			<integer>300</integer>
+		</dict>
+		<key>9B493E65-F10D-58A0-B58B-AB12C5C806C1</key>
+		<dict>
+			<key>xpos</key>
+			<integer>600</integer>
+			<key>ypos</key>
+			<integer>690</integer>
 		</dict>
 		<key>B24AF75F-20D9-52B3-9865-7E229D961DC7</key>
 		<dict>
@@ -732,7 +866,7 @@ max_results, python (interpreter, 3.9+).
 			<key>xpos</key>
 			<integer>600</integer>
 			<key>ypos</key>
-			<integer>430</integer>
+			<integer>560</integer>
 		</dict>
 	</dict>
 	<key>variables</key>
@@ -751,7 +885,7 @@ max_results, python (interpreter, 3.9+).
 	<key>variablesdontexport</key>
 	<array/>
 	<key>version</key>
-	<string>2.2.1</string>
+	<string>3.0.0</string>
 	<key>webaddress</key>
 	<string></string>
 </dict>
