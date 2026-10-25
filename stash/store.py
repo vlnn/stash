@@ -80,4 +80,5 @@ def write_atomically(path: str, text: str) -> None:
     temporary = f"{destination}.tmp"
     with open(temporary, "w", **TEXT) as file:
         file.write(text)
+    os.chmod(temporary, os.stat(destination).st_mode)
     os.replace(temporary, destination)

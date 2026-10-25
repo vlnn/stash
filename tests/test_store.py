@@ -1,4 +1,5 @@
 import os
+import stat
 
 import pytest
 
@@ -107,6 +108,15 @@ def test_delete_line_preserves_symlinked_database(tmp_path):
 
     assert link.is_symlink(), "delete_line should keep the symlink instead of replacing it with a file"
     assert real.read_text(encoding="utf-8") == "b | B | 2\n", "delete_line should edit the symlink target"
+
+
+def test_delete_line_keeps_file_mode(db_file):
+    path = write(db_file, "a | A | 1\nb | B | 2\n")
+    os.chmod(path, 0o600)
+
+    delete_line(path, "a | A | 1")
+
+    assert stat.S_IMODE(os.stat(path).st_mode) == 0o600, "delete_line should keep the permissions of a private stash"
 
 
 def test_delete_line_keeps_windows_line_endings(db_file):
