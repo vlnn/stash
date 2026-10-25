@@ -44,6 +44,8 @@ def titles(items):
         ("ftp://old.example.com", "copy"),
         ("delany @kb", "alfred"),
         ("@tally", "alfred"),
+        ("@t 33333", "alfred"),
+        ("@here deploying now", "alfred"),
         ("name.surname@example.com", "copy"),
         ("echo @", "copy"),
     ],
@@ -72,7 +74,11 @@ FLOWS = {"tally": "t", "kobold": "kb"}
         ("parser lexer   @tally", ("t", "parser lexer")),
         ("@tally", ("t", "")),
         ("@unknown", ("unknown", "")),
+        ("@t 33333", ("t", "33333")),
+        ("@tally new   task", ("t", "new   task")),
+        ("@t new task @kb", ("kb", "@t new task")),
         ("name.surname@example.com", None),
+        ("mail me@example.com now", None),
         ("plain text", None),
     ],
 )
@@ -345,6 +351,7 @@ def test_prompt_items_offer_empty_default_but_not_empty_clipboard():
     [
         ("delany @kobold", True),
         ("@wisp", True),
+        ("@t 33333", True),
         ("https://example.com/x", True),
         ("release {{date}}", True),
         ("ssh {{host}}", True),

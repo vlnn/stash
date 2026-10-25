@@ -17,13 +17,14 @@ NO_VALUES: Values = {}
 FORMAT_HINT = "words | payload"
 FOLDER_ICON = {"type": "filetype", "path": "public.folder"}
 OPENABLE_SCHEMES = ("http://", "https://", "file://", "alfred://")
-FLOW = re.compile(r"^(?:(?P<text>.*\S)\s+)?@(?P<name>\S+)$")
+TRAILING_FLOW = re.compile(r"^(?:(?P<text>.*\S)\s+)?@(?P<name>\S+)$")
+LEADING_FLOW = re.compile(r"^@(?P<name>\S+)(?:\s+(?P<text>\S.*))?$")
 LABELS = {"copy": "Copy", "open": "Open", "alfred": "Alfred", "paste": "Paste", "fill": "Fill"}
 INVALID = {"valid": False}
 
 
 def flow_of(payload: str, flows: Flows) -> tuple[str, str] | None:
-    found = FLOW.match(payload)
+    found = TRAILING_FLOW.match(payload) or LEADING_FLOW.match(payload)
     if found is None:
         return None
     name = found.group("name")

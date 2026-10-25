@@ -181,7 +181,7 @@ What ↩ does depends on the payload:
 | `http://…`, `https://…`, `file://…` | opens it in the default app |
 | `alfred://runtrigger/<bundle id>/<trigger>/?argument=…` | runs that workflow's external trigger |
 | a path that exists (`~/notes`, `/Users/me/doc.pdf`) | opens it |
-| `text @keyword` | opens Alfred with `keyword text`, so another workflow takes over (see below) |
+| `text @keyword` or `@keyword text` | opens Alfred with `keyword text`, so another workflow takes over (see below) |
 | anything with `{{name}}` in it | asks for each name first, then does one of the above with the result (see [Placeholders](#placeholders)) |
 | anything else | copies it to the clipboard |
 
@@ -200,11 +200,12 @@ The payload is copied literally: Alfred's own placeholders such as `{date}` insi
 
 ### Handing off to another workflow
 
-A payload that ends in `@word` is a hand-off: ↩ opens Alfred with `word` as the keyword and the rest as its query, so the other workflow shows its own results and you pick there. Nothing needs to be set up in that workflow; it just sees its keyword typed.
+A payload that ends or starts with `@word` is a hand-off: ↩ opens Alfred with `word` as the keyword and the rest as its query, so the other workflow shows its own results and you pick there. Nothing needs to be set up in that workflow; it just sees its keyword typed.
 
 ```
 delany @kb                  st delany ↩  →  Alfred shows  kb delany   (kobold lists the books)
 parser lexer @t             st parser ↩  →  Alfred shows  t parser lexer   (tally offers to start it)
+@t parser lexer             the same, keyword first
 @l                          st @l ↩      →  Alfred shows  l   (wisp, newest first)
 ```
 
@@ -212,7 +213,7 @@ The first hand-off needs a one-time macOS permission (step 4 of [Install](#insta
 
 Write workflow names instead of keywords by listing aliases in the `flows` variable, for example `tally=t kobold=kb wisp=l`; then `parser lexer @tally` means the same as `parser lexer @t`. The subtitle shows the name as you wrote it (`→ tally · parser lexer`), ⌃ shows the resolved call (`alfred: t parser lexer`), and ⌘C still copies the payload as written.
 
-Only a trailing `@word` counts, so `me@example.com` is copied as text. A payload that genuinely ends in an `@handle` would be taken as a hand-off; ⌘C still copies it, or end the line with a full stop.
+Only a leading or trailing `@word` counts, so `me@example.com` and `mail me@example.com now` are copied as text. A payload that genuinely starts or ends with an `@handle` (`@here deploying now`) would be taken as a hand-off; ⌘C still copies it, or end the line with a full stop, or put a word before the handle.
 
 ## Placeholders
 
@@ -245,10 +246,11 @@ Entries without blanks are untouched by any of this; ↩ still copies on the spo
 
 ## Running what you typed
 
-Some things are worth doing once without storing them. When the query itself is a payload — it ends in `@word`, it is a URL or an existing path, or it contains `{{…}}` — the first result is **Run: …**, which does with the text exactly what ↩ would do with an entry whose payload it was, and stores nothing:
+Some things are worth doing once without storing them. When the query itself is a payload — it starts or ends with `@word`, it is a URL or an existing path, or it contains `{{…}}` — the first result is **Run: …**, which does with the text exactly what ↩ would do with an entry whose payload it was, and stores nothing:
 
 ```
 st delany @kobold ↩        hands "delany" to kobold         (→ kobold · delany)
+st @t 33333 ↩              hands "33333" to tally           (→ t · 33333)
 st https://example.com ↩   opens it
 st release {{date}} ↩      copies  release 2026-10-25
 st ssh {{host}} ↩          asks for host, then copies
@@ -417,7 +419,7 @@ What keeps it fast:
 
 ```bash
 uv sync
-make test           # pytest on the project interpreter                      (349 tests)
+make test           # pytest on the project interpreter                      (356 tests)
 make test-system    # the same on /usr/bin/python3, the interpreter the workflow runs on
 make lint           # ruff check + format
 make check          # build dist/Stash.alfredworkflow and run it the way Alfred would
