@@ -222,7 +222,7 @@ A payload can leave blanks to be filled when it is used:
 ```
 ssh box        | ssh {{user=root}}@{{host}} -p {{port=22}}
 jira ticket    | https://example.atlassian.net/browse/{{ticket}}
-wrap code      | ```\n{{clipboard}}\n```
+wrap code      | `{{clipboard}}`
 standup        | {{date}} standup: {{done}} / {{next}}
 ```
 
@@ -410,7 +410,7 @@ What keeps it fast:
 - Swapped letters (`stgaing`) don't match; dropped letters (`stgng`) do.
 - Letters-in-order matching stays within one word: `kctx` won't find `k8s ctx`, `k ctx` will.
 - Words are split on spaces and commas only, so `kube:` is a word and `kube` matches it as a prefix, not a whole word.
-- Payloads are single lines, and a default inside `{{name=…}}` can't contain braces.
+- Payloads are single lines: there is no way to put a newline in one, and `\n` is copied as the two characters. A default inside `{{name=…}}` can't contain braces.
 - Scopes do not nest, and a root entry whose first word ends in `/` (`foo/ bar`) can't be reached as such: `st foo/` means the scope `foo`.
 - A path payload opens only if it exists when you search; a command that happens to start with `/` is copied, not run.
 - It's a plain-text file: don't store secrets you wouldn't keep in a dotfile.
