@@ -393,15 +393,21 @@ def test_run_item_resolves_reserved_names_and_prompts_for_the_rest():
 
 
 @pytest.mark.parametrize(
-    "query, expected",
+    "matches, query, expected",
     [
-        ("delany @kobold", ["Run: delany @kobold", "ssh prod web", "Add: delany @kobold"]),
-        ("release {{date}}", ["Run: release {{date}}", "ssh prod web", "Add: release {{date}}"]),
-        ("delany books", ["ssh prod web", "Add: delany books"]),
-        ("books | delany @kobold", ["Add: books", "ssh prod web"]),
+        (["ssh prod web"], "delany @kobold", ["ssh prod web", "Run: delany @kobold", "Add: delany @kobold"]),
+        (["ssh prod web"], "release {{date}}", ["ssh prod web", "Run: release {{date}}", "Add: release {{date}}"]),
+        (["ssh prod web"], "delany books", ["ssh prod web", "Add: delany books"]),
+        (["ssh prod web"], "books | delany @kobold", ["Add: books", "ssh prod web"]),
+        ([], "delany @kobold", ["Add: delany @kobold"]),
+        ([], "https://example.com/x", ["Add: https://example.com/x"]),
+        ([], "books | delany @kobold", ["Add: books"]),
     ],
 )
-def test_feedback_puts_the_run_row_first_and_never_next_to_a_separator(query, expected):
-    assert titles(feedback([{"title": "ssh prod web"}], query, {"title": "hint"}, flows=FLOWS)) == expected, (
-        "a query that acts on its own gets a Run row first; a typed separator means Add, as before"
+def test_feedback_offers_run_only_beside_a_match(matches, query, expected):
+    items = [{"title": title} for title in matches]
+
+    assert titles(feedback(items, query, {"title": "hint"}, flows=FLOWS)) == expected, (
+        "a found entry comes first and may be run; a typed payload is run only as the alternative beside it; "
+        "new text is only ever added, and a typed separator means Add, as before"
     )

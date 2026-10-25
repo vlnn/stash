@@ -546,11 +546,20 @@ def test_fill_prints_the_filled_payload(capsys, env, frozen_clock, argv, expecte
     assert run(capsys, env, "fill", *argv) == expected, "fill should take name=value pairs and resolve reserved names"
 
 
-def test_search_offers_to_run_a_typed_hand_off(capsys, env, frozen_clock):
-    [run, addition] = json.loads(run_search(capsys, {**env, "flows": "kobold=kb"}, "delany @kobold"))["items"]
+def test_search_offers_to_run_a_typed_hand_off_beside_a_match(capsys, env, db_file, frozen_clock):
+    db_file.write_text("delany @kobold\n", encoding="utf-8")
 
-    assert run["title"] == "Run: delany @kobold" and run["arg"] == "kb delany", "typed hand-offs act on enter"
-    assert addition["title"] == "Add: delany @kobold", "storing it is still one row down"
+    [found, run, addition] = json.loads(run_search(capsys, {**env, "flows": "kobold=kb"}, "delany @kobold"))["items"]
+
+    assert found["title"] == "delany @kobold", "the entry added earlier is the first row, so enter acts on it"
+    assert run["title"] == "Run: delany @kobold" and run["arg"] == "kb delany", "running what was typed is next"
+    assert addition["title"] == "Add: delany @kobold", "storing it is last"
+
+
+def test_search_only_adds_a_typed_hand_off_that_matches_nothing(capsys, env, frozen_clock):
+    assert item_titles(run_search(capsys, {**env, "flows": "kobold=kb"}, "delany @kobold")) == [
+        "Add: delany @kobold"
+    ], "new text is added, not run"
 
 
 def run_search(capsys, env, query):

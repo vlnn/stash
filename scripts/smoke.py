@@ -121,8 +121,11 @@ def main(bundle_path, python):
         resolve_env = {**env, "template": wrap["variables"]["template"], "finish": "", "PATH": fake_pbpaste(directory)}
         resolved = json.loads(run(bundle_dir, scripts, "resolve", "", resolve_env))["alfredworkflow"]
         check(resolved == {"arg": "echo 'pasted'", "variables": {"action": "copy"}}, "resolve fills it on enter")
-        [run_row, *_] = json.loads(run(bundle_dir, scripts, "search", "delany @kobold", env))["items"]
-        check(run_row["title"] == "Run: delany @kobold" and run_row["arg"] == "kb delany", "a typed hand-off runs")
+        unmatched = titles(run(bundle_dir, scripts, "search", "delany @kobold", env))
+        check(unmatched == ["Add: delany @kobold"], "new text is added, not run")
+        run(bundle_dir, scripts, "add", "delany @kobold", env)
+        [found, run_row, _] = json.loads(run(bundle_dir, scripts, "search", "delany @kobold", env))["items"]
+        check(found["title"] == "delany @kobold" and run_row["arg"] == "kb delany", "once stored, enter or run")
 
 
 if __name__ == "__main__":

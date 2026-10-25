@@ -5,7 +5,7 @@ Fuzzy keyword search over a plain-text stash you own, as an Alfred workflow.
 - **Search** with any words, in any order, any subset of them, any part of a word: `st stg k8` finds `k8s ctx staging kube`.
 - **Act**: ↩ copies the payload, or opens it when it is a URL, a path or an Alfred flow; ⇧↩ pastes it.
 - **Add** by typing: whatever you searched for is always offered as a new entry, so a miss is one ↩ away from being stored.
-- **Run** by typing: a hand-off, a link or a `{{blank}}` typed straight into the field gets a *Run* row that acts on it without storing anything.
+- **Run** by typing: a hand-off, a link or a `{{blank}}` typed straight into the field gets a *Run* row next to what it found, acting on the text without storing it.
 - **Own the data**: one line per entry in text files you can edit, grep, sync and keep in git. The format is one rule: everything after the first `|` is the payload.
 - **Scope** when the list gets long: every `name.txt` next to the main file is a scope; `st name/` searches inside it, and scoped entries still show up at the root.
 - **Fill in the blanks**: a payload with `{{host}}` asks for `host` on ↩ and copies, opens or pastes the result; `{{date}}`, `{{time}}` and `{{clipboard}}` fill themselves.
@@ -248,17 +248,16 @@ Entries without blanks are untouched by any of this; ↩ still copies on the spo
 
 ## Running what you typed
 
-Some things are worth doing once without storing them. When the query itself is a payload — it starts or ends with `@word`, it is a URL or an existing path, or it contains `{{…}}` — the first result is **Run: …**, which does with the text exactly what ↩ would do with an entry whose payload it was, and stores nothing:
+Stash is for stashing first and running second: ↩ on an entry you found runs it, and whatever you typed is otherwise offered as a new entry. One exception: when the query itself is a payload — it starts or ends with `@word`, it is a URL or an existing path, or it contains `{{…}}` — *and* it found something, a **Run: …** row sits between the matches and *Add*. It does with the text exactly what ↩ would do with an entry whose payload it was, and stores nothing:
 
 ```
-st delany @kobold ↩        hands "delany" to kobold         (→ kobold · delany)
-st @t 33333 ↩              hands "33333" to tally           (→ t · 33333)
-st https://example.com ↩   opens it
-st release {{date}} ↩      copies  release 2026-10-25
-st ssh {{host}} ↩          asks for host, then copies
+st delany @kobold          delany books  ·  Run: delany @kobold  ·  Add: delany @kobold
+                           ↩ opens the entry you found; ↓↩ hands "delany" to kobold instead  (→ kobold · delany)
+st @t 33333                lexer task  ·  Run: @t 33333  ·  Add: @t 33333
+st release {{date}}        release notes  ·  Run: release {{date}}  ·  Add: release {{date}}     ↓↩ copies  release 2026-10-25
 ```
 
-*Add* is still there, one row down, so ↓↩ stores it instead. A typed `|` means you are writing an entry, so there is no *Run* row then. ⌃ on the *Run* row says `Not stored`. Plain words never get a *Run* row; copying what you just typed is not worth a keystroke.
+With no match there is no *Run* row: new text is added, and you run it from the stash afterwards. A typed `|` means you are writing an entry, so there is no *Run* row then either. ⌃ on the *Run* row says `Not stored`. Plain words never get a *Run* row; copying what you just typed is not worth a keystroke.
 
 ## Adding entries
 

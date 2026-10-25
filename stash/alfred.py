@@ -236,8 +236,8 @@ def feedback(
         return list(matches) or [hint]
     if has_separator(query):
         return [addition, *matches]
-    run = [run_item(query, flows, reserved, scope)] if is_payload(query) else []
-    return [*run, *matches, addition]
+    run = [run_item(query, flows, reserved, scope)] if matches and is_payload(query) else []
+    return [*matches, *run, addition]
 
 
 def prompt_items(
