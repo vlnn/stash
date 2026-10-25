@@ -96,6 +96,8 @@ def test_config_from_environment(env, expected):
         (["search", ""], ["ssh prod web", "wifi guest"]),
         (["search"], ["ssh prod web", "wifi guest"]),
         (["search", "zzz"], ["Add: zzz"]),
+        (["search", "hunter2"], ["wifi guest", "Add: hunter2"]),
+        (["search", "deploy"], ["ssh prod web", "Add: deploy"]),
         (["search", "prod | ssh prod"], ["Add: prod", "ssh prod web"]),
         (["search", "prod \\ ssh prod"], ["Add: prod", "ssh prod web"]),
     ],

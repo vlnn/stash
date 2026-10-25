@@ -3,10 +3,17 @@ from __future__ import annotations
 import heapq
 import re
 from collections.abc import Sequence
+from typing import NamedTuple
 
 from .entries import Entry, haystack_of, split_words
 
-EXACT, PREFIX, SUBSTRING, SUBSEQUENCE, NO_MATCH = 4, 3, 2, 1, 0
+EXACT, PREFIX, SUBSTRING, SUBSEQUENCE, NO_MATCH = 8, 6, 4, 2, 0
+PAYLOAD = 1
+
+
+class Token(NamedTuple):
+    word: str
+    pattern: re.Pattern[str]
 
 
 def token_pattern(word: str) -> re.Pattern[str]:
@@ -18,15 +25,23 @@ def token_pattern(word: str) -> re.Pattern[str]:
     return re.compile(f"((?=.* {exact} ))|((?=.* {exact}))|((?=.*{exact}))|((?=.*{subsequence}))")
 
 
+def token(word: str) -> Token:
+    return Token(word, token_pattern(word))
+
+
 def tier(pattern: re.Pattern[str], haystack: str) -> int:
     match = pattern.match(haystack)
-    return EXACT + 1 - match.lastindex if match else NO_MATCH
+    return EXACT - 2 * (match.lastindex - 1) if match else NO_MATCH
 
 
-def score(patterns: Sequence[re.Pattern[str]], entry: Entry) -> int:
+def word_score(word: Token, entry: Entry) -> int:
+    return tier(word.pattern, entry.haystack) or (PAYLOAD if word.word in entry.needle else NO_MATCH)
+
+
+def score(tokens: Sequence[Token], entry: Entry) -> int:
     total = 0
-    for pattern in patterns:
-        matched = tier(pattern, entry.haystack)
+    for word in tokens:
+        matched = word_score(word, entry)
         if not matched:
             return NO_MATCH
         total += matched
@@ -39,10 +54,10 @@ def rank(hit: tuple[int, Entry]) -> tuple[int, int, int]:
 
 
 def search(query: str, entries: Sequence[Entry], limit: int) -> list[Entry]:
-    patterns = [token_pattern(word) for word in dict.fromkeys(split_words(query.lower()))]
-    if not patterns:
+    tokens = [token(word) for word in dict.fromkeys(split_words(query.lower()))]
+    if not tokens:
         return list(entries[:limit])
-    hits = [(score(patterns, entry), entry) for entry in entries]
+    hits = [(score(tokens, entry), entry) for entry in entries]
     return [entry for _, entry in heapq.nsmallest(limit, [hit for hit in hits if hit[0]], key=rank)]
 
 

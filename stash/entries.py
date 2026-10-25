@@ -18,6 +18,7 @@ class Entry(NamedTuple):
     line_number: int = 0
     raw: str = ""
     stash: str = ""
+    needle: str = ""
 
 
 def parse_line(line: str, line_number: int = 0, stash: str = "") -> Entry | None:
@@ -28,7 +29,7 @@ def parse_line(line: str, line_number: int = 0, stash: str = "") -> Entry | None
     keywords = split_words(SEPARATOR.sub(" ", label))
     if not keywords:
         return None
-    return Entry(label, payload, haystack_of(keywords), line_number, text, stash)
+    return Entry(label, payload, haystack_of(keywords), line_number, text, stash, payload.lower())
 
 
 def split_record(text: str) -> tuple[str, str]:

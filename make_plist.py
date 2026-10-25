@@ -32,7 +32,8 @@ ROUTES = {
 README = """Fuzzy keyword search over plain-text stashes you own.
 
 st / sta / stash <words>   search (or press ⌘⌥⌃⇧L); words match in any order, as whole words, prefixes,
-                           substrings or in-word letters (stg → staging)
+                           substrings or in-word letters (stg → staging); a word the
+                           label lacks is looked for in the payload, as plain text
                            the last result adds what you typed; type | and it becomes the first
                            ↩ copy, or open a URL/path, or hand "text @keyword" to another
                            workflow, or add  ⇧↩ paste  ⌘↩ edit  ⌥↩ delete

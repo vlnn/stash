@@ -2,11 +2,11 @@
 
 Fuzzy keyword search over plain-text stashes you own, as an Alfred workflow.
 
-- **Search** with any words, in any order, any subset of them, any part of a word: `st stg k8` finds `k8s ctx staging kube`.
+- **Search** with any words, in any order, any subset of them, any part of a word: `st stg k8` finds `k8s ctx staging kube`. A word the label doesn't have is looked for in the payload, so `st use-context` finds it too.
 - **Act**: ↩ copies the payload, or opens it when it is a URL, a path or an Alfred flow; ⇧↩ pastes it.
 - **Add** by typing: whatever you searched for is always offered as a new entry, so a miss is one ↩ away from being stored.
 - **Run** by typing: a hand-off, a link or a `{{blank}}` typed straight into the field gets a *Run* row next to what it found, acting on the text without storing it.
-- **Own the data**: one line per entry in text files you can edit, grep, sync and keep in git. The format is one rule: everything after the first `|` is the payload.
+- **Own the data**: one line per entry in text files you can edit, grep, sync and keep in git. The format is one rule: everything after the first `|` is the payload; the words before it are what you search by first.
 - **Several stashes** when the list gets long: every `name.txt` in the folder is a stash; `st name/` searches one, and a bare `st` searches all of them.
 - **Fill in the blanks**: a payload with `{{host}}` asks for `host` on ↩ and copies, opens or pastes the result; `{{date}}`, `{{time}}` and `{{clipboard}}` fill themselves.
 - **Fast**: no dependencies, built to stay well under Alfred's "instant" threshold for a few thousand entries.
@@ -84,7 +84,7 @@ find pyc \ find . -name '*.pyc' -exec rm {} \;           \ works as the separato
 Rules:
 
 - `|` and `\` are both separators, so use whichever your keyboard makes easier; only the first one on the line counts. A `\` counts only with whitespace on both sides (or at the very start or end of the line), so `regex \d+`, `C:\Users\me` and `printf 'a\nb'` stay whole as plain lines.
-- Search words are split on spaces and commas; the payload is never searched.
+- Search words are split on spaces and commas. The payload is searched too, but only as a fallback (see [Searching](#searching)).
 - A separator with nothing after it (`note |`) copies the words themselves.
 - Lines starting with `#` and blank lines are ignored, so comment and group freely. To stash something that starts with `#`, write `| #FF8800`.
 - Whitespace around the separator is ignored, so you can align columns.
@@ -119,18 +119,19 @@ wifi guest GuestNetwork-5G
 
 ## Searching
 
-Type `st` (or `sta`, or `stash`) followed by any words. Each query word must match **some** word of an entry's left side; the order of query words doesn't matter, and entries may have more words than you typed.
+Type `st` (or `sta`, or `stash`) followed by any words. Each query word must match **some** word of an entry's left side, or failing that be found somewhere in its payload; the order of query words doesn't matter, and entries may have more words than you typed.
 
-A query word matches a stash word in one of four ways, strongest first:
+A query word matches a word of the label in one of four ways, strongest first, and falls back to the payload:
 
-| Query word | Stash word | Match | Score |
+| Query word | Matches | How | Score |
 |---|---|---|---|
-| `prod` | prod | whole word | 4 |
-| `pro` | prod | start of word | 3 |
-| `rod`, `4000` | prod, http://127.0.0.1:4000 | inside word | 2 |
-| `prd`, `stg` | prod, staging | letters in order, inside one word | 1 |
+| `prod` | prod | whole label word | 8 |
+| `pro` | prod | start of a label word | 6 |
+| `rod`, `4000` | prod, http://127.0.0.1:4000 | inside a label word | 4 |
+| `prd`, `stg` | prod, staging | letters in order, inside one label word | 2 |
+| `deploy`, `{{date}}` | … \| ssh deploy@10.0.1.5 | plain text anywhere in the payload, case-insensitive | 1 |
 
-Scores of all query words add up. Equal scores go to the entry with fewer words (the tighter match), then to the one higher in the file. Alfred also learns which results you pick and moves them up over time.
+Scores of all query words add up, so an entry found through its label always comes before one found only through its payload, however weak the label match. The payload is searched as written (`{{date}}` finds every entry that uses it), with no letter-dropping: `dply` does not find `deploy`. Equal scores go to the entry with fewer label words (the tighter match), then to the one higher in the file. Alfred also learns which results you pick and moves them up over time.
 
 The last result is always **Add: …** for what you typed (see [Adding entries](#adding-entries)); it is left out of the examples below.
 
@@ -146,7 +147,8 @@ The last result is always **Add: …** for what you typed (see [Adding entries](
 | `st 4000` | http://127.0.0.1:4000 | a plain line is searched in full, and `4000` is inside its one word |
 | `st кав` | кава coffee order | Unicode works |
 | `st finished` | pihole update finished | a plain line is searched in full |
-| `st deploy` | only *Add* | the ssh payloads mention *deploy*, but payloads aren't searched |
+| `st deploy` | ssh prod web, ssh staging web | no label has it; both payloads do |
+| `st k8 config` | k8s ctx staging kube | `k8` from the label, `config` from `kubectl config use-context` |
 | `st ssh prod staging` | only *Add* | every query word must match |
 | `st kctx` | only *Add* | letters-in-order stays inside one word; type `st k ctx` |
 | `st stgaing` | only *Add* | swapped letters aren't tolerated, dropped letters are |
@@ -408,13 +410,14 @@ What keeps it fast:
 
 - Each query word compiles to one regex whose alternatives are ordered from whole word to in-word letters, so a single `match` returns both whether and how well the word matches, and the in-word pattern never backtracks.
 - Deciding whether a payload opens or copies costs one `stat` per shown result, never per entry.
+- The payload fallback is a plain substring test on a lowercased copy made at parse time, about 2 ms per 10,000 entries on top of the label search.
 - Python runs with `-S` (no `site` import) and the code avoids heavy modules: `dataclasses` alone costs ~12 ms and `pathlib` ~9 ms per start, so `NamedTuple`, `os.path` and `os.execvp` take their place.
 - Alfred is set to run the script immediately and to cancel a still-running search when you type the next letter.
 
 ## Limitations
 
 - Swapped letters (`stgaing`) don't match; dropped letters (`stgng`) do.
-- Letters-in-order matching stays within one word: `kctx` won't find `k8s ctx`, `k ctx` will.
+- Letters-in-order matching stays within one word: `kctx` won't find `k8s ctx`, `k ctx` will. Payloads are matched as plain text only: `dply` won't find `deploy`.
 - Words are split on spaces and commas only, so `kube:` is a word and `kube` matches it as a prefix, not a whole word.
 - Payloads are single lines: there is no way to put a newline in one, and `\n` is copied as the two characters. A default inside `{{name=…}}` can't contain braces.
 - Stashes do not nest, and an entry whose first word ends in `/` (`foo/ bar`) can't be reached as such: `st foo/` means the stash `foo`.
@@ -443,7 +446,7 @@ git tag v3.0.0 && git push origin v3.0.0
 | Path | Responsibility |
 |---|---|
 | `stash/entries.py` | Split a line at its first separator into an `Entry` with its searchable text; the `name/` prefix |
-| `stash/matching.py` | One regex per query word, scoring, ranking |
+| `stash/matching.py` | One regex per query word for the label, substring fallback on the payload, scoring, ranking |
 | `stash/store.py` | The stashes folder: `default.txt` and the other files; load, append, delete lines; atomic, symlink-safe writes |
 | `stash/snippets.py` | `{{name}}` and `{{name=default}}` placeholders, the reserved `date`, `time` and `clipboard`, filling |
 | `stash/alfred.py` | Alfred Script Filter JSON: results and their copy/open/hand-off/fill/resolve action, stash rows, the *Run* and *Add* items, prompt rows, hints |

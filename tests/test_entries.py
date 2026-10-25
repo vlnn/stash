@@ -77,6 +77,18 @@ def test_haystack_holds_lowercase_unique_words(line, haystack):
     assert parse_line(line).haystack == haystack, "haystack should hold the searchable words, space-delimited"
 
 
+@pytest.mark.parametrize(
+    "line, needle",
+    [
+        ("ssh prod | ssh Deploy@10.0.1.5", "ssh deploy@10.0.1.5"),
+        ("wifi guest", "wifi guest"),
+        ("stamp | note {{date}}", "note {{date}}"),
+    ],
+)
+def test_parse_line_keeps_a_lowercase_payload_for_searching(line, needle):
+    assert parse_line(line).needle == needle, "the payload as written, lowercased, is what a payload search looks in"
+
+
 def test_entry_is_hashable_value():
     first = parse_line("a | b")
     second = parse_line("a | b")
