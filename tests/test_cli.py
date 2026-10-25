@@ -309,15 +309,22 @@ def test_search_marks_scoped_entries_at_the_root_but_not_inside_their_scope(caps
     "query, expected",
     [
         ("", ["ssh prod web", "wifi guest", "milk eggs", "bread"]),
-        ("gro", ["Add: gro"]),
+        ("gro", ["grocery/", "Add: gro"]),
+        ("e", ["grocery/", "wifi guest", "ssh prod web", "milk eggs", "bread", "Add: e"]),
         ("grocery/", ["milk eggs", "bread"]),
         ("grocery/ milk", ["milk eggs", "Add: milk"]),
     ],
 )
-def test_search_hides_scope_rows_by_default_but_name_slash_still_narrows(capsys, env, grocery, query, expected):
+def test_search_lists_a_scope_row_only_when_its_name_is_typed(capsys, env, grocery, query, expected):
     assert item_titles(run(capsys, env, "search", query)) == expected, (
-        "without show_scopes no scope row is listed, while entering a scope by typing name/ keeps working"
+        "a bare st hides scope rows unless show_scopes is on; words that match a scope name always list its row"
     )
+
+
+def test_scope_row_expands_on_tab(capsys, env, grocery):
+    [row, _] = json.loads(run(capsys, env, "search", "gro"))["items"]
+
+    assert row["autocomplete"] == "grocery/ " and row["valid"] is False, "tab or enter on the row enters the scope"
 
 
 def test_search_counts_scope_rows_against_max_results(capsys, scoped_env, grocery):

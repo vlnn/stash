@@ -159,16 +159,16 @@ A scope is a second file in the stash folder: `~/.config/stash/checklists.txt` i
 
 ```
 st                    the root entries  ·  then the entries of every scope
-st ck                 root entries matching ck  ·  scoped entries matching ck  ·  Add: ck
+st ck                 checklists/  ·  root entries matching ck  ·  scoped entries matching ck  ·  Add: ck
 st checklists/        everything in checklists.txt, like a bare st does for the root
 st checklists/ rel    release checklist  ·  Add: rel
 st checklists/ pack | passport, charger      ↩ appends to checklists.txt
 st recipes/ pasta | 500g                     ↩ creates recipes.txt with that entry
 ```
 
-Results come in tiers, each ranked as in [Searching](#searching): root entries, then entries from all scopes. A query that starts with `name/` searches only that scope, and everything else (*Add*, ⌘↩, ⌥↩) acts on that scope's file; that is the whole mechanism. Backspace over the slash to leave. At the root, a scoped entry's subtitle starts with its scope (`checklists · …`); inside the scope it looks like any other entry.
+Results come in three tiers, each ranked as in [Searching](#searching): scope rows whose names match what you typed, root entries, then entries from all scopes. A scope row has the 📒 icon, says how many entries it holds, and ⇥ or ↩ on it puts `checklists/ ` into the query, which is the whole mechanism: a query that starts with `name/` searches only that scope, and everything else (*Add*, ⌘↩, ⌥↩) acts on that scope's file. Backspace over the slash to leave. At the root, a scoped entry's subtitle starts with its scope (`checklists · …`); inside the scope it looks like any other entry.
 
-Turn on **List scopes** in the configuration to also get a row per scope ahead of the entries: `st` then lists every scope, `st ck` the scopes whose names match. A scope row says how many entries it holds, and ↩ on it puts `checklists/ ` into the query.
+A bare `st` lists entries only; turn on **List scopes** in the configuration to have it list every scope first.
 
 A scope exists exactly when its file does. There is no "create scope": add the first entry under `name/` and the file appears, with the *Add* row saying so beforehand. To remove a scope, delete the file. ⌘↩ on a scope row opens its file; ⌥↩ does nothing there, since deleting a whole file is not something a keystroke should do.
 
@@ -294,7 +294,7 @@ Set these in Alfred: open the workflow and press **Configure Workflow…** (the 
 | `max_results` | `50` | How many results Alfred receives. |
 | `python` | `/usr/bin/python3` | Interpreter, 3.9 or newer. Absolute path, no `~`. |
 | `flows` | empty | Aliases for `@word` hand-offs, as `name=keyword` pairs: `tally=t kobold=kb wisp=l`. |
-| `show_scopes` | off | Also list a row per scope at the root, with its entry count. `name/` works either way. |
+| `show_scopes` | off | List every scope on a bare `st`. Typing part of a scope name shows its row either way. |
 
 Alfred runs workflows with a minimal `PATH`, so use the full path of your editor's command line tool. Quote paths with spaces:
 

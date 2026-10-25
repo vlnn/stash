@@ -103,7 +103,7 @@ def root_search(words: str, query: str, config: Config) -> list[alfred.Item]:
     root = store.load_scope(config.db_dir)
     scopes = store.load_scopes(config.db_dir)
     scoped = [entry for entries in scopes.values() for entry in entries]
-    rows = scope_rows(words, scopes) if config.show_scopes else []
+    rows = scope_rows(words, scopes) if words.strip() or config.show_scopes else []
     hits = [*search(words, root, config.max_results), *search(words, scoped, config.max_results)]
     hits = hits[: max(config.max_results - len(rows), 0)]
     reserved = clock_values()

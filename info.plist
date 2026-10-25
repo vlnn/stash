@@ -872,7 +872,7 @@ st / sta / stash &lt;words&gt;   search (or press ⌘⌥⌃⇧L); words match in
 
 Entries are lines of  words | payload ; without a | the whole line is both.
 The stash is a folder: default.txt holds the root, every other name.txt is a scope.
-st name/ &lt;words&gt;   searches inside a scope (turn on "List scopes" to see scope rows at the root).
+st name/ &lt;words&gt;   searches inside a scope; typing part of a name shows its row, ⇥ enters it.
 {{name}} in a payload asks for a value on ↩, one prompt per name ({{name=default}}
 offers a default, the clipboard is always offered); {{date}}, {{time}} and
 {{clipboard}} fill themselves; the clipboard is read on ↩, never while you type.
@@ -1105,7 +1105,7 @@ hand-off aliases and the number of results.
 				<false/>
 			</dict>
 			<key>description</key>
-			<string>Also list a row per scope at the root, with its entry count. name/ works either way.</string>
+			<string>List every scope on a bare st. Typing part of a scope name shows its row either way.</string>
 			<key>label</key>
 			<string>List scopes</string>
 			<key>type</key>
