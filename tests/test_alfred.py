@@ -41,6 +41,9 @@ def titles(items):
         ("alfred://runtrigger/com.anokhin.tally/open/?argument=x", "open"),
         ("/usr/bin/env python3 -c 'print(1)'", "copy"),
         ("~/nowhere/that/exists", "copy"),
+        ("stash", "copy"),
+        ("tests/test_alfred.py", "copy"),
+        (".", "copy"),
         ("ftp://old.example.com", "copy"),
         ("delany @kb", "alfred"),
         ("@tally", "alfred"),
@@ -50,8 +53,10 @@ def titles(items):
         ("echo @", "copy"),
     ],
 )
-def test_action_of_payload_shape(payload, action):
-    assert action_of(payload) == action, "URLs and existing paths open, everything else is copied"
+def test_action_of_payload_shape(monkeypatch, payload, action):
+    monkeypatch.chdir(os.path.join(os.path.dirname(__file__), os.pardir))
+
+    assert action_of(payload) == action, "URLs and absolute paths that exist open, everything else is copied"
 
 
 @pytest.mark.parametrize("spelling", ["{tmp}", "{tmp}/notes.md", "~/{rel}"])

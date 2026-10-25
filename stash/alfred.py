@@ -43,9 +43,14 @@ def is_payload(query: str) -> bool:
 def action_of(payload: str) -> str:
     if flow_of(payload, NO_FLOWS):
         return "alfred"
-    if payload.startswith(OPENABLE_SCHEMES) or os.path.exists(os.path.expanduser(payload)):
+    if payload.startswith(OPENABLE_SCHEMES) or is_existing_path(payload):
         return "open"
     return "copy"
+
+
+def is_existing_path(payload: str) -> bool:
+    path = os.path.expanduser(payload)
+    return os.path.isabs(path) and os.path.exists(path)
 
 
 def arg_of(payload: str, action: str, flows: Flows) -> str:
