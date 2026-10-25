@@ -62,6 +62,10 @@ def reserved_for(texts: Sequence[str]) -> dict[str, str]:
     return snippets.reserved_values(time.localtime(), read_clipboard, tuple(texts))
 
 
+def clock_values() -> dict[str, str]:
+    return snippets.reserved_values(time.localtime(), read_clipboard)
+
+
 FLOW_PAIR = re.compile(r"([^\s=,]+)\s*=\s*([^\s=,]+)")
 
 
@@ -80,7 +84,7 @@ def scoped_search(scope: str, words: str, query: str, config: Config) -> list[al
     path = store.scope_path(config.db_dir, scope)
     entries = store.load_entries(path, scope)
     hits = search(words, entries, config.max_results)
-    reserved = reserved_for([*(entry.payload for entry in hits), query])
+    reserved = clock_values()
     matches = [alfred.entry_item(entry, config.flows, scope, reserved) for entry in hits]
     exists = os.path.exists(path)
     hint = alfred.scope_hint(scope, exists)
@@ -94,7 +98,7 @@ def root_search(words: str, query: str, config: Config) -> list[alfred.Item]:
     rows = [alfred.scope_item(name, len(scopes[name])) for name in search_scopes(words, list(scopes))]
     hits = [*search(words, root, config.max_results), *search(words, scoped, config.max_results)]
     hits = hits[: max(config.max_results - len(rows), 0)]
-    reserved = reserved_for([*(entry.payload for entry in hits), query])
+    reserved = clock_values()
     matches = [*rows, *(alfred.entry_item(entry, config.flows, "", reserved) for entry in hits)]
     hint = alfred.root_hint(not (root or scoped), query)
     return alfred.feedback(matches, query, hint, reserved=reserved, flows=config.flows)
@@ -102,7 +106,15 @@ def root_search(words: str, query: str, config: Config) -> list[alfred.Item]:
 
 def prompt_command(query: str, config: Config) -> str:
     template, values, finish = config.prompt
-    return alfred.render(alfred.prompt_items(template, values, finish, query.strip(), config.flows, read_clipboard))
+    resolved = snippets.fill(template, reserved_for([template]))
+    return alfred.render(alfred.prompt_items(resolved, values, finish, query.strip(), config.flows, read_clipboard))
+
+
+def resolve_command(query: str, config: Config) -> str:
+    template, _, finish = config.prompt
+    payload = snippets.fill(template, reserved_for([template]))
+    action = finish or alfred.action_of(payload)
+    return json.dumps({"alfredworkflow": alfred.routed(payload, action, config.flows)})
 
 
 def fill_command(arguments: Sequence[str], config: Config) -> str:
@@ -176,6 +188,7 @@ COMMANDS: dict[str, Command] = {
     "open": text_command(open_command),
     "alfred": text_command(alfred_command),
     "prompt": text_command(prompt_command),
+    "resolve": text_command(resolve_command),
     "fill": fill_command,
 }
 

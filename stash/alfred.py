@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from .entries import Entry, has_separator, in_scope, parse_line
-from .snippets import PLACEHOLDER, Clipboard, Values, fill, has_placeholders, pending, placeholders
+from .snippets import CLIPBOARD, PLACEHOLDER, Clipboard, Values, fill, has_placeholders, mentions, pending, placeholders
 
 Item = dict[str, Any]
 Flows = Mapping[str, str]
@@ -19,7 +19,7 @@ FOLDER_ICON = {"type": "filetype", "path": "public.folder"}
 OPENABLE_SCHEMES = ("http://", "https://", "file://", "alfred://")
 TRAILING_FLOW = re.compile(r"^(?:(?P<text>.*\S)\s+)?@(?P<name>\S+)$")
 LEADING_FLOW = re.compile(r"^@(?P<name>\S+)(?:\s+(?P<text>\S.*))?$")
-LABELS = {"copy": "Copy", "open": "Open", "alfred": "Alfred", "paste": "Paste", "fill": "Fill"}
+LABELS = {"copy": "Copy", "open": "Open", "alfred": "Alfred", "paste": "Paste", "fill": "Fill", "resolve": "Copy"}
 INVALID = {"valid": False}
 
 
@@ -66,8 +66,28 @@ def names_of(payload: str) -> str:
     return ", ".join(placeholder.name for placeholder in placeholders(payload))
 
 
+def action_for(payload: str) -> str:
+    if has_placeholders(payload):
+        return "fill"
+    if mentions(payload, CLIPBOARD):
+        return "resolve"
+    return action_of(payload)
+
+
+def is_deferred(action: str) -> bool:
+    return action in ("fill", "resolve")
+
+
 def fill_variables(template: str, values: Values, finish: str) -> dict[str, str]:
     return {"action": "fill", "template": template, "filled": json.dumps(values), "finish": finish}
+
+
+def resolve_variables(template: str, finish: str) -> dict[str, str]:
+    return {"action": "resolve", "template": template, "finish": finish}
+
+
+def deferred_variables(action: str, template: str) -> dict[str, str]:
+    return fill_variables(template, {}, "") if action == "fill" else resolve_variables(template, "")
 
 
 def paste_mod(payload: str) -> Item:
@@ -76,6 +96,18 @@ def paste_mod(payload: str) -> Item:
 
 def fill_then_paste_mod(template: str, values: Values) -> Item:
     return {"arg": "", "variables": fill_variables(template, values, "paste"), "subtitle": "Fill, then paste"}
+
+
+def resolve_then_paste_mod(template: str) -> Item:
+    return {"arg": "", "variables": resolve_variables(template, "paste"), "subtitle": "Paste into the frontmost app"}
+
+
+def paste_mod_for(action: str, payload: str) -> Item:
+    if action == "fill":
+        return fill_then_paste_mod(payload, {})
+    if action == "resolve":
+        return resolve_then_paste_mod(payload)
+    return paste_mod(payload)
 
 
 def where(scope: str) -> str:
@@ -92,8 +124,8 @@ def open_editor(scope: str = "") -> Item:
 
 def entry_item(entry: Entry, flows: Flows = NO_FLOWS, within: str = "", reserved: Values = NO_VALUES) -> Item:
     payload = fill(entry.payload, reserved)
-    action = "fill" if has_placeholders(payload) else action_of(payload)
-    arg = "" if action == "fill" else arg_of(payload, action, flows)
+    action = action_for(payload)
+    arg = "" if is_deferred(action) else arg_of(payload, action, flows)
     origin = entry.scope if entry.scope != within else ""
     line = str(entry.line_number)
     return {
@@ -102,12 +134,12 @@ def entry_item(entry: Entry, flows: Flows = NO_FLOWS, within: str = "", reserved
         "subtitle": with_origin(origin, subtitle_of(entry.label, payload, action, arg)),
         "arg": arg,
         "autocomplete": in_scope(entry.scope, entry.label),
-        "variables": fill_variables(payload, {}, "") if action == "fill" else {"action": action},
+        "variables": deferred_variables(action, payload) if is_deferred(action) else {"action": action},
         "text": {"copy": entry.payload, "largetype": payload},
         "mods": {
             "cmd": {"arg": in_scope(entry.scope, line), "subtitle": f"Edit line {line} of {where(entry.scope)}"},
             "alt": {"arg": in_scope(entry.scope, entry.raw), "subtitle": f"Delete: {entry.raw}"},
-            "shift": fill_then_paste_mod(payload, {}) if action == "fill" else paste_mod(payload),
+            "shift": paste_mod_for(action, payload),
             "ctrl": {**INVALID, "subtitle": f"Line {line} of {where(entry.scope)} · {action_detail(action, arg)}"},
         },
     }
@@ -119,18 +151,18 @@ def action_detail(action: str, arg: str) -> str:
 
 def run_item(query: str, flows: Flows, reserved: Values, scope: str = "") -> Item:
     payload = fill(query, reserved)
-    action = "fill" if has_placeholders(payload) else action_of(payload)
-    arg = "" if action == "fill" else arg_of(payload, action, flows)
+    action = action_for(payload)
+    arg = "" if is_deferred(action) else arg_of(payload, action, flows)
     return {
         "title": f"Run: {query}",
         "subtitle": subtitle_of(query, payload, action, arg),
         "arg": arg,
-        "variables": fill_variables(payload, {}, "") if action == "fill" else {"action": action},
+        "variables": deferred_variables(action, payload) if is_deferred(action) else {"action": action},
         "text": {"copy": payload, "largetype": payload},
         "mods": {
             "cmd": open_editor(scope),
             "alt": INVALID,
-            "shift": fill_then_paste_mod(payload, {}) if action == "fill" else paste_mod(payload),
+            "shift": paste_mod_for(action, payload),
             "ctrl": {**INVALID, "subtitle": f"Not stored · {action_detail(action, arg)}"},
         },
     }
@@ -143,7 +175,7 @@ def subtitle_of(label: str, payload: str, action: str, arg: str) -> str:
         return f"{LABELS[action]} {names_of(payload)} · {payload}"
     if payload == label:
         return LABELS[action]
-    return payload if action == "copy" else f"{LABELS[action]} · {payload}"
+    return payload if action in ("copy", "resolve") else f"{LABELS[action]} · {payload}"
 
 
 def scope_item(scope: str, count: int) -> Item:
@@ -243,15 +275,17 @@ def prompt_row(
 def final_item(template: str, values: Values, finish: str, flows: Flows) -> Item:
     result = fill(template, values)
     action = finish or action_of(result)
-    arg = arg_of(result, action, flows)
     return {
         "title": result,
         "subtitle": flow_subtitle(result) if action == "alfred" else f"{LABELS[action]} · {result}",
-        "arg": arg,
-        "variables": {"action": action},
         "text": {"copy": result, "largetype": result},
         "mods": {"shift": paste_mod(result)},
+        **routed(result, action, flows),
     }
+
+
+def routed(payload: str, action: str, flows: Flows) -> dict[str, Any]:
+    return {"arg": arg_of(payload, action, flows), "variables": {"action": action}}
 
 
 def render(items: Sequence[Item]) -> str:

@@ -103,6 +103,18 @@
 			</dict>
 			<dict>
 				<key>destinationuid</key>
+				<string>321299D0-41A6-5DF3-BD71-4295B2D35B2B</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>96B274AB-60F6-572A-B771-FB35FD95BC9B</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
 				<string>7161F0FE-F7F5-5324-8220-38798B1A251E</string>
 				<key>modifiers</key>
 				<integer>0</integer>
@@ -163,6 +175,19 @@
 				<integer>524288</integer>
 				<key>modifiersubtext</key>
 				<string>Delete this entry</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>321299D0-41A6-5DF3-BD71-4295B2D35B2B</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>10640460-85C2-5B36-9CA9-ECB591FD52E9</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
 				<key>vitoclose</key>
 				<false/>
 			</dict>
@@ -561,6 +586,20 @@
 						<key>matchmode</key>
 						<integer>0</integer>
 						<key>matchstring</key>
+						<string>resolve</string>
+						<key>outputlabel</key>
+						<string>resolve</string>
+						<key>uid</key>
+						<string>96B274AB-60F6-572A-B771-FB35FD95BC9B</string>
+					</dict>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:action}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
 						<string>paste</string>
 						<key>outputlabel</key>
 						<string>paste</string>
@@ -736,6 +775,29 @@
 		<dict>
 			<key>config</key>
 			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
+				<string>exec "${python:-/usr/bin/python3}" -S -X utf8 run.py resolve "$1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>321299D0-41A6-5DF3-BD71-4295B2D35B2B</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
 				<key>lastpathcomponent</key>
 				<false/>
 				<key>onlyshowifquerypopulated</key>
@@ -769,7 +831,7 @@ The stash is a folder: default.txt holds the root, every other name.txt is a sco
 st name/ &lt;words&gt;   searches inside a scope; scope rows come first, ↩ enters one.
 {{name}} in a payload asks for a value on ↩, one prompt per name ({{name=default}}
 offers a default, the clipboard is always offered); {{date}}, {{time}} and
-{{clipboard}} fill themselves.
+{{clipboard}} fill themselves; the clipboard is read on ↩, never while you type.
 flows: aliases for @words, e.g. "tally=t kobold=kb wisp=l".
 
 Configure Workflow… sets the stash folder, the editor, the interpreter,
@@ -804,6 +866,13 @@ hand-off aliases and the number of results.
 			<integer>40</integer>
 			<key>ypos</key>
 			<integer>170</integer>
+		</dict>
+		<key>321299D0-41A6-5DF3-BD71-4295B2D35B2B</key>
+		<dict>
+			<key>xpos</key>
+			<integer>600</integer>
+			<key>ypos</key>
+			<integer>820</integer>
 		</dict>
 		<key>589BBDD8-105A-5AD0-ACB3-A7ACDCC1FC90</key>
 		<dict>

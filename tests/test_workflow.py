@@ -114,7 +114,13 @@ def test_every_search_keyword_shares_the_actions(workflow, objects, search_filte
 
 @pytest.mark.parametrize(
     "action, command",
-    [("add", "run.py add"), ("open", "run.py open"), ("alfred", "run.py alfred"), ("fill", "run.py prompt")],
+    [
+        ("add", "run.py add"),
+        ("open", "run.py open"),
+        ("alfred", "run.py alfred"),
+        ("fill", "run.py prompt"),
+        ("resolve", "run.py resolve"),
+    ],
 )
 def test_conditional_routes_actions_to_their_scripts(workflow, objects, conditional, action, command):
     [condition] = [c for c in conditional["config"]["conditions"] if c["matchstring"] == action]
@@ -137,6 +143,14 @@ def test_prompt_filter_feeds_the_router_on_every_step(workflow, objects, prompt_
     assert 'run.py prompt "$1"' in prompt_filter["config"]["script"], "the prompt is a script filter without keyword"
     assert destinations(workflow, objects, prompt_filter) == [conditional], "enter on a prompt row goes to the router"
     assert destinations(workflow, objects, prompt_filter, SHIFT) == [conditional], "so does shift-enter"
+
+
+def test_resolve_feeds_its_result_back_into_the_router(workflow, objects, conditional):
+    [script] = [item for item in objects.values() if "run.py resolve" in item["config"].get("script", "")]
+
+    assert destinations(workflow, objects, script) == [conditional], (
+        "resolve fills the clipboard and lets the router copy, paste, open or hand off the result"
+    )
 
 
 def test_conditional_copies_everything_else(workflow, objects, conditional):

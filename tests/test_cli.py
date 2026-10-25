@@ -377,12 +377,45 @@ def test_search_resolves_reserved_names_and_leaves_the_rest_for_the_prompt(capsy
     assert frozen_clock.call_count == 0, "the clipboard is not read unless an entry mentions it"
 
 
-def test_search_previews_the_clipboard_only_when_mentioned(capsys, env, db_file, frozen_clock):
+def test_search_never_reads_the_clipboard(capsys, env, db_file, frozen_clock):
     db_file.write_text("wrap | echo '{{clipboard}}'\n", encoding="utf-8")
 
-    [item, _] = json.loads(run(capsys, env, "search", "wrap"))["items"]
+    output = run(capsys, env, "search", "wrap")
+    [item, _] = json.loads(output)["items"]
 
-    assert item["arg"] == "echo 'from clipboard'", "{{clipboard}} should be filled from the clipboard at search time"
+    assert frozen_clock.call_count == 0, "the clipboard is read on enter, not on every keystroke"
+    assert "from clipboard" not in output, "the clipboard must never appear in the results list"
+    assert item["variables"] == {"action": "resolve", "template": "echo '{{clipboard}}'", "finish": ""}, (
+        "an entry mentioning the clipboard routes to resolve, which fills it on enter"
+    )
+    assert item["subtitle"] == "echo '{{clipboard}}'", "the preview shows the placeholder, not the clipboard"
+    assert item["mods"]["shift"]["variables"]["finish"] == "paste", "shift-enter asks to paste once resolved"
+
+
+@pytest.mark.parametrize(
+    "template, finish, expected",
+    [
+        ("echo '{{clipboard}}'", "", {"arg": "echo 'from clipboard'", "variables": {"action": "copy"}}),
+        ("echo '{{clipboard}}'", "paste", {"arg": "echo 'from clipboard'", "variables": {"action": "paste"}}),
+        ("https://x.test/{{clipboard}}", "", {"arg": "https://x.test/from clipboard", "variables": {"action": "open"}}),
+        ("{{clipboard}} @kobold", "", {"arg": "kb from clipboard", "variables": {"action": "alfred"}}),
+    ],
+)
+def test_resolve_fills_the_clipboard_and_hands_the_result_to_the_router(
+    capsys, env, frozen_clock, template, finish, expected
+):
+    state = {**env, "flows": "kobold=kb", "template": template, "finish": finish}
+
+    output = json.loads(run(capsys, state, "resolve"))
+
+    assert output == {"alfredworkflow": expected}, "resolve should fill the clipboard and route like an entry would"
+    assert frozen_clock.call_count == 1, "resolve reads the clipboard exactly once"
+
+
+def test_prompt_fills_the_clipboard_placeholder_before_asking_for_the_rest(capsys, env, frozen_clock):
+    [typed, *_] = prompt(capsys, env, "h", "ssh {{host}} < {{clipboard}}")
+
+    assert typed["arg"] == "ssh h < from clipboard", "the prompt runs after enter, so it may resolve the clipboard"
 
 
 def test_add_row_previews_reserved_names(capsys, env, frozen_clock):

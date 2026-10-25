@@ -14,14 +14,15 @@ def uid(name):
     return str(uuid.uuid5(uuid.NAMESPACE_URL, f"com.vlnn.stash/{name}")).upper()
 
 
-COPY, PASTE, EDIT, DELETE, ADD, OPEN, ALFRED, PROMPT, NOTIFY, ROUTE = map(
-    uid, ("copy", "paste", "edit", "delete", "add", "open", "alfred", "prompt", "notify", "route")
+COPY, PASTE, EDIT, DELETE, ADD, OPEN, ALFRED, PROMPT, RESOLVE, NOTIFY, ROUTE = map(
+    uid, ("copy", "paste", "edit", "delete", "add", "open", "alfred", "prompt", "resolve", "notify", "route")
 )
 ROUTES = {
     "add": (ADD, uid("route-add")),
     "open": (OPEN, uid("route-open")),
     "alfred": (ALFRED, uid("route-alfred")),
     "fill": (PROMPT, uid("route-fill")),
+    "resolve": (RESOLVE, uid("route-resolve")),
     "paste": (PASTE, uid("route-paste")),
 }
 
@@ -38,7 +39,7 @@ The stash is a folder: default.txt holds the root, every other name.txt is a sco
 st name/ <words>   searches inside a scope; scope rows come first, ↩ enters one.
 {{name}} in a payload asks for a value on ↩, one prompt per name ({{name=default}}
 offers a default, the clipboard is always offered); {{date}}, {{time}} and
-{{clipboard}} fill themselves.
+{{clipboard}} fill themselves; the clipboard is read on ↩, never while you type.
 flows: aliases for @words, e.g. "tally=t kobold=kb wisp=l".
 
 Configure Workflow… sets the stash folder, the editor, the interpreter,
@@ -240,6 +241,7 @@ WORKFLOW = {
         run_script(ADD, "add"),
         run_script(OPEN, "open"),
         run_script(ALFRED, "alfred"),
+        run_script(RESOLVE, "resolve"),
         NOTIFICATION,
     ],
     "connections": {
@@ -250,6 +252,7 @@ WORKFLOW = {
         DELETE: [link(NOTIFY)],
         ADD: [link(NOTIFY)],
         ALFRED: [link(NOTIFY)],
+        RESOLVE: [link(ROUTE)],
     },
     "uidata": {
         **{
@@ -263,6 +266,7 @@ WORKFLOW = {
         OPEN: {"xpos": 600, "ypos": 430},
         ALFRED: {"xpos": 600, "ypos": 560},
         PROMPT: {"xpos": 600, "ypos": 690},
+        RESOLVE: {"xpos": 600, "ypos": 820},
         EDIT: {"xpos": 330, "ypos": 430},
         DELETE: {"xpos": 330, "ypos": 560},
         NOTIFY: {"xpos": 870, "ypos": 430},

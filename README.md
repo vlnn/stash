@@ -228,7 +228,7 @@ standup        | {{date}} standup: {{done}} / {{next}}
 
 `{{name}}` is a blank; `name` is letters, digits, `_` and `-`, so `{}`, `${VAR}`, `{"a": 1}` and `{{ not a name }}` are left alone. `{{name=value}}` gives it a default, which is used literally (nothing is evaluated). The same name twice is one blank.
 
-Three names fill themselves and are never asked for: `{{date}}` is today as `2026-10-25`, `{{time}}` is now as `14:05`, and `{{clipboard}}` is the clipboard. You see what they become before you press anything: the subtitle of a result, and of the *Add* row while you type one, shows the payload with them resolved.
+Three names fill themselves and are never asked for: `{{date}}` is today as `2026-10-25`, `{{time}}` is now as `14:05`, and `{{clipboard}}` is the clipboard. You see what the first two become before you press anything: the subtitle of a result, and of the *Add* row while you type one, shows the payload with them resolved. The clipboard is read only when you press ↩, so what is on it never shows up in the results list and no search touches it.
 
 ↩ on an entry with other blanks opens one prompt per name, in order of first appearance. The row's title is `host (1/2): …` and its subtitle is the payload as it stands; the rows are what you have typed, the default if there is one, and the clipboard, in that order. ↩ takes the selected row and moves to the next name; on the last one ↩ does what the entry would normally do with the result: copy it, open it if it is a URL or a path, hand it off if it ends in `@keyword`. ⇧↩ on the entry, or on the last row, pastes instead. Esc abandons with nothing copied.
 
@@ -440,8 +440,8 @@ git tag v3.0.0 && git push origin v3.0.0
 | `stash/matching.py` | One regex per query word, scoring, ranking |
 | `stash/store.py` | The stash folder: `default.txt` and the scope files; load, append, delete lines; atomic, symlink-safe writes |
 | `stash/snippets.py` | `{{name}}` and `{{name=default}}` placeholders, the reserved `date`, `time` and `clipboard`, filling |
-| `stash/alfred.py` | Alfred Script Filter JSON: results and their copy/open/hand-off/fill action, scope rows, the *Run* and *Add* items, prompt rows, hints |
-| `stash/cli.py` | Commands `search`, `add`, `delete`, `edit`, `open`, `alfred`, `prompt`, `fill`; workflow variables |
+| `stash/alfred.py` | Alfred Script Filter JSON: results and their copy/open/hand-off/fill/resolve action, scope rows, the *Run* and *Add* items, prompt rows, hints |
+| `stash/cli.py` | Commands `search`, `add`, `delete`, `edit`, `open`, `alfred`, `prompt`, `resolve`, `fill`; workflow variables |
 | `run.py` | Entry point Alfred calls |
 | `make_plist.py` | Source of `info.plist`: keywords, the prompt filter, the router, connections, variables |
 | `scripts/build.py`, `scripts/smoke.py` | Build the bundle; run it the way Alfred would |

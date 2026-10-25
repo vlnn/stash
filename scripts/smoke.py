@@ -44,13 +44,23 @@ def check(condition, message):
     print(f"ok  {message}")
 
 
+def fake_pbpaste(directory):
+    bin_dir = os.path.join(directory, "bin")
+    os.makedirs(bin_dir, exist_ok=True)
+    path = os.path.join(bin_dir, "pbpaste")
+    with open(path, "w") as file:
+        file.write("#!/bin/sh\nprintf pasted\n")
+    os.chmod(path, 0o755)
+    return f"{bin_dir}:{os.environ.get('PATH', '')}"
+
+
 def main(bundle_path, python):
     with tempfile.TemporaryDirectory() as directory:
         bundle_dir = os.path.join(directory, "bundle")
         with zipfile.ZipFile(bundle_path) as bundle:
             bundle.extractall(bundle_dir)
         scripts = scripts_of(bundle_dir)
-        commands = {"search", "add", "delete", "edit", "open", "alfred", "prompt"}
+        commands = {"search", "add", "delete", "edit", "open", "alfred", "prompt", "resolve"}
         check(set(scripts) == commands, "the bundle wires every command")
         env = {
             **os.environ,
@@ -104,6 +114,12 @@ def main(bundle_path, python):
         step_env = {**step_env, "filled": default["variables"]["filled"]}
         [typed, *_] = json.loads(run(bundle_dir, scripts, "prompt", "10.0.0.1", step_env))["items"]
         check(typed["arg"] == "ssh root@10.0.0.1" and typed["variables"] == {"action": "copy"}, "the last step copies")
+        run(bundle_dir, scripts, "add", "wrap | echo '{{clipboard}}'", env)
+        [wrap, _] = json.loads(run(bundle_dir, scripts, "search", "wrap", env))["items"]
+        check(wrap["variables"]["action"] == "resolve" and wrap["arg"] == "", "the clipboard is not read on search")
+        resolve_env = {**env, "template": wrap["variables"]["template"], "finish": "", "PATH": fake_pbpaste(directory)}
+        resolved = json.loads(run(bundle_dir, scripts, "resolve", "", resolve_env))["alfredworkflow"]
+        check(resolved == {"arg": "echo 'pasted'", "variables": {"action": "copy"}}, "resolve fills it on enter")
         [run_row, *_] = json.loads(run(bundle_dir, scripts, "search", "delany @kobold", env))["items"]
         check(run_row["title"] == "Run: delany @kobold" and run_row["arg"] == "kb delany", "a typed hand-off runs")
 
