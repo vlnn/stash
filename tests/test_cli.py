@@ -475,3 +475,14 @@ def test_prompt_with_everything_filled_finishes(capsys, env, frozen_clock):
 )
 def test_fill_prints_the_filled_payload(capsys, env, frozen_clock, argv, expected):
     assert run(capsys, env, "fill", *argv) == expected, "fill should take name=value pairs and resolve reserved names"
+
+
+def test_search_offers_to_run_a_typed_hand_off(capsys, env, frozen_clock):
+    [run, addition] = json.loads(run_search(capsys, {**env, "flows": "kobold=kb"}, "delany @kobold"))["items"]
+
+    assert run["title"] == "Run: delany @kobold" and run["arg"] == "kb delany", "typed hand-offs act on enter"
+    assert addition["title"] == "Add: delany @kobold", "storing it is still one row down"
+
+
+def run_search(capsys, env, query):
+    return run(capsys, env, "search", query)

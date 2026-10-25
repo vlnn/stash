@@ -84,7 +84,7 @@ def scoped_search(scope: str, words: str, query: str, config: Config) -> list[al
     matches = [alfred.entry_item(entry, config.flows, scope, reserved) for entry in hits]
     exists = os.path.exists(path)
     hint = alfred.scope_hint(scope, exists)
-    return alfred.feedback(matches, query, hint, scope, new_scope=not exists, reserved=reserved)
+    return alfred.feedback(matches, query, hint, scope, not exists, reserved, config.flows)
 
 
 def root_search(words: str, query: str, config: Config) -> list[alfred.Item]:
@@ -96,7 +96,8 @@ def root_search(words: str, query: str, config: Config) -> list[alfred.Item]:
     hits = hits[: max(config.max_results - len(rows), 0)]
     reserved = reserved_for([*(entry.payload for entry in hits), query])
     matches = [*rows, *(alfred.entry_item(entry, config.flows, "", reserved) for entry in hits)]
-    return alfred.feedback(matches, query, alfred.root_hint(not (root or scoped), query), reserved=reserved)
+    hint = alfred.root_hint(not (root or scoped), query)
+    return alfred.feedback(matches, query, hint, reserved=reserved, flows=config.flows)
 
 
 def prompt_command(query: str, config: Config) -> str:

@@ -104,6 +104,8 @@ def main(bundle_path, python):
         step_env = {**step_env, "filled": default["variables"]["filled"]}
         [typed, *_] = json.loads(run(bundle_dir, scripts, "prompt", "10.0.0.1", step_env))["items"]
         check(typed["arg"] == "ssh root@10.0.0.1" and typed["variables"] == {"action": "copy"}, "the last step copies")
+        [run_row, *_] = json.loads(run(bundle_dir, scripts, "search", "delany @kobold", env))["items"]
+        check(run_row["title"] == "Run: delany @kobold" and run_row["arg"] == "kb delany", "a typed hand-off runs")
 
 
 if __name__ == "__main__":

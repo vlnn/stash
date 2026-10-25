@@ -10,9 +10,11 @@ from stash.alfred import (
     entry_item,
     feedback,
     flow_of,
+    is_payload,
     prompt_items,
     render,
     root_hint,
+    run_item,
     scope_hint,
     scope_item,
 )
@@ -83,7 +85,10 @@ def test_entry_item_for_flow_hands_the_query_to_alfred():
 
     assert item["variables"] == {"action": "alfred"}, "a flow payload should route to the alfred action"
     assert item["arg"] == "kb delany", "the arg should be the keyword and text Alfred will run"
-    assert item["subtitle"] == "Alfred · kb delany", "the subtitle should show what Alfred will be asked"
+    assert item["subtitle"] == "→ kobold · delany", "the subtitle names the workflow the way the entry wrote it"
+    assert item["mods"]["ctrl"]["subtitle"] == "Line 0 of the stash · alfred: kb delany", (
+        "ctrl shows the resolved call, keyword included"
+    )
     assert item["text"]["copy"] == "delany @kobold", "cmd-c should still copy the payload as written"
 
 
@@ -333,3 +338,58 @@ def test_prompt_items_offer_empty_default_but_not_empty_clipboard():
 
     assert row["title"] == "sep (1/1): (empty)   (default)", "an explicit empty default is a real choice"
     assert row["arg"] == "x  y", "the empty default fills in as nothing"
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        ("delany @kobold", True),
+        ("@wisp", True),
+        ("https://example.com/x", True),
+        ("release {{date}}", True),
+        ("ssh {{host}}", True),
+        ("delany books", False),
+        ("name.surname@example.com", False),
+        ("rm {} ${HOME}", False),
+    ],
+)
+def test_is_payload_spots_hand_offs_links_and_blanks(query, expected):
+    assert is_payload(query) is expected, "a query acts on its own when it is a hand-off, a URL or path, or has blanks"
+
+
+def test_run_item_hands_off_what_was_typed_without_storing_it():
+    item = run_item("delany @kobold", FLOWS, {})
+
+    assert item["title"] == "Run: delany @kobold", "the run row shows the query as typed"
+    assert item["subtitle"] == "→ kobold · delany", "and says who gets it"
+    assert item["variables"] == {"action": "alfred"} and item["arg"] == "kb delany", "enter hands off"
+    assert item["mods"]["alt"] == {"valid": False}, "there is nothing to delete"
+    assert item["mods"]["ctrl"]["subtitle"] == "Not stored · alfred: kb delany", "ctrl makes the ephemeral nature plain"
+
+
+def test_run_item_resolves_reserved_names_and_prompts_for_the_rest():
+    copied = run_item("release {{date}}", {}, {"date": "2026-10-25"})
+    prompted = run_item("ssh {{host}} {{date}}", {}, {"date": "2026-10-25"})
+
+    assert copied["variables"] == {"action": "copy"} and copied["arg"] == "release 2026-10-25", (
+        "a query with only reserved names is copied with them resolved"
+    )
+    assert copied["subtitle"] == "release 2026-10-25", "the subtitle previews the result"
+    assert (
+        prompted["variables"]["action"] == "fill" and prompted["variables"]["template"] == "ssh {{host}} 2026-10-25"
+    ), "other blanks go through the prompt"
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        ("delany @kobold", ["Run: delany @kobold", "ssh prod web", "Add: delany @kobold"]),
+        ("release {{date}}", ["Run: release {{date}}", "ssh prod web", "Add: release {{date}}"]),
+        ("delany books", ["ssh prod web", "Add: delany books"]),
+        ("books | delany @kobold", ["Add: books", "ssh prod web"]),
+    ],
+)
+def test_feedback_puts_the_run_row_first_and_never_next_to_a_separator(query, expected):
+    assert titles(feedback([{"title": "ssh prod web"}], query, {"title": "hint"}, flows=FLOWS)) == expected, (
+        "a query that acts on its own gets a Run row first; a typed separator means Add, as before"
+    )

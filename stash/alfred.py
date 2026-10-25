@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from .entries import Entry, has_separator, in_scope, parse_line
-from .snippets import Clipboard, Values, fill, has_placeholders, pending, placeholders
+from .snippets import PLACEHOLDER, Clipboard, Values, fill, has_placeholders, pending, placeholders
 
 Item = dict[str, Any]
 Flows = Mapping[str, str]
@@ -28,6 +28,15 @@ def flow_of(payload: str, flows: Flows) -> tuple[str, str] | None:
         return None
     name = found.group("name")
     return flows.get(name, name), found.group("text") or ""
+
+
+def flow_subtitle(payload: str) -> str:
+    name, text = flow_of(payload, NO_FLOWS)
+    return f"→ {name} · {text}" if text else f"→ {name}"
+
+
+def is_payload(query: str) -> bool:
+    return PLACEHOLDER.search(query) is not None or action_of(query) != "copy"
 
 
 def action_of(payload: str) -> str:
@@ -93,14 +102,37 @@ def entry_item(entry: Entry, flows: Flows = NO_FLOWS, within: str = "", reserved
             "cmd": {"arg": in_scope(entry.scope, line), "subtitle": f"Edit line {line} of {where(entry.scope)}"},
             "alt": {"arg": in_scope(entry.scope, entry.raw), "subtitle": f"Delete: {entry.raw}"},
             "shift": fill_then_paste_mod(payload, {}) if action == "fill" else paste_mod(payload),
-            "ctrl": {**INVALID, "subtitle": f"Line {line} of {where(entry.scope)} · {action}"},
+            "ctrl": {**INVALID, "subtitle": f"Line {line} of {where(entry.scope)} · {action_detail(action, arg)}"},
+        },
+    }
+
+
+def action_detail(action: str, arg: str) -> str:
+    return f"{action}: {arg}" if action == "alfred" else action
+
+
+def run_item(query: str, flows: Flows, reserved: Values, scope: str = "") -> Item:
+    payload = fill(query, reserved)
+    action = "fill" if has_placeholders(payload) else action_of(payload)
+    arg = "" if action == "fill" else arg_of(payload, action, flows)
+    return {
+        "title": f"Run: {query}",
+        "subtitle": subtitle_of(query, payload, action, arg),
+        "arg": arg,
+        "variables": fill_variables(payload, {}, "") if action == "fill" else {"action": action},
+        "text": {"copy": payload, "largetype": payload},
+        "mods": {
+            "cmd": open_editor(scope),
+            "alt": INVALID,
+            "shift": fill_then_paste_mod(payload, {}) if action == "fill" else paste_mod(payload),
+            "ctrl": {**INVALID, "subtitle": f"Not stored · {action_detail(action, arg)}"},
         },
     }
 
 
 def subtitle_of(label: str, payload: str, action: str, arg: str) -> str:
     if action == "alfred":
-        return f"{LABELS[action]} · {arg}"
+        return flow_subtitle(payload)
     if action == "fill":
         return f"{LABELS[action]} {names_of(payload)} · {payload}"
     if payload == label:
@@ -159,13 +191,15 @@ def feedback(
     scope: str = "",
     new_scope: bool = False,
     reserved: Values = NO_VALUES,
+    flows: Flows = NO_FLOWS,
 ) -> list[Item]:
     addition = add_item(query, scope, new_scope, reserved)
     if addition is None:
         return list(matches) or [hint]
     if has_separator(query):
         return [addition, *matches]
-    return [*matches, addition]
+    run = [run_item(query, flows, reserved, scope)] if is_payload(query) else []
+    return [*run, *matches, addition]
 
 
 def prompt_items(
@@ -206,7 +240,7 @@ def final_item(template: str, values: Values, finish: str, flows: Flows) -> Item
     arg = arg_of(result, action, flows)
     return {
         "title": result,
-        "subtitle": f"{LABELS[action]} · {arg if action == 'alfred' else result}",
+        "subtitle": flow_subtitle(result) if action == "alfred" else f"{LABELS[action]} · {result}",
         "arg": arg,
         "variables": {"action": action},
         "text": {"copy": result, "largetype": result},
