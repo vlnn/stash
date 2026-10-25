@@ -6,16 +6,19 @@ import uuid
 from stash.cli import DEFAULT_DB_DIR, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS
 
 PYTHON = 'exec "${python:-/usr/bin/python3}" -S -X utf8 run.py'
-CMD, ALT, SHIFT = 1 << 20, 1 << 19, 1 << 17
+CMD, ALT, CTRL, SHIFT = 1 << 20, 1 << 19, 1 << 18, 1 << 17
+HYPER = CMD | ALT | CTRL | SHIFT
+KEY_L = 37
 SEARCH_KEYWORDS = ("st", "sta", "stash")
+HOTKEY_KEYWORD = "stash"
 
 
 def uid(name):
     return str(uuid.uuid5(uuid.NAMESPACE_URL, f"com.vlnn.stash/{name}")).upper()
 
 
-COPY, PASTE, EDIT, DELETE, ADD, OPEN, ALFRED, PROMPT, RESOLVE, NOTIFY, ROUTE = map(
-    uid, ("copy", "paste", "edit", "delete", "add", "open", "alfred", "prompt", "resolve", "notify", "route")
+COPY, PASTE, EDIT, DELETE, ADD, OPEN, ALFRED, PROMPT, RESOLVE, NOTIFY, ROUTE, HOTKEY = map(
+    uid, ("copy", "paste", "edit", "delete", "add", "open", "alfred", "prompt", "resolve", "notify", "route", "hotkey")
 )
 ROUTES = {
     "add": (ADD, uid("route-add")),
@@ -28,7 +31,7 @@ ROUTES = {
 
 README = """Fuzzy keyword search over a plain-text stash you own.
 
-st / sta / stash <words>   search; words match in any order, as whole words, prefixes,
+st / sta / stash <words>   search (or press ⌘⌥⌃⇧L); words match in any order, as whole words, prefixes,
                            substrings or in-word letters (stg → staging)
                            the last result adds what you typed; type | and it becomes the first
                            ↩ copy, or open a URL/path, or hand "text @keyword" to another
@@ -120,6 +123,25 @@ def search_filter(keyword):
             "withspace": True,
         },
     }
+
+
+HOTKEY_TRIGGER = {
+    "type": "alfred.workflow.trigger.hotkey",
+    "uid": HOTKEY,
+    "version": 2,
+    "config": {
+        "action": 0,
+        "argument": 0,
+        "focusedappvariable": False,
+        "focusedappvariablename": "",
+        "hotkey": KEY_L,
+        "hotmod": HYPER,
+        "hotstring": "L",
+        "leftcursor": False,
+        "modsmode": 0,
+        "relatedAppsMode": 0,
+    },
+}
 
 
 def prompt_filter():
@@ -231,6 +253,7 @@ WORKFLOW = {
     "variables": {},
     "variablesdontexport": [],
     "objects": [
+        HOTKEY_TRIGGER,
         *(search_filter(keyword) for keyword in SEARCH_KEYWORDS),
         prompt_filter(),
         ROUTER,
@@ -245,6 +268,7 @@ WORKFLOW = {
         NOTIFICATION,
     ],
     "connections": {
+        HOTKEY: [link(uid(f"search-{HOTKEY_KEYWORD}"))],
         **{uid(f"search-{keyword}"): SEARCH_LINKS for keyword in SEARCH_KEYWORDS},
         PROMPT: PROMPT_LINKS,
         ROUTE: [*(link(target, output_uid=output_uid) for target, output_uid in ROUTES.values()), link(COPY)],
@@ -255,6 +279,7 @@ WORKFLOW = {
         RESOLVE: [link(ROUTE)],
     },
     "uidata": {
+        HOTKEY: {"xpos": -220, "ypos": 40 + 130 * SEARCH_KEYWORDS.index(HOTKEY_KEYWORD)},
         **{
             uid(f"search-{keyword}"): {"xpos": 40, "ypos": 40 + 130 * index}
             for index, keyword in enumerate(SEARCH_KEYWORDS)

@@ -56,7 +56,7 @@ Requirements: Alfred 5 with the Powerpack, and Python 3.9 or newer. There are no
 
 ## Quick start
 
-`st`, `sta` and `stash` are the same keyword; use whichever your fingers produce.
+`st`, `sta` and `stash` are the same keyword; use whichever your fingers produce. ⌘⌥⌃⇧L (hyper + L) opens the stash too; change or clear it on the *Hotkey* node in the workflow.
 
 ```
 st ssh prod web | ssh deploy@10.0.1.5     ↩ adds the entry

@@ -6,7 +6,8 @@ import pytest
 
 from stash.cli import COMMANDS, DEFAULT_DB_DIR, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS
 
-CMD, ALT, SHIFT = 1 << 20, 1 << 19, 1 << 17
+CMD, ALT, CTRL, SHIFT = 1 << 20, 1 << 19, 1 << 18, 1 << 17
+KEY_L = 37
 PLIST_PATH = os.path.join(os.path.dirname(__file__), os.pardir, "info.plist")
 
 
@@ -34,6 +35,12 @@ def search_filters(script_filters):
 @pytest.fixture(scope="module")
 def prompt_filter(script_filters):
     [item] = [item for item in script_filters if not item["config"]["keyword"]]
+    return item
+
+
+@pytest.fixture(scope="module")
+def hotkey(objects):
+    [item] = [item for item in objects.values() if item["type"] == "alfred.workflow.trigger.hotkey"]
     return item
 
 
@@ -80,6 +87,16 @@ def test_every_search_keyword_runs_the_same_search(search_filters):
     assert {item["config"]["script"] for item in search_filters} == {
         'exec "${python:-/usr/bin/python3}" -S -X utf8 run.py search "$1"'
     }, "every search keyword should run the same search script"
+
+
+def test_hyper_l_opens_the_stash(workflow, objects, hotkey):
+    [target] = destinations(workflow, objects, hotkey)
+
+    assert (hotkey["config"]["hotkey"], hotkey["config"]["hotmod"]) == (KEY_L, CMD | ALT | CTRL | SHIFT), (
+        "the hotkey should be hyper (⌘⌥⌃⇧) + l"
+    )
+    assert hotkey["config"]["argument"] == 0, "the hotkey passes no argument, so Alfred opens the stash empty"
+    assert target["config"]["keyword"] == "stash", "the hotkey should open the stash keyword"
 
 
 def test_search_filters_rank_themselves_and_cancel_stale_runs(script_filters):

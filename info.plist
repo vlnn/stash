@@ -241,6 +241,19 @@
 				<false/>
 			</dict>
 		</array>
+		<key>B4FA9972-CD88-546B-9315-F7B91C8D2952</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>E1E2F735-334C-58B8-8896-AE45835C573C</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
 		<key>BCF27A11-BFFD-5C9A-AEED-FB0DCFDC9D1B</key>
 		<array>
 			<dict>
@@ -321,6 +334,37 @@
 	<string>Stash</string>
 	<key>objects</key>
 	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>action</key>
+				<integer>0</integer>
+				<key>argument</key>
+				<integer>0</integer>
+				<key>focusedappvariable</key>
+				<false/>
+				<key>focusedappvariablename</key>
+				<string></string>
+				<key>hotkey</key>
+				<integer>37</integer>
+				<key>hotmod</key>
+				<integer>1966080</integer>
+				<key>hotstring</key>
+				<string>L</string>
+				<key>leftcursor</key>
+				<false/>
+				<key>modsmode</key>
+				<integer>0</integer>
+				<key>relatedAppsMode</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.trigger.hotkey</string>
+			<key>uid</key>
+			<string>B4FA9972-CD88-546B-9315-F7B91C8D2952</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
 		<dict>
 			<key>config</key>
 			<dict>
@@ -820,7 +864,7 @@
 	<key>readme</key>
 	<string>Fuzzy keyword search over a plain-text stash you own.
 
-st / sta / stash &lt;words&gt;   search; words match in any order, as whole words, prefixes,
+st / sta / stash &lt;words&gt;   search (or press ⌘⌥⌃⇧L); words match in any order, as whole words, prefixes,
                            substrings or in-word letters (stg → staging)
                            the last result adds what you typed; type | and it becomes the first
                            ↩ copy, or open a URL/path, or hand "text @keyword" to another
@@ -915,6 +959,13 @@ hand-off aliases and the number of results.
 			<integer>330</integer>
 			<key>ypos</key>
 			<integer>430</integer>
+		</dict>
+		<key>B4FA9972-CD88-546B-9315-F7B91C8D2952</key>
+		<dict>
+			<key>xpos</key>
+			<integer>-220</integer>
+			<key>ypos</key>
+			<integer>300</integer>
 		</dict>
 		<key>BCF27A11-BFFD-5C9A-AEED-FB0DCFDC9D1B</key>
 		<dict>
