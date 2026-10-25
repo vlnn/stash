@@ -2,24 +2,24 @@ from __future__ import annotations
 
 import os
 
-from .entries import Entry, is_scope_name, parse_line
+from .entries import Entry, is_stash_name, parse_line
 
 TEXT = {"encoding": "utf-8", "errors": "surrogateescape", "newline": ""}
 ROOT = "default"
 EXTENSION = ".txt"
 
 
-def scope_path(db_dir: str, scope: str = "") -> str:
-    return os.path.join(db_dir, f"{scope or ROOT}{EXTENSION}")
+def stash_path(db_dir: str, stash: str = "") -> str:
+    return os.path.join(db_dir, f"{stash or ROOT}{EXTENSION}")
 
 
-def scope_names(db_dir: str) -> list[str]:
+def stash_names(db_dir: str) -> list[str]:
     try:
         names = os.listdir(db_dir)
     except FileNotFoundError:
         return []
     stems = (name[: -len(EXTENSION)] for name in names if name.endswith(EXTENSION))
-    return sorted(stem for stem in stems if stem != ROOT and is_scope_name(stem))
+    return sorted(stem for stem in stems if stem != ROOT and is_stash_name(stem))
 
 
 def read_text(path: str) -> str:
@@ -30,18 +30,18 @@ def read_text(path: str) -> str:
         return ""
 
 
-def load_entries(path: str, scope: str = "") -> list[Entry]:
+def load_entries(path: str, stash: str = "") -> list[Entry]:
     lines = enumerate(read_text(path).split("\n"), start=1)
-    parsed = (parse_line(line, number, scope) for number, line in lines)
+    parsed = (parse_line(line, number, stash) for number, line in lines)
     return [entry for entry in parsed if entry]
 
 
-def load_scope(db_dir: str, scope: str = "") -> list[Entry]:
-    return load_entries(scope_path(db_dir, scope), scope)
+def load_stash(db_dir: str, stash: str = "") -> list[Entry]:
+    return load_entries(stash_path(db_dir, stash), stash)
 
 
-def load_scopes(db_dir: str) -> dict[str, list[Entry]]:
-    return {scope: load_scope(db_dir, scope) for scope in scope_names(db_dir)}
+def load_stashes(db_dir: str) -> dict[str, list[Entry]]:
+    return {stash: load_stash(db_dir, stash) for stash in stash_names(db_dir)}
 
 
 def ensure_parent(path: str) -> None:

@@ -1,4 +1,4 @@
-"""Builds dist/Stash.alfredworkflow from the checkout: uv run python scripts/build.py"""
+"""Builds dist/Stashes.alfredworkflow from the checkout: uv run python scripts/build.py"""
 
 import os
 import subprocess
@@ -6,8 +6,8 @@ import sys
 import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BUNDLE = os.path.join(ROOT, "dist", "Stash.alfredworkflow")
-FILES = ("info.plist", "icon.png", "scope.png", "run.py")
+BUNDLE = os.path.join(ROOT, "dist", "Stashes.alfredworkflow")
+FILES = ("info.plist", "icon.png", "stash.png", "run.py")
 PACKAGE = "stash"
 
 

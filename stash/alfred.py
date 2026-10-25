@@ -6,7 +6,7 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from .entries import Entry, has_separator, in_scope, parse_line
+from .entries import Entry, has_separator, in_stash, parse_line
 from .snippets import CLIPBOARD, PLACEHOLDER, Clipboard, Values, fill, has_placeholders, mentions, pending, placeholders
 
 Item = dict[str, Any]
@@ -15,7 +15,7 @@ NO_FLOWS: Flows = {}
 NO_VALUES: Values = {}
 
 FORMAT_HINT = "words | payload"
-SCOPE_ICON = {"path": "scope.png"}
+STASH_ICON = {"path": "stash.png"}
 OPENABLE_SCHEMES = ("http://", "https://", "file://", "alfred://")
 TRAILING_FLOW = re.compile(r"^(?:(?P<text>.*\S)\s+)?@(?P<name>\S+)$")
 LEADING_FLOW = re.compile(r"^@(?P<name>\S+)(?:\s+(?P<text>\S.*))?$")
@@ -110,37 +110,37 @@ def paste_mod_for(action: str, payload: str) -> Item:
     return paste_mod(payload)
 
 
-def where(scope: str) -> str:
-    return f"{scope}/" if scope else "the stash"
+def where(stash: str) -> str:
+    return f"{stash}/" if stash else "default/"
 
 
 def with_origin(origin: str, subtitle: str) -> str:
     return f"{origin} · {subtitle}" if origin else subtitle
 
 
-def open_editor(scope: str = "") -> Item:
-    return {"arg": in_scope(scope, "1"), "subtitle": f"Open {where(scope)} in your editor"}
+def open_editor(stash: str = "") -> Item:
+    return {"arg": in_stash(stash, "1"), "subtitle": f"Open {where(stash)} in your editor"}
 
 
 def entry_item(entry: Entry, flows: Flows = NO_FLOWS, within: str = "", reserved: Values = NO_VALUES) -> Item:
     payload = fill(entry.payload, reserved)
     action = action_for(payload)
     arg = "" if is_deferred(action) else arg_of(payload, action, flows)
-    origin = entry.scope if entry.scope != within else ""
+    origin = entry.stash if entry.stash != within else ""
     line = str(entry.line_number)
     return {
-        "uid": in_scope(entry.scope, f"{entry.label}|{entry.payload}"),
+        "uid": in_stash(entry.stash, f"{entry.label}|{entry.payload}"),
         "title": entry.label,
         "subtitle": with_origin(origin, subtitle_of(entry.label, payload, action, arg)),
         "arg": arg,
-        "autocomplete": in_scope(entry.scope, entry.label),
+        "autocomplete": in_stash(entry.stash, entry.label),
         "variables": deferred_variables(action, payload) if is_deferred(action) else {"action": action},
         "text": {"copy": entry.payload, "largetype": payload},
         "mods": {
-            "cmd": {"arg": in_scope(entry.scope, line), "subtitle": f"Edit line {line} of {where(entry.scope)}"},
-            "alt": {"arg": in_scope(entry.scope, entry.raw), "subtitle": f"Delete: {entry.raw}"},
+            "cmd": {"arg": in_stash(entry.stash, line), "subtitle": f"Edit line {line} of {where(entry.stash)}"},
+            "alt": {"arg": in_stash(entry.stash, entry.raw), "subtitle": f"Delete: {entry.raw}"},
             "shift": paste_mod_for(action, payload),
-            "ctrl": {**INVALID, "subtitle": f"Line {line} of {where(entry.scope)} · {action_detail(action, arg)}"},
+            "ctrl": {**INVALID, "subtitle": f"Line {line} of {where(entry.stash)} · {action_detail(action, arg)}"},
         },
     }
 
@@ -149,7 +149,7 @@ def action_detail(action: str, arg: str) -> str:
     return f"{action}: {arg}" if action == "alfred" else action
 
 
-def run_item(query: str, flows: Flows, reserved: Values, scope: str = "") -> Item:
+def run_item(query: str, flows: Flows, reserved: Values, stash: str = "") -> Item:
     payload = fill(query, reserved)
     action = action_for(payload)
     arg = "" if is_deferred(action) else arg_of(payload, action, flows)
@@ -160,7 +160,7 @@ def run_item(query: str, flows: Flows, reserved: Values, scope: str = "") -> Ite
         "variables": deferred_variables(action, payload) if is_deferred(action) else {"action": action},
         "text": {"copy": payload, "largetype": payload},
         "mods": {
-            "cmd": open_editor(scope),
+            "cmd": open_editor(stash),
             "alt": INVALID,
             "shift": paste_mod_for(action, payload),
             "ctrl": {**INVALID, "subtitle": f"Not stored · {action_detail(action, arg)}"},
@@ -178,65 +178,65 @@ def subtitle_of(label: str, payload: str, action: str, arg: str) -> str:
     return payload if action in ("copy", "resolve") else f"{LABELS[action]} · {payload}"
 
 
-def scope_item(scope: str, count: int) -> Item:
+def stash_item(stash: str, count: int) -> Item:
     noun = "entry" if count == 1 else "entries"
     return {
-        "title": f"{scope}/",
+        "title": f"{stash}/",
         "subtitle": f"{count} {noun} · ↩ to browse",
-        "autocomplete": f"{scope}/ ",
-        "icon": SCOPE_ICON,
+        "autocomplete": f"{stash}/ ",
+        "icon": STASH_ICON,
         **INVALID,
-        "mods": {"cmd": {**open_editor(scope), "valid": True}, "alt": INVALID, "shift": INVALID},
+        "mods": {"cmd": {**open_editor(stash), "valid": True}, "alt": INVALID, "shift": INVALID},
     }
 
 
-def add_item(raw: str, scope: str = "", new_scope: bool = False, reserved: Values = NO_VALUES) -> Item | None:
+def add_item(raw: str, stash: str = "", new_stash: bool = False, reserved: Values = NO_VALUES) -> Item | None:
     entry = parse_line(raw)
     if entry is None:
         return None
     format_hint = "" if has_separator(raw) else f"   ({FORMAT_HINT})"
-    creation = f" · new scope {scope}/" if new_scope else ""
+    creation = f" · new stash {stash}/" if new_stash else ""
     return {
         "title": f"Add: {entry.label}",
         "subtitle": f"{fill(entry.payload, reserved)}{format_hint}{creation}",
-        "arg": in_scope(scope, entry.raw),
+        "arg": in_stash(stash, entry.raw),
         "variables": {"action": "add"},
-        "mods": {"cmd": open_editor(scope), "alt": INVALID, "shift": INVALID},
+        "mods": {"cmd": open_editor(stash), "alt": INVALID, "shift": INVALID},
     }
 
 
-def hint_item(title: str, subtitle: str, scope: str = "", mods: bool = True) -> Item:
-    editor = {"cmd": {**open_editor(scope), "valid": True}} if mods else {}
+def hint_item(title: str, subtitle: str, stash: str = "", mods: bool = True) -> Item:
+    editor = {"cmd": {**open_editor(stash), "valid": True}} if mods else {}
     return {"title": title, "subtitle": subtitle, **INVALID, "mods": editor}
 
 
 def root_hint(stash_empty: bool, query: str) -> Item:
     if stash_empty:
-        return hint_item("The stash is empty", f"Type {FORMAT_HINT} and press ↩ to add the first entry")
+        return hint_item("Nothing stashed yet", f"Type {FORMAT_HINT} and press ↩ to add the first entry")
     return hint_item(f"No match for '{query}'", f"Type {FORMAT_HINT} to add an entry")
 
 
-def scope_hint(scope: str, exists: bool) -> Item:
+def stash_hint(stash: str, exists: bool) -> Item:
     if not exists:
-        return hint_item(f"New scope {scope}/", f"Type {FORMAT_HINT} to add its first entry", scope)
-    return hint_item(f"{scope}/ is empty", f"Type {FORMAT_HINT} to add an entry", scope)
+        return hint_item(f"New stash {stash}/", f"Type {FORMAT_HINT} to add its first entry", stash)
+    return hint_item(f"{stash}/ is empty", f"Type {FORMAT_HINT} to add an entry", stash)
 
 
 def feedback(
     matches: Sequence[Item],
     query: str,
     hint: Item,
-    scope: str = "",
-    new_scope: bool = False,
+    stash: str = "",
+    new_stash: bool = False,
     reserved: Values = NO_VALUES,
     flows: Flows = NO_FLOWS,
 ) -> list[Item]:
-    addition = add_item(query, scope, new_scope, reserved)
+    addition = add_item(query, stash, new_stash, reserved)
     if addition is None:
         return list(matches) or [hint]
     if has_separator(query):
         return [addition, *matches]
-    run = [run_item(query, flows, reserved, scope)] if matches and is_payload(query) else []
+    run = [run_item(query, flows, reserved, stash)] if matches and is_payload(query) else []
     return [*matches, *run, addition]
 
 

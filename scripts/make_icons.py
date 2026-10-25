@@ -1,4 +1,4 @@
-"""Draws scope.png, the 📒 emoji on a tile like icon.png: uv run --with pillow python scripts/make_icons.py"""
+"""Draws stash.png, the 📒 emoji on a tile like icon.png: uv run --with pillow python scripts/make_icons.py"""
 
 import os
 
@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EMOJI_FONT = "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"
 EMOJI_SIZE = 109
-SCOPE_EMOJI = "📒"
+STASH_EMOJI = "📒"
 SIZE = 256
 TILE = (43, 68, 87)
 
@@ -35,9 +35,9 @@ def centered(background, foreground, scale):
     return background
 
 
-def scope_icon():
-    return centered(tile(SIZE), emoji(SCOPE_EMOJI), 0.72)
+def stash_icon():
+    return centered(tile(SIZE), emoji(STASH_EMOJI), 0.72)
 
 
 if __name__ == "__main__":
-    scope_icon().save(os.path.join(ROOT, "scope.png"))
+    stash_icon().save(os.path.join(ROOT, "stash.png"))

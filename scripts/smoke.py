@@ -1,4 +1,4 @@
-"""Runs the built bundle the way Alfred would: /usr/bin/python3 scripts/smoke.py dist/Stash.alfredworkflow [python]"""
+"""Runs the built bundle the way Alfred would: /usr/bin/python3 scripts/smoke.py dist/Stashes.alfredworkflow [python]"""
 
 import json
 import os
@@ -68,9 +68,9 @@ def main(bundle_path, python):
             "db_dir": os.path.join(directory, "stash"),
             "editor": "echo opened {file}:{line}",
             "flows": "kobold=kb",
-            "show_scopes": "1",
+            "show_stashes": "1",
         }
-        check(titles(run(bundle_dir, scripts, "search", "", env)) == ["The stash is empty"], "an empty stash says so")
+        check(titles(run(bundle_dir, scripts, "search", "", env)) == ["Nothing stashed yet"], "an empty folder says so")
         check(
             run(bundle_dir, scripts, "add", "ssh prod | ssh deploy@10.0.1.5", env) == "Added: ssh prod",
             "add stores a line",
@@ -95,16 +95,16 @@ def main(bundle_path, python):
         )
         check(
             run(bundle_dir, scripts, "add", "grocery/ milk eggs | 2L", env) == "Added to grocery/: milk eggs",
-            "add into a scope creates it",
+            "add into a stash creates it",
         )
-        [scope_row, *_] = json.loads(run(bundle_dir, scripts, "search", "", env))["items"]
-        check(scope_row["title"] == "grocery/" and scope_row["autocomplete"] == "grocery/ ", "scope rows come first")
+        [stash_row, *_] = json.loads(run(bundle_dir, scripts, "search", "", env))["items"]
+        check(stash_row["title"] == "grocery/" and stash_row["autocomplete"] == "grocery/ ", "stash rows come first")
         check(
             titles(run(bundle_dir, scripts, "search", "grocery/ mil", env)) == ["milk eggs", "Add: mil"],
             "name/ narrows",
         )
         check(
-            run(bundle_dir, scripts, "edit", "grocery/ 1", env).endswith("grocery.txt:1"), "edit opens the scope file"
+            run(bundle_dir, scripts, "edit", "grocery/ 1", env).endswith("grocery.txt:1"), "edit opens the stash file"
         )
         run(bundle_dir, scripts, "add", "ssh box | ssh {{user=root}}@{{host}}", env)
         [box, _] = json.loads(run(bundle_dir, scripts, "search", "box", env))["items"]

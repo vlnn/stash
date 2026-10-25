@@ -1,15 +1,15 @@
-# Stash
+# Stashes
 
-Fuzzy keyword search over a plain-text stash you own, as an Alfred workflow.
+Fuzzy keyword search over plain-text stashes you own, as an Alfred workflow.
 
 - **Search** with any words, in any order, any subset of them, any part of a word: `st stg k8` finds `k8s ctx staging kube`.
 - **Act**: ↩ copies the payload, or opens it when it is a URL, a path or an Alfred flow; ⇧↩ pastes it.
 - **Add** by typing: whatever you searched for is always offered as a new entry, so a miss is one ↩ away from being stored.
 - **Run** by typing: a hand-off, a link or a `{{blank}}` typed straight into the field gets a *Run* row next to what it found, acting on the text without storing it.
 - **Own the data**: one line per entry in text files you can edit, grep, sync and keep in git. The format is one rule: everything after the first `|` is the payload.
-- **Scope** when the list gets long: every `name.txt` next to the main file is a scope; `st name/` searches inside it, and scoped entries still show up at the root.
+- **Several stashes** when the list gets long: every `name.txt` in the folder is a stash; `st name/` searches one, and a bare `st` searches all of them.
 - **Fill in the blanks**: a payload with `{{host}}` asks for `host` on ↩ and copies, opens or pastes the result; `{{date}}`, `{{time}}` and `{{clipboard}}` fill themselves.
-- **Fast**: no dependencies, built to stay well under Alfred's "instant" threshold for a stash of a few thousand entries.
+- **Fast**: no dependencies, built to stay well under Alfred's "instant" threshold for a few thousand entries.
 
 ```
 st stg k8
@@ -27,9 +27,9 @@ st stg k8
 
 - [Install](#install)
 - [Quick start](#quick-start)
-- [The stash folder](#the-stash-folder)
+- [The stashes folder](#the-stashes-folder)
 - [Searching](#searching)
-- [Scopes](#scopes)
+- [Several stashes](#several-stashes)
 - [Placeholders](#placeholders)
 - [Running what you typed](#running-what-you-typed)
 - [Actions on a result](#actions-on-a-result)
@@ -45,9 +45,9 @@ st stg k8
 
 Requirements: Alfred 5 with the Powerpack, and Python 3.9 or newer. There are no packages to install.
 
-1. Double-click `Stash.alfredworkflow` and press **Import**.
+1. Double-click `Stashes.alfredworkflow` and press **Import**.
 2. Alfred shows the configuration sheet. Python: the default is `/usr/bin/python3`, which macOS provides once the Xcode Command Line Tools are installed (`xcode-select --install`). To use another interpreter, set **Python** to its **absolute path**, for example `/opt/homebrew/bin/python3` or the output of `uv python find 3.12`.
-3. Optionally point **Stash folder** at an existing folder and set **Editor** (see [Configuration](#configuration)); all of it can be changed later with **Configure Workflow…**.
+3. Optionally point **Stashes folder** at an existing folder and set **Editor** (see [Configuration](#configuration)); all of it can be changed later with **Configure Workflow…**.
 4. If you will use `@keyword` hand-offs, run this once in Terminal and click **OK** when macOS asks whether Alfred may control Alfred:
    ```
    osascript -e 'tell application id "com.runningwithcrayons.Alfred" to search "st"'
@@ -56,7 +56,7 @@ Requirements: Alfred 5 with the Powerpack, and Python 3.9 or newer. There are no
 
 ## Quick start
 
-`st`, `sta` and `stash` are the same keyword; use whichever your fingers produce. ⌘⌥⌃⇧L (hyper + L) opens the stash too; change or clear it on the *Hotkey* node in the workflow.
+`st`, `sta` and `stash` are the same keyword; use whichever your fingers produce. ⌘⌥⌃⇧L (hyper + L) opens it too; change or clear it on the *Hotkey* node in the workflow.
 
 ```
 st ssh prod web | ssh deploy@10.0.1.5     ↩ adds the entry
@@ -67,9 +67,9 @@ st                                        browse everything; ⌘↩ opens defaul
 
 To explore with sample data first, set `db_dir` to the `examples` folder that ships with the source.
 
-## The stash folder
+## The stashes folder
 
-Default location: `~/.config/stash`. The root entries live in `default.txt` there, created on the first add; any other `name.txt` in the folder is a [scope](#scopes). Every file has one entry per line, and one rule:
+Default location: `~/.config/stash`. Every `name.txt` in it is a stash. `default.txt` is the one you land in and the one a plain `st … ↩` adds to, created on the first add; the others are reached as `name/` (see [Several stashes](#several-stashes)). Every file has one entry per line, and one rule:
 
 **Everything after the first `|` is the payload, verbatim. The words before it are what you search by, and what Alfred shows.** Without a `|`, the whole line is both.
 
@@ -136,7 +136,7 @@ The last result is always **Add: …** for what you typed (see [Adding entries](
 
 | You type | You get | Why |
 |---|---|---|
-| `st` | every scope, then every entry in file order | empty query browses the stash |
+| `st` | every entry in file order, `default.txt` first | empty query browses everything |
 | `st prod` | ssh prod web, k8s ctx prod kube | whole-word match |
 | `st web ssh` | ssh prod web, ssh staging web | any order; prod is first in the file |
 | `st stg` | ssh staging web, k8s ctx staging kube, wifi guest GuestNetwork-5G | letters in order inside *staging*; the same letters also occur inside *GuestNetwork-5G*, so it is listed too, last |
@@ -153,26 +153,26 @@ The last result is always **Add: …** for what you typed (see [Adding entries](
 
 Press ⇥ (Tab) on a result to put its words into the query.
 
-## Scopes
+## Several stashes
 
-A scope is a second file in the stash folder: `~/.config/stash/checklists.txt` is the scope `checklists`. Its lines are ordinary entries; the file name is all that makes it a scope. A name must be something you can type before a slash, so letters, digits, `_` and `-`.
+A stash is a file in the folder: `~/.config/stash/checklists.txt` is the stash `checklists`. Its lines are ordinary entries; the file name is all there is to it. A name must be something you can type before a slash, so letters, digits, `_` and `-`.
 
 ```
-st                    the root entries  ·  then the entries of every scope
-st ck                 checklists/  ·  root entries matching ck  ·  scoped entries matching ck  ·  Add: ck
+st                    the entries of default  ·  then the entries of every other stash
+st ck                 checklists/  ·  default entries matching ck  ·  other entries matching ck  ·  Add: ck
 st checklists/        everything in checklists.txt, like a bare st does for the root
 st checklists/ rel    release checklist  ·  Add: rel
 st checklists/ pack | passport, charger      ↩ appends to checklists.txt
 st recipes/ pasta | 500g                     ↩ creates recipes.txt with that entry
 ```
 
-Results come in three tiers, each ranked as in [Searching](#searching): scope rows whose names match what you typed, root entries, then entries from all scopes. A scope row has the 📒 icon, says how many entries it holds, and ⇥ or ↩ on it puts `checklists/ ` into the query, which is the whole mechanism: a query that starts with `name/` searches only that scope, and everything else (*Add*, ⌘↩, ⌥↩) acts on that scope's file. Backspace over the slash to leave. At the root, a scoped entry's subtitle starts with its scope (`checklists · …`); inside the scope it looks like any other entry.
+Results come in three tiers, each ranked as in [Searching](#searching): stash rows whose names match what you typed, entries of `default`, then entries from every other stash. A stash row has the 📒 icon, says how many entries it holds, and ⇥ or ↩ on it puts `checklists/ ` into the query, which is the whole mechanism: a query that starts with `name/` searches only that stash, and everything else (*Add*, ⌘↩, ⌥↩) acts on its file. Backspace over the slash to leave. Seen from a bare `st`, an entry's subtitle starts with its stash (`checklists · …`); inside `checklists/` it looks like any other entry.
 
-A bare `st` lists entries only; turn on **List scopes** in the configuration to have it list every scope first.
+A bare `st` lists entries only; turn on **List stashes** in the configuration to have it list every stash first.
 
-A scope exists exactly when its file does. There is no "create scope": add the first entry under `name/` and the file appears, with the *Add* row saying so beforehand. To remove a scope, delete the file. ⌘↩ on a scope row opens its file; ⌥↩ does nothing there, since deleting a whole file is not something a keystroke should do.
+A stash exists exactly when its file does. There is no "create stash": add the first entry under `name/` and the file appears, with the *Add* row saying so beforehand. To remove one, delete the file. ⌘↩ on a stash row opens its file; ⌥↩ does nothing there, since deleting a whole file is not something a keystroke should do.
 
-Scopes do not nest.
+Stashes do not nest.
 
 ## Actions on a result
 
@@ -198,7 +198,7 @@ The subtitle says which: `Open · …` or `→ kobold · delany`. Everything els
 | ⌘C | Copy the payload as written (Alfred's own copy shortcut) |
 | ⌘L | Show the payload in Large Type |
 
-The payload is copied literally: Alfred's own placeholders such as `{date}` inside it are not expanded; Stash's `{{date}}` is (see [Placeholders](#placeholders)). A shell one-liner is deliberately *not* run on ↩; ⇧↩ into a terminal you are looking at is one keystroke more and much harder to regret.
+The payload is copied literally: Alfred's own placeholders such as `{date}` inside it are not expanded; Stashes' `{{date}}` is (see [Placeholders](#placeholders)). A shell one-liner is deliberately *not* run on ↩; ⇧↩ into a terminal you are looking at is one keystroke more and much harder to regret.
 
 ### Handing off to another workflow
 
@@ -248,7 +248,7 @@ Entries without blanks are untouched by any of this; ↩ still copies on the spo
 
 ## Running what you typed
 
-Stash is for stashing first and running second: ↩ on an entry you found runs it, and whatever you typed is otherwise offered as a new entry. One exception: when the query itself is a payload — it starts or ends with `@word`, it is a URL or an existing path, or it contains `{{…}}` — *and* it found something, a **Run: …** row sits between the matches and *Add*. It does with the text exactly what ↩ would do with an entry whose payload it was, and stores nothing:
+Stashes is for stashing first and running second: ↩ on an entry you found runs it, and whatever you typed is otherwise offered as a new entry. One exception: when the query itself is a payload — it starts or ends with `@word`, it is a URL or an existing path, or it contains `{{…}}` — *and* it found something, a **Run: …** row sits between the matches and *Add*. It does with the text exactly what ↩ would do with an entry whose payload it was, and stores nothing:
 
 ```
 st delany @kobold          delany books  ·  Run: delany @kobold  ·  Add: delany @kobold
@@ -257,7 +257,7 @@ st @t 33333                lexer task  ·  Run: @t 33333  ·  Add: @t 33333
 st release {{date}}        release notes  ·  Run: release {{date}}  ·  Add: release {{date}}     ↓↩ copies  release 2026-10-25
 ```
 
-With no match there is no *Run* row: new text is added, and you run it from the stash afterwards. A typed `|` means you are writing an entry, so there is no *Run* row then either. ⌃ on the *Run* row says `Not stored`. Plain words never get a *Run* row; copying what you just typed is not worth a keystroke.
+With no match there is no *Run* row: new text is added, and you run it from there afterwards. A typed `|` means you are writing an entry, so there is no *Run* row then either. ⌃ on the *Run* row says `Not stored`. Plain words never get a *Run* row; copying what you just typed is not worth a keystroke.
 
 ## Adding entries
 
@@ -275,11 +275,11 @@ There is no separate add keyword. Whatever you type after `st` is offered as a n
 | `http://127.0.0.1:4000` | same | http://127.0.0.1:4000 | opens it |
 | `pihole update finished` | same | pihole update finished | copies it |
 
-Entries are appended at the end of `default.txt`, or of the scope's file when the query starts with `name/`. Reorder or group them later in your editor; the files are the source of truth.
+Entries are appended at the end of `default.txt`, or of `name.txt` when the query starts with `name/`. Reorder or group them later in your editor; the files are the source of truth.
 
 ## Editing and deleting
 
-- ⌘↩ on any result opens its file in your editor at that entry's line (with an editor that supports lines, see below); on the *Add* item or on a hint it opens the current file at the top.
+- ⌘↩ on any result opens its file in your editor at that entry's line (with an editor that supports lines, see below); on the *Add* item or on a hint it opens the current stash at the top.
 - ⌥↩ on a search result deletes that line from its file. Deletion matches the line's content, so if you edited the file since the search, it reports *entry not found* instead of deleting the wrong line. Comments and other lines are kept as they are, and a file that is a symlink (to iCloud, Dropbox, a git repo) stays a symlink.
 
 ## Configuration
@@ -288,12 +288,12 @@ Set these in Alfred: open the workflow and press **Configure Workflow…** (the 
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `db_dir` | `~/.config/stash` | The stash folder: `default.txt` plus one `name.txt` per scope. `~` is expanded. |
+| `db_dir` | `~/.config/stash` | The stashes folder: one `name.txt` per stash, `default.txt` being the one you land in. `~` is expanded. |
 | `editor` | `open -t {file}` | Command used by ⌘↩. `{file}` and `{line}` are filled in. |
 | `max_results` | `50` | How many results Alfred receives. |
 | `python` | `/usr/bin/python3` | Interpreter, 3.9 or newer. Absolute path, no `~`. |
 | `flows` | empty | Aliases for `@word` hand-offs, as `name=keyword` pairs: `tally=t kobold=kb wisp=l`. |
-| `show_scopes` | off | List every scope on a bare `st`. Typing part of a scope name shows its row either way. |
+| `show_stashes` | off | List every stash on a bare `st`. Typing part of a stash name shows its row either way. |
 
 Alfred runs workflows with a minimal `PATH`, so use the full path of your editor's command line tool. Quote paths with spaces:
 
@@ -310,19 +310,23 @@ If the editor can't be found, a notification tells you so.
 
 ## Recipes
 
+### Coming from Stash 3.0
+
+Only the name changed: the workflow is *Stashes*, and what the 3.0 README called a scope is a stash. The bundle id, the keywords, the folder and every setting are the same, so importing `Stashes.alfredworkflow` updates the installed workflow in place. The setting *List scopes* became *List stashes* (`show_stashes`); if you had turned it on, turn it on again. The repository moved to `github.com/vlnn/stashes`; the old address redirects.
+
 ### Coming from 2.x
 
-The stash used to be a single file, `~/.config/stash/stash.txt`. It is now a folder, and the file's name is the scope's name, so rename it once:
+There used to be a single file, `~/.config/stash/stash.txt`. It is now a folder of stashes, and the file's name is the stash's name, so rename it once:
 
 ```bash
 mv ~/.config/stash/stash.txt ~/.config/stash/default.txt
 ```
 
-Until you do, it shows up as a scope called `stash`. If you had pointed `db_file` elsewhere, point `db_dir` at that file's folder and rename the file the same way.
+Until you do, it shows up as a stash called `stash`. If you had pointed `db_file` elsewhere, point `db_dir` at that file's folder and rename the file the same way.
 
-### Several stashes
+### A keyword per stash
 
-Make them scopes: one `name.txt` each in the stash folder. If you want a second keyword that opens straight inside one, copy the Script Filter in Alfred, give it the keyword, and prefix the query in its script: `… run.py search "links/ $1"`.
+If you want a second keyword that opens straight inside one, copy the Script Filter in Alfred, give it the keyword, and prefix the query in its script: `… run.py search "links/ $1"`.
 
 ### Sync and history
 
@@ -348,7 +352,7 @@ Search and copy the best match, in bash or fish (needs `jq`):
 python3 ~/.stash/run.py search k8s prod | jq -r '.items[0].arg' | pbcopy
 ```
 
-Add an entry, to the root or to a scope:
+Add an entry, to `default` or to another stash:
 
 ```bash
 python3 ~/.stash/run.py add 'logs api | kubectl logs -f deploy/api | grep -v health'
@@ -367,7 +371,7 @@ Save the command you just ran under some keywords, so the next time it's one `st
 fish, in `~/.config/fish/functions/stash.fish`:
 
 ```fish
-function stash --description 'Save the previous command to the stash under the given keywords'
+function stash --description 'Stash the previous command under the given keywords'
     python3 ~/.stash/run.py add "$argv || $history[1]"
 end
 ```
@@ -413,7 +417,7 @@ What keeps it fast:
 - Letters-in-order matching stays within one word: `kctx` won't find `k8s ctx`, `k ctx` will.
 - Words are split on spaces and commas only, so `kube:` is a word and `kube` matches it as a prefix, not a whole word.
 - Payloads are single lines: there is no way to put a newline in one, and `\n` is copied as the two characters. A default inside `{{name=…}}` can't contain braces.
-- Scopes do not nest, and a root entry whose first word ends in `/` (`foo/ bar`) can't be reached as such: `st foo/` means the scope `foo`.
+- Stashes do not nest, and an entry whose first word ends in `/` (`foo/ bar`) can't be reached as such: `st foo/` means the stash `foo`.
 - A path payload opens only if it exists when you search; a command that happens to start with `/` is copied, not run.
 - It's a plain-text file: don't store secrets you wouldn't keep in a dotfile.
 
@@ -424,7 +428,7 @@ uv sync
 make test           # pytest on the project interpreter                      (356 tests)
 make test-system    # the same on /usr/bin/python3, the interpreter the workflow runs on
 make lint           # ruff check + format
-make check          # build dist/Stash.alfredworkflow and run it the way Alfred would
+make check          # build dist/Stashes.alfredworkflow and run it the way Alfred would
 make bench          # latency per keystroke; PYTHON=/path/to/python3 to pick the interpreter
 ```
 
@@ -438,16 +442,16 @@ git tag v3.0.0 && git push origin v3.0.0
 
 | Path | Responsibility |
 |---|---|
-| `stash/entries.py` | Split a line at its first separator into an `Entry` with its searchable text; the `name/` scope prefix |
+| `stash/entries.py` | Split a line at its first separator into an `Entry` with its searchable text; the `name/` prefix |
 | `stash/matching.py` | One regex per query word, scoring, ranking |
-| `stash/store.py` | The stash folder: `default.txt` and the scope files; load, append, delete lines; atomic, symlink-safe writes |
+| `stash/store.py` | The stashes folder: `default.txt` and the other files; load, append, delete lines; atomic, symlink-safe writes |
 | `stash/snippets.py` | `{{name}}` and `{{name=default}}` placeholders, the reserved `date`, `time` and `clipboard`, filling |
-| `stash/alfred.py` | Alfred Script Filter JSON: results and their copy/open/hand-off/fill/resolve action, scope rows, the *Run* and *Add* items, prompt rows, hints |
+| `stash/alfred.py` | Alfred Script Filter JSON: results and their copy/open/hand-off/fill/resolve action, stash rows, the *Run* and *Add* items, prompt rows, hints |
 | `stash/cli.py` | Commands `search`, `add`, `delete`, `edit`, `open`, `alfred`, `prompt`, `resolve`, `fill`; workflow variables |
 | `run.py` | Entry point Alfred calls |
 | `make_plist.py` | Source of `info.plist`: keywords, the prompt filter, the router, connections, variables |
-| `scripts/build.py`, `scripts/smoke.py`, `scripts/make_icons.py` | Build the bundle; run it the way Alfred would; draw `scope.png` (📒 on the icon's tile) |
+| `scripts/build.py`, `scripts/smoke.py`, `scripts/make_icons.py` | Build the bundle; run it the way Alfred would; draw `stash.png` (📒 on the icon's tile) |
 | `Makefile`, `.github/workflows/ci.yml` | The targets above, and CI that runs them |
 | `tests/` | pytest suite, including a structural check of `info.plist` |
 | `bench.py` | End-to-end latency benchmark |
-| `examples/` | Sample stash folder: `default.txt` and the scope `checklists.txt` |
+| `examples/` | Sample folder: the stashes `default.txt` and `checklists.txt` |

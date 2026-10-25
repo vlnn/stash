@@ -4,7 +4,7 @@ import os
 import pytest
 
 from stash.alfred import (
-    SCOPE_ICON,
+    STASH_ICON,
     action_of,
     add_item,
     entry_item,
@@ -15,15 +15,15 @@ from stash.alfred import (
     render,
     root_hint,
     run_item,
-    scope_hint,
-    scope_item,
+    stash_hint,
+    stash_item,
 )
 from stash.entries import parse_line
 
 ENTRY = parse_line("ssh prod web | ssh deploy@10.0.1.5", line_number=12)
 OTHER = parse_line("wifi guest | hunter2", line_number=13)
 PLAIN = parse_line("pihole update finished", line_number=14)
-SCOPED = parse_line("bread | sourdough", line_number=2, scope="grocery")
+STASHED = parse_line("bread | sourdough", line_number=2, stash="grocery")
 
 
 def titles(items):
@@ -97,7 +97,7 @@ def test_entry_item_for_flow_hands_the_query_to_alfred():
     assert item["variables"] == {"action": "alfred"}, "a flow payload should route to the alfred action"
     assert item["arg"] == "kb delany", "the arg should be the keyword and text Alfred will run"
     assert item["subtitle"] == "→ kobold · delany", "the subtitle names the workflow the way the entry wrote it"
-    assert item["mods"]["ctrl"]["subtitle"] == "Line 0 of the stash · alfred: kb delany", (
+    assert item["mods"]["ctrl"]["subtitle"] == "Line 0 of default/ · alfred: kb delany", (
         "ctrl shows the resolved call, keyword included"
     )
     assert item["text"]["copy"] == "delany @kobold", "cmd-c should still copy the payload as written"
@@ -152,7 +152,7 @@ def test_entry_item_ctrl_shows_line_without_action():
     ctrl = entry_item(ENTRY)["mods"]["ctrl"]
 
     assert ctrl["valid"] is False, "ctrl modifier should only inform, not trigger an action"
-    assert ctrl["subtitle"] == "Line 12 of the stash · copy", (
+    assert ctrl["subtitle"] == "Line 12 of default/ · copy", (
         "ctrl modifier should show where the entry lives and what enter does"
     )
 
@@ -213,17 +213,17 @@ def test_feedback_lists_matches_and_offers_to_add(matches, query, expected):
     )
 
 
-def test_feedback_inside_a_scope_adds_there():
-    [addition] = feedback([], "pasta | 500g", {"title": "hint"}, "recipes", new_scope=True)
+def test_feedback_inside_a_stash_adds_there():
+    [addition] = feedback([], "pasta | 500g", {"title": "hint"}, "recipes", new_stash=True)
 
-    assert addition["arg"] == "recipes/ pasta | 500g", "the add action should receive the scope with the line"
-    assert addition["subtitle"] == "500g · new scope recipes/", "adding to a scope that does not exist yet says so"
-    assert addition["mods"]["cmd"]["arg"] == "recipes/ 1", "cmd on the add row opens the scope's file"
+    assert addition["arg"] == "recipes/ pasta | 500g", "the add action should receive the stash with the line"
+    assert addition["subtitle"] == "500g · new stash recipes/", "adding to a stash that does not exist yet says so"
+    assert addition["mods"]["cmd"]["arg"] == "recipes/ 1", "cmd on the add row opens the stash's file"
 
 
 @pytest.mark.parametrize(
     "stash_empty, query, title",
-    [(True, "", "The stash is empty"), (False, "|", "No match for '|'")],
+    [(True, "", "Nothing stashed yet"), (False, "|", "No match for '|'")],
 )
 def test_root_hint(stash_empty, query, title):
     hint = root_hint(stash_empty, query)
@@ -235,37 +235,37 @@ def test_root_hint(stash_empty, query, title):
 
 @pytest.mark.parametrize(
     "exists, title, editor_arg",
-    [(False, "New scope recipes/", "recipes/ 1"), (True, "recipes/ is empty", "recipes/ 1")],
+    [(False, "New stash recipes/", "recipes/ 1"), (True, "recipes/ is empty", "recipes/ 1")],
 )
-def test_scope_hint(exists, title, editor_arg):
-    hint = scope_hint("recipes", exists)
+def test_stash_hint(exists, title, editor_arg):
+    hint = stash_hint("recipes", exists)
 
-    assert hint["title"] == title, "the scope hint should tell a new scope from an empty one"
+    assert hint["title"] == title, "the stash hint should tell a new stash from an empty one"
     assert hint["valid"] is False, "hint items should not copy anything on enter"
     assert hint["mods"]["cmd"] == {"arg": editor_arg, "subtitle": "Open recipes/ in your editor", "valid": True}, (
-        "cmd on a scope hint should open that scope's file"
+        "cmd on a stash hint should open that stash's file"
     )
 
 
-def test_scope_item_browses_on_enter_and_looks_like_a_folder():
-    item = scope_item("grocery", 12)
+def test_stash_item_browses_on_enter_and_looks_like_a_folder():
+    item = stash_item("grocery", 12)
 
-    assert item["title"] == "grocery/", "a scope row shows its name as it is typed"
-    assert item["subtitle"] == "12 entries · ↩ to browse", "a scope row says how much is inside"
+    assert item["title"] == "grocery/", "a stash row shows its name as it is typed"
+    assert item["subtitle"] == "12 entries · ↩ to browse", "a stash row says how much is inside"
     assert item["valid"] is False and item["autocomplete"] == "grocery/ ", (
-        "enter on an invalid row autocompletes, which drops the user into the scope"
+        "enter on an invalid row autocompletes, which drops the user into the stash"
     )
-    assert item["icon"] == SCOPE_ICON == {"path": "scope.png"}, "a scope row should carry its own icon from the bundle"
+    assert item["icon"] == STASH_ICON == {"path": "stash.png"}, "a stash row should carry its own icon from the bundle"
     assert item["mods"]["cmd"] == {"arg": "grocery/ 1", "subtitle": "Open grocery/ in your editor", "valid": True}, (
-        "cmd on a scope row opens its file"
+        "cmd on a stash row opens its file"
     )
     assert [item["mods"][key]["valid"] for key in ("alt", "shift")] == [False, False], (
-        "a whole scope is not deleted or pasted from a keystroke"
+        "a whole stash is not deleted or pasted from a keystroke"
     )
 
 
-def test_scope_item_counts_one_entry_in_the_singular():
-    assert scope_item("grocery", 1)["subtitle"] == "1 entry · ↩ to browse", "grammar"
+def test_stash_item_counts_one_entry_in_the_singular():
+    assert stash_item("grocery", 1)["subtitle"] == "1 entry · ↩ to browse", "grammar"
 
 
 @pytest.mark.parametrize(
@@ -277,12 +277,12 @@ def test_scope_item_counts_one_entry_in_the_singular():
         ("autocomplete", "grocery/ bread"),
     ],
 )
-def test_entry_item_of_scoped_entry_seen_from_the_root(key, expected):
-    assert entry_item(SCOPED)[key] == expected, f"a scoped entry at the root should carry its scope in {key}"
+def test_entry_item_of_stashed_entry_seen_from_the_root(key, expected):
+    assert entry_item(STASHED)[key] == expected, f"a stashed entry at the root should carry its stash in {key}"
 
 
-def test_entry_item_of_scoped_entry_seen_inside_its_scope_drops_the_origin():
-    assert entry_item(SCOPED, within="grocery")["subtitle"] == "sourdough", "inside a scope the origin is implied"
+def test_entry_item_of_stashed_entry_seen_inside_its_stash_drops_the_origin():
+    assert entry_item(STASHED, within="grocery")["subtitle"] == "sourdough", "inside a stash the origin is implied"
 
 
 @pytest.mark.parametrize(
@@ -293,11 +293,11 @@ def test_entry_item_of_scoped_entry_seen_inside_its_scope_drops_the_origin():
         ("ctrl", None, "Line 2 of grocery/ · copy"),
     ],
 )
-def test_entry_item_of_scoped_entry_routes_modifiers_to_its_file(modifier, arg, subtitle):
-    mod = entry_item(SCOPED)["mods"][modifier]
+def test_entry_item_of_stashed_entry_routes_modifiers_to_its_file(modifier, arg, subtitle):
+    mod = entry_item(STASHED)["mods"][modifier]
 
-    assert mod.get("arg") == arg, f"{modifier} on a scoped entry should name the scope so the action finds the file"
-    assert mod["subtitle"] == subtitle, f"{modifier} subtitle should name the scope"
+    assert mod.get("arg") == arg, f"{modifier} on a stashed entry should name the stash so the action finds the file"
+    assert mod["subtitle"] == subtitle, f"{modifier} subtitle should name the stash"
 
 
 def test_render_wraps_items_as_ascii_safe_json():
@@ -334,7 +334,7 @@ def test_entry_item_with_placeholders_routes_to_the_prompt():
         "largetype": "ssh {{user=root}}@{{host}} since 2026-10-25",
     }, "cmd-c copies the line as written, large type shows the preview"
     assert item["mods"]["shift"]["variables"]["finish"] == "paste", "shift-enter asks to paste once filled"
-    assert item["mods"]["ctrl"]["subtitle"] == "Line 3 of the stash · fill", "ctrl says the entry prompts"
+    assert item["mods"]["ctrl"]["subtitle"] == "Line 3 of default/ · fill", "ctrl says the entry prompts"
 
 
 def test_add_item_previews_reserved_names_but_stores_the_placeholder():

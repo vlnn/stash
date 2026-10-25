@@ -46,10 +46,10 @@ def search(query: str, entries: Sequence[Entry], limit: int) -> list[Entry]:
     return [entry for _, entry in heapq.nsmallest(limit, [hit for hit in hits if hit[0]], key=rank)]
 
 
-def scope_entry(name: str, position: int) -> Entry:
+def stash_entry(name: str, position: int) -> Entry:
     return Entry(name, name, haystack_of((name,)), position)
 
 
-def search_scopes(query: str, names: Sequence[str]) -> list[str]:
-    candidates = [scope_entry(name, position) for position, name in enumerate(names)]
+def search_stashes(query: str, names: Sequence[str]) -> list[str]:
+    candidates = [stash_entry(name, position) for position, name in enumerate(names)]
     return [entry.label for entry in search(query, candidates, len(candidates))]

@@ -327,11 +327,11 @@
 	<key>createdby</key>
 	<string>vlnn</string>
 	<key>description</key>
-	<string>Fuzzy keyword search over a plain-text stash</string>
+	<string>Fuzzy keyword search over plain-text stashes you own</string>
 	<key>disabled</key>
 	<false/>
 	<key>name</key>
-	<string>Stash</string>
+	<string>Stashes</string>
 	<key>objects</key>
 	<array>
 		<dict>
@@ -401,7 +401,7 @@
 				<key>subtext</key>
 				<string>Fuzzy search; the last result adds what you typed</string>
 				<key>title</key>
-				<string>Search the stash</string>
+				<string>Search the stashes</string>
 				<key>type</key>
 				<integer>0</integer>
 				<key>withspace</key>
@@ -450,7 +450,7 @@
 				<key>subtext</key>
 				<string>Fuzzy search; the last result adds what you typed</string>
 				<key>title</key>
-				<string>Search the stash</string>
+				<string>Search the stashes</string>
 				<key>type</key>
 				<integer>0</integer>
 				<key>withspace</key>
@@ -499,7 +499,7 @@
 				<key>subtext</key>
 				<string>Fuzzy search; the last result adds what you typed</string>
 				<key>title</key>
-				<string>Search the stash</string>
+				<string>Search the stashes</string>
 				<key>type</key>
 				<integer>0</integer>
 				<key>withspace</key>
@@ -851,7 +851,7 @@
 				<key>text</key>
 				<string>{query}</string>
 				<key>title</key>
-				<string>Stash</string>
+				<string>Stashes</string>
 			</dict>
 			<key>type</key>
 			<string>alfred.workflow.output.notification</string>
@@ -862,7 +862,7 @@
 		</dict>
 	</array>
 	<key>readme</key>
-	<string>Fuzzy keyword search over a plain-text stash you own.
+	<string>Fuzzy keyword search over plain-text stashes you own.
 
 st / sta / stash &lt;words&gt;   search (or press ⌘⌥⌃⇧L); words match in any order, as whole words, prefixes,
                            substrings or in-word letters (stg → staging)
@@ -871,14 +871,14 @@ st / sta / stash &lt;words&gt;   search (or press ⌘⌥⌃⇧L); words match in
                            workflow, or add  ⇧↩ paste  ⌘↩ edit  ⌥↩ delete
 
 Entries are lines of  words | payload ; without a | the whole line is both.
-The stash is a folder: default.txt holds the root, every other name.txt is a scope.
-st name/ &lt;words&gt;   searches inside a scope; typing part of a name shows its row, ⇥ enters it.
+Every name.txt in the folder is a stash; default.txt is the one you land in.
+st name/ &lt;words&gt;   searches one stash; typing part of a name shows its row, ⇥ enters it.
 {{name}} in a payload asks for a value on ↩, one prompt per name ({{name=default}}
 offers a default, the clipboard is always offered); {{date}}, {{time}} and
 {{clipboard}} fill themselves; the clipboard is read on ↩, never while you type.
 flows: aliases for @words, e.g. "tally=t kobold=kb wisp=l".
 
-Configure Workflow… sets the stash folder, the editor, the interpreter,
+Configure Workflow… sets the stashes folder, the editor, the interpreter,
 hand-off aliases and the number of results.
 </string>
 	<key>uidata</key>
@@ -1004,9 +1004,9 @@ hand-off aliases and the number of results.
 				<true/>
 			</dict>
 			<key>description</key>
-			<string>default.txt holds the root entries; every other name.txt in the folder is a scope. ~ is expanded.</string>
+			<string>Each name.txt in it is a stash; default.txt is the one you land in. ~ is expanded.</string>
 			<key>label</key>
-			<string>Stash folder</string>
+			<string>Stashes folder</string>
 			<key>type</key>
 			<string>textfield</string>
 			<key>variable</key>
@@ -1088,7 +1088,7 @@ hand-off aliases and the number of results.
 				<true/>
 			</dict>
 			<key>description</key>
-			<string>How many rows Alfred receives per keystroke, scope rows and Add included.</string>
+			<string>How many rows Alfred receives per keystroke, stash rows and Add included.</string>
 			<key>label</key>
 			<string>Max results</string>
 			<key>type</key>
@@ -1105,13 +1105,13 @@ hand-off aliases and the number of results.
 				<false/>
 			</dict>
 			<key>description</key>
-			<string>List every scope on a bare st. Typing part of a scope name shows its row either way.</string>
+			<string>List every stash on a bare st. Typing part of a stash name shows its row either way.</string>
 			<key>label</key>
-			<string>List scopes</string>
+			<string>List stashes</string>
 			<key>type</key>
 			<string>checkbox</string>
 			<key>variable</key>
-			<string>show_scopes</string>
+			<string>show_stashes</string>
 		</dict>
 	</array>
 	<key>variables</key>
@@ -1121,6 +1121,6 @@ hand-off aliases and the number of results.
 	<key>version</key>
 	<string>3.0.0</string>
 	<key>webaddress</key>
-	<string></string>
+	<string>https://github.com/vlnn/stashes</string>
 </dict>
 </plist>

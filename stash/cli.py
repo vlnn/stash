@@ -11,13 +11,13 @@ from collections.abc import Mapping, Sequence
 from typing import Callable, NamedTuple, Optional
 
 from . import alfred, snippets, store
-from .entries import SEPARATOR, Entry, parse_line, split_scope
-from .matching import search, search_scopes
+from .entries import SEPARATOR, Entry, parse_line, split_stash
+from .matching import search, search_stashes
 
 DEFAULT_DB_DIR = "~/.config/stash"
 DEFAULT_EDITOR = "open -t {file}"
 DEFAULT_MAX_RESULTS = 50
-DEFAULT_SHOW_SCOPES = False
+DEFAULT_SHOW_STASHES = False
 TRUE = ("1", "true", "yes", "on")
 ALFRED_SEARCH = (
     "-e",
@@ -40,7 +40,7 @@ class Config(NamedTuple):
     editor: str
     max_results: int
     flows: dict[str, str]
-    show_scopes: bool = DEFAULT_SHOW_SCOPES
+    show_stashes: bool = DEFAULT_SHOW_STASHES
     prompt: Prompt = Prompt()
 
 
@@ -50,7 +50,7 @@ def config_from(env: Mapping[str, str]) -> Config:
         editor=env.get("editor") or DEFAULT_EDITOR,
         max_results=int(env.get("max_results") or DEFAULT_MAX_RESULTS),
         flows=flows_from(env.get("flows") or ""),
-        show_scopes=is_true(env.get("show_scopes") or ""),
+        show_stashes=is_true(env.get("show_stashes") or ""),
         prompt=Prompt(env.get("template") or "", json.loads(env.get("filled") or "{}"), env.get("finish") or ""),
     )
 
@@ -82,38 +82,38 @@ def flows_from(text: str) -> dict[str, str]:
 
 
 def search_command(query: str, config: Config) -> str:
-    scope, rest = split_scope(query)
+    stash, rest = split_stash(query)
     words, *_ = SEPARATOR.split(rest, 1)
-    items = scoped_search(scope, words, rest.strip(), config) if scope else root_search(words, rest.strip(), config)
+    items = stash_search(stash, words, rest.strip(), config) if stash else root_search(words, rest.strip(), config)
     return alfred.render(items)
 
 
-def scoped_search(scope: str, words: str, query: str, config: Config) -> list[alfred.Item]:
-    path = store.scope_path(config.db_dir, scope)
-    entries = store.load_entries(path, scope)
+def stash_search(stash: str, words: str, query: str, config: Config) -> list[alfred.Item]:
+    path = store.stash_path(config.db_dir, stash)
+    entries = store.load_entries(path, stash)
     hits = search(words, entries, config.max_results)
     reserved = clock_values()
-    matches = [alfred.entry_item(entry, config.flows, scope, reserved) for entry in hits]
+    matches = [alfred.entry_item(entry, config.flows, stash, reserved) for entry in hits]
     exists = os.path.exists(path)
-    hint = alfred.scope_hint(scope, exists)
-    return alfred.feedback(matches, query, hint, scope, not exists, reserved, config.flows)
+    hint = alfred.stash_hint(stash, exists)
+    return alfred.feedback(matches, query, hint, stash, not exists, reserved, config.flows)
 
 
 def root_search(words: str, query: str, config: Config) -> list[alfred.Item]:
-    root = store.load_scope(config.db_dir)
-    scopes = store.load_scopes(config.db_dir)
-    scoped = [entry for entries in scopes.values() for entry in entries]
-    rows = scope_rows(words, scopes) if words.strip() or config.show_scopes else []
-    hits = [*search(words, root, config.max_results), *search(words, scoped, config.max_results)]
+    root = store.load_stash(config.db_dir)
+    stashes = store.load_stashes(config.db_dir)
+    stashed = [entry for entries in stashes.values() for entry in entries]
+    rows = stash_rows(words, stashes) if words.strip() or config.show_stashes else []
+    hits = [*search(words, root, config.max_results), *search(words, stashed, config.max_results)]
     hits = hits[: max(config.max_results - len(rows), 0)]
     reserved = clock_values()
     matches = [*rows, *(alfred.entry_item(entry, config.flows, "", reserved) for entry in hits)]
-    hint = alfred.root_hint(not (root or scoped), query)
+    hint = alfred.root_hint(not (root or stashed), query)
     return alfred.feedback(matches, query, hint, reserved=reserved, flows=config.flows)
 
 
-def scope_rows(words: str, scopes: Mapping[str, list[Entry]]) -> list[alfred.Item]:
-    return [alfred.scope_item(name, len(scopes[name])) for name in search_scopes(words, list(scopes))]
+def stash_rows(words: str, stashes: Mapping[str, list[Entry]]) -> list[alfred.Item]:
+    return [alfred.stash_item(name, len(stashes[name])) for name in search_stashes(words, list(stashes))]
 
 
 def prompt_command(query: str, config: Config) -> str:
@@ -136,24 +136,24 @@ def fill_command(arguments: Sequence[str], config: Config) -> str:
 
 
 def add_command(raw: str, config: Config) -> str:
-    scope, line = split_scope(raw)
+    stash, line = split_stash(raw)
     entry = parse_line(line)
     if entry is None:
         return f"Nothing added, expected: {alfred.FORMAT_HINT}"
-    store.append_line(store.scope_path(config.db_dir, scope), entry.raw)
-    return f"Added to {scope}/: {entry.label}" if scope else f"Added: {entry.label}"
+    store.append_line(store.stash_path(config.db_dir, stash), entry.raw)
+    return f"Added to {stash}/: {entry.label}" if stash else f"Added: {entry.label}"
 
 
 def delete_command(raw: str, config: Config) -> str:
-    scope, line = split_scope(raw)
-    if store.delete_line(store.scope_path(config.db_dir, scope), line):
+    stash, line = split_stash(raw)
+    if store.delete_line(store.stash_path(config.db_dir, stash), line):
         return f"Deleted: {line.strip()}"
-    return "Not deleted: entry not found, the stash may have changed"
+    return "Not deleted: entry not found, the file may have changed"
 
 
 def edit_command(target: str, config: Config) -> str | None:
-    scope, line_number = split_scope(target)
-    path = store.scope_path(config.db_dir, scope)
+    stash, line_number = split_stash(target)
+    path = store.stash_path(config.db_dir, stash)
     store.ensure_file(path)
     argv = editor_argv(config.editor, path, line_number or "1")
     try:

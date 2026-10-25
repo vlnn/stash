@@ -7,7 +7,7 @@ resolution-markers = [
 ]
 
 [[package]]
-name = "alfred-stash"
+name = "alfred-stashes"
 version = "3.0.0"
 source = { virtual = "." }
 

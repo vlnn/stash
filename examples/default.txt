@@ -1,4 +1,4 @@
-# Stash: one entry per line.
+# A stash: one entry per line. This is default.txt, the one st lands in.
 # Everything after the first | (or \) is the payload, verbatim; the words before it are what you search by.
 # Without a separator the whole line is both. Lines starting with # are comments.
 

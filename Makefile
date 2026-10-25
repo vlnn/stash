@@ -14,7 +14,7 @@ build:
 	uv run python scripts/build.py
 
 check: build
-	/usr/bin/env python3 scripts/smoke.py dist/Stash.alfredworkflow $(or $(PYTHON),/usr/bin/python3)
+	/usr/bin/env python3 scripts/smoke.py dist/Stashes.alfredworkflow $(or $(PYTHON),/usr/bin/python3)
 
 bench:
 	uv run python bench.py --python $(or $(PYTHON),/usr/bin/python3)

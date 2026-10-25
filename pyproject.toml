@@ -1,7 +1,7 @@
 [project]
-name = "alfred-stash"
+name = "alfred-stashes"
 version = "3.0.0"
-description = "Alfred workflow: fuzzy keyword search over a plain-text database"
+description = "Alfred workflow: fuzzy keyword search over plain-text stashes you own"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = []

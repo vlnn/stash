@@ -1,6 +1,6 @@
 import pytest
 
-from stash.entries import Entry, in_scope, is_scope_name, parse_line, split_scope, split_words
+from stash.entries import Entry, in_stash, is_stash_name, parse_line, split_stash, split_words
 
 
 @pytest.mark.parametrize(
@@ -99,7 +99,7 @@ def test_split_words(text, words):
 
 
 @pytest.mark.parametrize(
-    "text, scope, rest",
+    "text, stash, rest",
     [
         ("grocery/ milk eggs", "grocery", "milk eggs"),
         ("grocery/milk", "grocery", "milk"),
@@ -114,23 +114,23 @@ def test_split_words(text, words):
         ("", "", ""),
     ],
 )
-def test_split_scope_takes_a_leading_name_slash(text, scope, rest):
-    assert split_scope(text) == (scope, rest), "a leading name/ is the scope, the rest is the query or the line"
+def test_split_stash_takes_a_leading_name_slash(text, stash, rest):
+    assert split_stash(text) == (stash, rest), "a leading name/ is the stash, the rest is the query or the line"
 
 
 @pytest.mark.parametrize(
-    "scope, text, expected", [("grocery", "milk | 2L", "grocery/ milk | 2L"), ("", "milk", "milk")]
+    "stash, text, expected", [("grocery", "milk | 2L", "grocery/ milk | 2L"), ("", "milk", "milk")]
 )
-def test_in_scope_prefixes_text_with_the_scope(scope, text, expected):
-    assert in_scope(scope, text) == expected, "in_scope should write the scope the way split_scope reads it"
+def test_in_stash_prefixes_text_with_the_stash(stash, text, expected):
+    assert in_stash(stash, text) == expected, "in_stash should write the stash the way split_stash reads it"
 
 
 @pytest.mark.parametrize(
     "name, valid", [("grocery", True), ("my-notes_2", True), ("кава", True), ("my notes", False), ("", False)]
 )
-def test_is_scope_name_accepts_what_split_scope_can_read(name, valid):
-    assert is_scope_name(name) is valid, "a scope name must be typeable as name/ in a query"
+def test_is_stash_name_accepts_what_split_stash_can_read(name, valid):
+    assert is_stash_name(name) is valid, "a stash name must be typeable as name/ in a query"
 
 
-def test_parse_line_keeps_the_scope():
-    assert parse_line("milk | 2L", 3, "grocery").scope == "grocery", "parse_line should tag the entry with its scope"
+def test_parse_line_keeps_the_stash():
+    assert parse_line("milk | 2L", 3, "grocery").stash == "grocery", "parse_line should tag the entry with its stash"

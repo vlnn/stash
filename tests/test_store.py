@@ -8,11 +8,11 @@ from stash.store import (
     delete_line,
     ensure_file,
     load_entries,
-    load_scope,
-    load_scopes,
+    load_stash,
+    load_stashes,
     read_text,
-    scope_names,
-    scope_path,
+    stash_names,
+    stash_path,
 )
 
 
@@ -171,35 +171,35 @@ def test_append_line_after_undecodable_bytes(db_file):
     assert db_file.read_bytes() == b"caf\xe9 | x\nnew | 1\n", "append_line should not choke on stray bytes"
 
 
-@pytest.mark.parametrize("scope, name", [("", "default.txt"), ("grocery", "grocery.txt")])
-def test_scope_path_names_the_file_after_the_scope(tmp_path, scope, name):
-    assert scope_path(str(tmp_path), scope) == str(tmp_path / name), "the root is default.txt, a scope its own file"
+@pytest.mark.parametrize("stash, name", [("", "default.txt"), ("grocery", "grocery.txt")])
+def test_stash_path_names_the_file_after_the_stash(tmp_path, stash, name):
+    assert stash_path(str(tmp_path), stash) == str(tmp_path / name), "the root is default.txt, a stash its own file"
 
 
-def test_scope_names_lists_text_files_that_can_be_typed(tmp_path):
+def test_stash_names_lists_text_files_that_can_be_typed(tmp_path):
     for name in ("default.txt", "zsh.txt", "grocery.txt", "my notes.txt", ".hidden.txt", "notes.md", "grocery.txt.tmp"):
         (tmp_path / name).write_text("x | y\n", encoding="utf-8")
 
-    assert scope_names(str(tmp_path)) == ["grocery", "zsh"], (
-        "scopes are the .txt files next to default.txt whose names fit name/, sorted"
+    assert stash_names(str(tmp_path)) == ["grocery", "zsh"], (
+        "stashes are the .txt files next to default.txt whose names fit name/, sorted"
     )
 
 
-def test_scope_names_of_missing_directory_is_empty(tmp_path):
-    assert scope_names(str(tmp_path / "none")) == [], "a stash that does not exist yet has no scopes"
+def test_stash_names_of_missing_directory_is_empty(tmp_path):
+    assert stash_names(str(tmp_path / "none")) == [], "a stash that does not exist yet has no stashes"
 
 
-def test_load_scope_tags_entries_and_load_scopes_collects_them(tmp_path):
+def test_load_stash_tags_entries_and_load_stashs_collects_them(tmp_path):
     (tmp_path / "default.txt").write_text("ssh | s\n", encoding="utf-8")
     (tmp_path / "grocery.txt").write_text("# list\nmilk | 2L\neggs | 12\n", encoding="utf-8")
 
-    root = load_scope(str(tmp_path))
-    scopes = load_scopes(str(tmp_path))
+    root = load_stash(str(tmp_path))
+    stashes = load_stashes(str(tmp_path))
 
-    assert [(entry.label, entry.scope) for entry in root] == [("ssh", "")], "the root loads from default.txt unscoped"
-    assert {name: [entry.label for entry in entries] for name, entries in scopes.items()} == {
+    assert [(entry.label, entry.stash) for entry in root] == [("ssh", "")], "default.txt loads with an empty stash name"
+    assert {name: [entry.label for entry in entries] for name, entries in stashes.items()} == {
         "grocery": ["milk", "eggs"]
-    }, "load_scopes should map every scope to its entries"
-    assert [(entry.scope, entry.line_number) for entry in scopes["grocery"]] == [("grocery", 2), ("grocery", 3)], (
-        "scoped entries should know their scope and their line in its file"
+    }, "load_stashes should map every stash to its entries"
+    assert [(entry.stash, entry.line_number) for entry in stashes["grocery"]] == [("grocery", 2), ("grocery", 3)], (
+        "stashed entries should know their stash and their line in its file"
     )

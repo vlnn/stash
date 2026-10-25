@@ -4,8 +4,8 @@ import re
 from typing import NamedTuple
 
 SEPARATOR = re.compile(r"\||(?:(?<=\s)|^)\\(?=\s|$)")
-SCOPE_NAME = re.compile(r"[\w-]+")
-SCOPE_PREFIX = re.compile(rf"^({SCOPE_NAME.pattern})/\s*")
+STASH_NAME = re.compile(r"[\w-]+")
+STASH_PREFIX = re.compile(rf"^({STASH_NAME.pattern})/\s*")
 COMMENT_PREFIX = "#"
 
 Keywords = tuple[str, ...]
@@ -17,10 +17,10 @@ class Entry(NamedTuple):
     haystack: str
     line_number: int = 0
     raw: str = ""
-    scope: str = ""
+    stash: str = ""
 
 
-def parse_line(line: str, line_number: int = 0, scope: str = "") -> Entry | None:
+def parse_line(line: str, line_number: int = 0, stash: str = "") -> Entry | None:
     text = line.strip()
     if not text or text.startswith(COMMENT_PREFIX):
         return None
@@ -28,7 +28,7 @@ def parse_line(line: str, line_number: int = 0, scope: str = "") -> Entry | None
     keywords = split_words(SEPARATOR.sub(" ", label))
     if not keywords:
         return None
-    return Entry(label, payload, haystack_of(keywords), line_number, text, scope)
+    return Entry(label, payload, haystack_of(keywords), line_number, text, stash)
 
 
 def split_record(text: str) -> tuple[str, str]:
@@ -39,20 +39,20 @@ def split_record(text: str) -> tuple[str, str]:
     return label or payload, payload or label
 
 
-def split_scope(text: str) -> tuple[str, str]:
+def split_stash(text: str) -> tuple[str, str]:
     stripped = text.lstrip()
-    found = SCOPE_PREFIX.match(stripped)
+    found = STASH_PREFIX.match(stripped)
     if found is None:
         return "", stripped
     return found.group(1), stripped[found.end() :]
 
 
-def in_scope(scope: str, text: str) -> str:
-    return f"{scope}/ {text}" if scope else text
+def in_stash(stash: str, text: str) -> str:
+    return f"{stash}/ {text}" if stash else text
 
 
-def is_scope_name(name: str) -> bool:
-    return SCOPE_NAME.fullmatch(name) is not None
+def is_stash_name(name: str) -> bool:
+    return STASH_NAME.fullmatch(name) is not None
 
 
 def has_separator(text: str) -> bool:

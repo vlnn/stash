@@ -46,8 +46,8 @@ def env(db_dir):
 
 
 @pytest.fixture
-def scoped_env(env):
-    return {**env, "show_scopes": "1"}
+def stashed_env(env):
+    return {**env, "show_stashes": "1"}
 
 
 def run(capsys, env, *argv):
@@ -66,15 +66,15 @@ DEFAULTS = (os.path.expanduser(DEFAULT_DB_DIR), DEFAULT_EDITOR, DEFAULT_MAX_RESU
     "env, expected",
     [
         ({}, DEFAULTS),
-        ({"db_dir": "", "editor": "", "max_results": "", "flows": "", "show_scopes": ""}, DEFAULTS),
-        ({"show_scopes": "0"}, DEFAULTS),
+        ({"db_dir": "", "editor": "", "max_results": "", "flows": "", "show_stashes": ""}, DEFAULTS),
+        ({"show_stashes": "0"}, DEFAULTS),
         (
             {
                 "db_dir": "~/db",
                 "editor": "code -g {file}:{line}",
                 "max_results": "9",
                 "flows": "tally=t",
-                "show_scopes": "1",
+                "show_stashes": "1",
             },
             (os.path.expanduser("~/db"), "code -g {file}:{line}", 9, {"tally": "t"}, True, Prompt()),
         ),
@@ -119,7 +119,7 @@ def test_search_on_missing_database_offers_to_add(capsys, tmp_path):
 def test_search_on_missing_database_with_empty_query_says_so(capsys, tmp_path):
     output = run(capsys, {"db_dir": str(tmp_path / "none")}, "search", "")
 
-    assert item_titles(output) == ["The stash is empty"], "search should guide the user on an empty stash"
+    assert item_titles(output) == ["Nothing stashed yet"], "search should guide the user when nothing is stashed"
 
 
 def test_search_survives_undecodable_bytes(capsys, env, db_file):
@@ -157,7 +157,7 @@ def test_added_entry_is_searchable(capsys, env):
     "raw, expected_output, expected_titles",
     [
         ("wifi guest | hunter2", "Deleted: wifi guest | hunter2", ["ssh prod web"]),
-        ("gone | x", "Not deleted: entry not found, the stash may have changed", ["ssh prod web", "wifi guest"]),
+        ("gone | x", "Not deleted: entry not found, the file may have changed", ["ssh prod web", "wifi guest"]),
     ],
 )
 def test_delete(capsys, env, raw, expected_output, expected_titles):
@@ -287,22 +287,22 @@ def test_main_rejects_unknown_command(env, argv):
         ("grocery/bread", ["bread", "Add: bread"]),
         ("grocery/ prod", ["Add: prod"]),
         ("grocery/ pasta | 500g", ["Add: pasta"]),
-        ("recipes/", ["New scope recipes/"]),
+        ("recipes/", ["New stash recipes/"]),
         ("recipes/ pasta", ["Add: pasta"]),
     ],
 )
-def test_search_tiers_scopes_root_and_scoped_entries(capsys, scoped_env, grocery, query, expected):
-    assert item_titles(run(capsys, scoped_env, "search", query)) == expected, (
-        "scope rows come first, then root entries, then scoped entries; name/ narrows to one scope"
+def test_search_tiers_stashes_root_and_stashed_entries(capsys, stashed_env, grocery, query, expected):
+    assert item_titles(run(capsys, stashed_env, "search", query)) == expected, (
+        "stash rows come first, then root entries, then stashed entries; name/ narrows to one stash"
     )
 
 
-def test_search_marks_scoped_entries_at_the_root_but_not_inside_their_scope(capsys, env, grocery):
+def test_search_marks_stashed_entries_at_the_root_but_not_inside_their_stash(capsys, env, grocery):
     [at_root, _] = json.loads(run(capsys, env, "search", "bread"))["items"]
     [inside, _] = json.loads(run(capsys, env, "search", "grocery/ bread"))["items"]
 
-    assert at_root["subtitle"] == "grocery · sourdough", "a scoped hit at the root should say where it lives"
-    assert inside["subtitle"] == "sourdough", "inside its scope an entry looks like any other"
+    assert at_root["subtitle"] == "grocery · sourdough", "a stashed hit at the root should say where it lives"
+    assert inside["subtitle"] == "sourdough", "inside its stash an entry looks like any other"
 
 
 @pytest.mark.parametrize(
@@ -315,73 +315,73 @@ def test_search_marks_scoped_entries_at_the_root_but_not_inside_their_scope(caps
         ("grocery/ milk", ["milk eggs", "Add: milk"]),
     ],
 )
-def test_search_lists_a_scope_row_only_when_its_name_is_typed(capsys, env, grocery, query, expected):
+def test_search_lists_a_stash_row_only_when_its_name_is_typed(capsys, env, grocery, query, expected):
     assert item_titles(run(capsys, env, "search", query)) == expected, (
-        "a bare st hides scope rows unless show_scopes is on; words that match a scope name always list its row"
+        "a bare st hides stash rows unless show_stashes is on; words that match a stash name always list its row"
     )
 
 
-def test_scope_row_expands_on_tab(capsys, env, grocery):
+def test_stash_row_expands_on_tab(capsys, env, grocery):
     [row, _] = json.loads(run(capsys, env, "search", "gro"))["items"]
 
-    assert row["autocomplete"] == "grocery/ " and row["valid"] is False, "tab or enter on the row enters the scope"
+    assert row["autocomplete"] == "grocery/ " and row["valid"] is False, "tab or enter on the row enters the stash"
 
 
-def test_search_counts_scope_rows_against_max_results(capsys, scoped_env, grocery):
-    assert item_titles(run(capsys, {**scoped_env, "max_results": "2"}, "search", "")) == ["grocery/", "ssh prod web"], (
-        "max_results should cap the whole list, scope rows included"
-    )
+def test_search_counts_stash_rows_against_max_results(capsys, stashed_env, grocery):
+    titles = item_titles(run(capsys, {**stashed_env, "max_results": "2"}, "search", ""))
+
+    assert titles == ["grocery/", "ssh prod web"], "max_results should cap the whole list, stash rows included"
 
 
-def test_search_with_only_scopes_lists_them(capsys, tmp_path):
+def test_search_with_only_stashs_lists_them(capsys, tmp_path):
     (tmp_path / "grocery.txt").write_text(GROCERY, encoding="utf-8")
 
-    assert item_titles(run(capsys, {"db_dir": str(tmp_path), "show_scopes": "1"}, "search", "")) == [
+    assert item_titles(run(capsys, {"db_dir": str(tmp_path), "show_stashes": "1"}, "search", "")) == [
         "grocery/",
         "milk eggs",
         "bread",
-    ], "a stash with scopes and no default.txt is not empty"
+    ], "a stash with stashes and no default.txt is not empty"
 
 
-def test_add_into_scope_creates_its_file(capsys, env, db_dir):
+def test_add_into_stash_creates_its_file(capsys, env, db_dir):
     output = run(capsys, env, "add", "recipes/ pasta | 500g, 10 min")
 
-    assert output == "Added to recipes/: pasta", "add should say which scope received the entry"
+    assert output == "Added to recipes/: pasta", "add should say which stash received the entry"
     assert (db_dir / "recipes.txt").read_text(encoding="utf-8") == "pasta | 500g, 10 min\n", (
-        "the first entry of a scope should create its file without the scope prefix"
+        "the first entry of a stash should create its file without the stash prefix"
     )
     assert (db_dir / "default.txt").read_text(encoding="utf-8") == DATABASE, "the root should be untouched"
 
 
-def test_delete_from_scope(capsys, env, grocery):
+def test_delete_from_stash(capsys, env, grocery):
     assert run(capsys, env, "delete", "grocery/ bread | sourdough") == "Deleted: bread | sourdough", (
-        "delete should remove the line from the scope's file"
+        "delete should remove the line from the stash's file"
     )
     assert grocery.read_text(encoding="utf-8") == "milk eggs | 2L and a dozen\n", "only that line should go"
 
 
-def test_delete_from_scope_reports_unknown_entry(capsys, env, grocery):
+def test_delete_from_stash_reports_unknown_entry(capsys, env, grocery):
     assert run(capsys, env, "delete", "grocery/ ssh prod web | ssh deploy@10.0.1.5").startswith("Not deleted"), (
-        "a root entry is not found in a scope's file"
+        "a root entry is not found in a stash's file"
     )
 
 
-def test_edit_opens_the_scope_file_at_the_line(mocker, capsys, env, db_dir):
+def test_edit_opens_the_stash_file_at_the_line(mocker, capsys, env, db_dir):
     execvp = mocker.patch("stash.cli.os.execvp")
 
     run(capsys, {**env, "editor": "code -g {file}:{line}"}, "edit", "recipes/ 4")
 
     assert execvp.call_args_list == [mocker.call("code", ["code", "-g", f"{db_dir / 'recipes.txt'}:4"])], (
-        "edit should open the scope's file"
+        "edit should open the stash's file"
     )
-    assert (db_dir / "recipes.txt").is_file(), "edit should create the scope's file so the editor can open it"
+    assert (db_dir / "recipes.txt").is_file(), "edit should create the stash's file so the editor can open it"
 
 
-def test_search_in_an_empty_scope_says_so(capsys, env, db_dir):
+def test_search_in_an_empty_stash_says_so(capsys, env, db_dir):
     (db_dir / "grocery.txt").write_text("# nothing yet\n", encoding="utf-8")
 
     assert item_titles(run(capsys, env, "search", "grocery/")) == ["grocery/ is empty"], (
-        "a scope file without entries should be told apart from a scope that does not exist"
+        "a stash file without entries should be told apart from a stash that does not exist"
     )
 
 

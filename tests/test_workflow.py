@@ -198,7 +198,7 @@ def settings(workflow):
         ("max_results", str(DEFAULT_MAX_RESULTS)),
         ("python", "/usr/bin/python3"),
         ("flows", ""),
-        ("show_scopes", False),
+        ("show_stashes", False),
     ],
 )
 def test_settings_match_code_defaults(settings, variable, default):
@@ -212,8 +212,8 @@ def test_settings_are_editable_fields_with_help(settings):
         assert item["config"]["required"] is False, "every setting has a working default"
 
 
-def test_scope_icon_ships_with_the_workflow():
-    assert os.path.isfile(os.path.join(os.path.dirname(PLIST_PATH), "scope.png")), "scope rows need their icon"
+def test_stash_icon_ships_with_the_workflow():
+    assert os.path.isfile(os.path.join(os.path.dirname(PLIST_PATH), "stash.png")), "stash rows need their icon"
 
 
 def test_no_plain_variables_shadow_the_settings(workflow):

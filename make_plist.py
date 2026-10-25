@@ -3,7 +3,7 @@
 import plistlib
 import uuid
 
-from stash.cli import DEFAULT_DB_DIR, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS, DEFAULT_SHOW_SCOPES
+from stash.cli import DEFAULT_DB_DIR, DEFAULT_EDITOR, DEFAULT_MAX_RESULTS, DEFAULT_SHOW_STASHES
 
 PYTHON = 'exec "${python:-/usr/bin/python3}" -S -X utf8 run.py'
 CMD, ALT, CTRL, SHIFT = 1 << 20, 1 << 19, 1 << 18, 1 << 17
@@ -29,7 +29,7 @@ ROUTES = {
     "paste": (PASTE, uid("route-paste")),
 }
 
-README = """Fuzzy keyword search over a plain-text stash you own.
+README = """Fuzzy keyword search over plain-text stashes you own.
 
 st / sta / stash <words>   search (or press ⌘⌥⌃⇧L); words match in any order, as whole words, prefixes,
                            substrings or in-word letters (stg → staging)
@@ -38,14 +38,14 @@ st / sta / stash <words>   search (or press ⌘⌥⌃⇧L); words match in any o
                            workflow, or add  ⇧↩ paste  ⌘↩ edit  ⌥↩ delete
 
 Entries are lines of  words | payload ; without a | the whole line is both.
-The stash is a folder: default.txt holds the root, every other name.txt is a scope.
-st name/ <words>   searches inside a scope; typing part of a name shows its row, ⇥ enters it.
+Every name.txt in the folder is a stash; default.txt is the one you land in.
+st name/ <words>   searches one stash; typing part of a name shows its row, ⇥ enters it.
 {{name}} in a payload asks for a value on ↩, one prompt per name ({{name=default}}
 offers a default, the clipboard is always offered); {{date}}, {{time}} and
 {{clipboard}} fill themselves; the clipboard is read on ↩, never while you type.
 flows: aliases for @words, e.g. "tally=t kobold=kb wisp=l".
 
-Configure Workflow… sets the stash folder, the editor, the interpreter,
+Configure Workflow… sets the stashes folder, the editor, the interpreter,
 hand-off aliases and the number of results.
 """
 
@@ -63,9 +63,9 @@ def setting(variable, label, default, description, placeholder=""):
 SETTINGS = [
     setting(
         "db_dir",
-        "Stash folder",
+        "Stashes folder",
         DEFAULT_DB_DIR,
-        "default.txt holds the root entries; every other name.txt in the folder is a scope. ~ is expanded.",
+        "Each name.txt in it is a stash; default.txt is the one you land in. ~ is expanded.",
     ),
     setting(
         "editor",
@@ -91,14 +91,14 @@ SETTINGS = [
         "max_results",
         "Max results",
         str(DEFAULT_MAX_RESULTS),
-        "How many rows Alfred receives per keystroke, scope rows and Add included.",
+        "How many rows Alfred receives per keystroke, stash rows and Add included.",
     ),
     {
         "type": "checkbox",
-        "variable": "show_scopes",
-        "label": "List scopes",
-        "description": "List every scope on a bare st. Typing part of a scope name shows its row either way.",
-        "config": {"default": DEFAULT_SHOW_SCOPES, "required": False},
+        "variable": "show_stashes",
+        "label": "List stashes",
+        "description": "List every stash on a bare st. Typing part of a stash name shows its row either way.",
+        "config": {"default": DEFAULT_SHOW_STASHES, "required": False},
     },
 ]
 
@@ -125,7 +125,7 @@ def search_filter(keyword):
             "scriptargtype": 1,
             "scriptfile": "",
             "subtext": "Fuzzy search; the last result adds what you typed",
-            "title": "Search the stash",
+            "title": "Search the stashes",
             "type": 0,
             "withspace": True,
         },
@@ -226,7 +226,7 @@ NOTIFICATION = {
         "onlyshowifquerypopulated": True,
         "removeextension": False,
         "text": "{query}",
-        "title": "Stash",
+        "title": "Stashes",
     },
 }
 
@@ -250,12 +250,12 @@ WORKFLOW = {
     "bundleid": "com.vlnn.stash",
     "category": "Productivity",
     "createdby": "vlnn",
-    "description": "Fuzzy keyword search over a plain-text stash",
+    "description": "Fuzzy keyword search over plain-text stashes you own",
     "disabled": False,
-    "name": "Stash",
+    "name": "Stashes",
     "readme": README,
     "version": "3.0.0",
-    "webaddress": "",
+    "webaddress": "https://github.com/vlnn/stashes",
     "userconfigurationconfig": SETTINGS,
     "variables": {},
     "variablesdontexport": [],

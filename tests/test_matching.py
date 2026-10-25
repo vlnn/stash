@@ -1,7 +1,7 @@
 import pytest
 
 from stash.entries import parse_line
-from stash.matching import EXACT, NO_MATCH, PREFIX, SUBSEQUENCE, SUBSTRING, search, search_scopes, tier, token_pattern
+from stash.matching import EXACT, NO_MATCH, PREFIX, SUBSEQUENCE, SUBSTRING, search, search_stashes, tier, token_pattern
 
 LINES = [
     "ssh prod web | ssh deploy@10.0.1.5",
@@ -101,7 +101,7 @@ def test_search_respects_limit(limit):
     assert len(found_labels("web", limit=limit)) == limit, "search should return at most limit entries"
 
 
-SCOPES = ["aws", "checklists", "zsh", "chk"]
+STASHES = ["aws", "checklists", "zsh", "chk"]
 
 
 @pytest.mark.parametrize(
@@ -114,5 +114,5 @@ SCOPES = ["aws", "checklists", "zsh", "chk"]
         ("nothing", []),
     ],
 )
-def test_search_scopes_ranks_names_like_words(query, expected):
-    assert search_scopes(query, SCOPES) == expected, "scope names should match and rank the way entry words do"
+def test_search_stashs_ranks_names_like_words(query, expected):
+    assert search_stashes(query, STASHES) == expected, "stash names should match and rank the way entry words do"
