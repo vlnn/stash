@@ -44,3 +44,9 @@ http://127.0.0.1:4000
 2026-10-25: visit bank    | bring the signed form
 2026-10-26: zoo visit     | 10:00, meet at the east gate
 2026-10-26: k8s ctx prod  | kubectl config use-context prod
+
+# planned ahead with st tomorrow/ …, st next-week/ …, st 2026-11-15/ …; the calendar brings them into today/
+2026-10-27: visit vet     | the vet
+2026-10-30: visit tax     | friday
+2026-11-02: review budget | with the q4 numbers
+2026-11-15: visit opera   | next month

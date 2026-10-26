@@ -132,6 +132,11 @@ def main(bundle_path, python):
         check(row["title"] == "today/" and row["autocomplete"] == "today/ ", "typing a view name lists its row")
         [zoo, *_] = json.loads(run(bundle_dir, scripts, "search", "zoo", env))["items"]
         check(zoo["subtitle"] == "today · Copy", "a dated line says how old it is")
+        check(run(bundle_dir, scripts, "add", "tomorrow/ dentist", env) == "Added: dentist", "tomorrow/ adds ahead")
+        [planned, *_] = json.loads(run(bundle_dir, scripts, "search", "tomorrow/ dent", env))["items"]
+        check(planned["title"] == "dentist" and planned["subtitle"][:2] == "20", "tomorrow/ lists it, dated")
+        check(titles(run(bundle_dir, scripts, "search", "today/ dent", env)) == ["Add: dent"], "today/ does not yet")
+        check(titles(run(bundle_dir, scripts, "search", "next", env))[0] == "next-week/", "next lists its views")
         check(titles(run(bundle_dir, scripts, "search", "| echo a | wc", env)) == ["Add: echo a | wc"], "| alone adds")
         check(run(bundle_dir, scripts, "add", "| echo a | wc", env) == "Added: echo a | wc", "and stores the pipes")
 

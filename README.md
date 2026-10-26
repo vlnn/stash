@@ -8,7 +8,7 @@ Fuzzy keyword search over plain-text stashes you own, as an Alfred workflow.
 - **Run** by typing: a hand-off, a link or a `{{blank}}` typed straight into the field gets a *Run* row next to what it found, acting on the text without storing it.
 - **Own the data**: one line per entry in text files you can edit, grep, sync and keep in git. The format is one rule: everything after the first `|` is the payload; the words before it are what you search by first.
 - **Several stashes** when the list gets long: every `name.txt` in the folder is a stash; `st name/` searches one, and a bare `st` searches all of them.
-- **Dated**: every line you add is stamped with the day, in the line itself (`2026-10-26: …`). `st today/`, `st yesterday/`, `st week/`, `st month/`, `st quarter/`, `st year/` and `st decade/` are views over every stash by that day; nothing is ever moved, rolled or deleted to make them work.
+- **Dated**: every line you add is stamped with the day, in the line itself (`2026-10-26: …`). `st today/`, `st yesterday/`, `st tomorrow/`, `st week/`, `st next-week/`, `st last-month/`, `st year/` and the rest of that grid are views over every stash by that day; nothing is ever moved, rolled or deleted to make them work. `st tomorrow/ dentist ↩` plans a line a day ahead, and the calendar brings it into `today/`.
 - **Fill in the blanks**: a payload with `{{host}}` asks for `host` on ↩ and copies, opens or pastes the result; `{{date}}`, `{{time}}` and `{{clipboard}}` fill themselves.
 - **Fast**: no dependencies, built to stay well under Alfred's "instant" threshold for a few thousand entries.
 
@@ -235,18 +235,17 @@ Only a leading or trailing `@word` counts, so `me@example.com` and `mail me@exam
 
 ## Dates and views
 
-Every line the tool adds is stamped with the day it was added, and seven names, plus any date, are **views** that filter every stash by that stamp. A view looks like a stash (`st today/`, a `today/` row when you type `tod`, an *Add* row that works) but is not one: it has no file, nothing is moved into or out of it, and nothing happens at midnight. The windows are calendar periods, so `week/` is Monday to Sunday of this week, not the last seven days.
+Every line the tool adds is stamped with the day it was added, and sixteen names, plus any date, are **views** that filter every stash by that stamp. A view looks like a stash (`st today/`, a `today/` row when you type `tod`, an *Add* row that works) but is not one: it has no file, nothing is moved into or out of it, and nothing happens at midnight. The windows are calendar periods, so `week/` is Monday to Sunday of this week, not the last seven days, and `next-week/` is the Monday to Sunday after it.
 
 | View | Holds lines stamped | On Monday 2026-10-26 |
 |---|---|---|
-| `today/` | today | 2026-10-26 |
-| `yesterday/` | yesterday | 2026-10-25 |
-| `week/` | this ISO week, Monday to Sunday | 2026-10-26 – 2026-11-01 |
-| `month/` | this calendar month | 2026-10-01 – 2026-10-31 |
-| `quarter/` | this calendar quarter | 2026-10-01 – 2026-12-31 |
-| `year/` | this calendar year | 2026-01-01 – 2026-12-31 |
+| `yesterday/` `today/` `tomorrow/` | that day | 2026-10-25 · 2026-10-26 · 2026-10-27 |
+| `last-week/` `week/` `next-week/` | the ISO week, Monday to Sunday | 10-19 – 10-25 · 10-26 – 11-01 · 11-02 – 11-08 |
+| `last-month/` `month/` `next-month/` | the calendar month | September · October · November |
+| `last-quarter/` `quarter/` `next-quarter/` | the calendar quarter | Jul – Sep · Oct – Dec · Jan – Mar 2027 |
+| `last-year/` `year/` `next-year/` | the calendar year | 2025 · 2026 · 2027 |
 | `decade/` | this decade, `2020`–`2029` | 2020-01-01 – 2029-12-31 |
-| `2026-10-20/` | that day | 2026-10-20 |
+| `2026-10-20/` | that day, past or future | 2026-10-20 |
 
 Every view also holds every **undated** line: a line without a stamp is an evergreen and belongs to every window, so `st today/ ssh` finds the `ssh prod web` you wrote by hand last year as well as the one you added this morning.
 
@@ -259,6 +258,7 @@ st recipes/ pasta | 500g          ↩  appends   2026-10-26: pasta | 500g       
 
 - The stamp is the day the tool wrote the line, in local time; the day changes at 00:00. It is written once and never touched again: the tool does not restamp, move, age out or delete anything. To change a stamp, edit the file; to remove one, delete it from the line.
 - What you type is never a stamp. `st 2026-10-20: call dentist ↩` stores `2026-10-26: 2026-10-20: call dentist`, found by `st dentist` and by `st 2026-10-20` (a word now), shown as `2026-10-20: call dentist`, and held by `today/`, not by `2026-10-20/`.
+- A stamp can be ahead of today. `st tomorrow/ dentist ↩` writes `2026-10-27: dentist`; tonight it is in `tomorrow/`, `week/` and `month/`, tomorrow morning it is in `today/`, the day after in `yesterday/`, and so on back through `week/` and `month/` as the calendar moves past it. Nothing moves the line; the day changes.
 - Lines that predate this version, and lines you write in the editor without a stamp, are undated. There is nothing to migrate: they keep working as before and show up in every view. If you want a whole file to carry one date, a one-liner does it: `sed -i '' -e '/^[^#]/ s/^/2026-01-01: /' ~/.config/stash/default.txt`.
 
 ### Searching a view
@@ -267,57 +267,74 @@ A query that starts with a view name searches the lines the view holds, across e
 
 ```
 st today/                  zoo visit  ·  k8s ctx prod  ·  ssh prod web  ·  grafana api latency  ·  …   (today's, then every undated line)
-st today/ visit            zoo visit  ·  Add: visit            (visit bank is yesterday's, so it is not here)
+st today/ visit            zoo visit  ·  Add: visit            (visit bank is yesterday's and visit vet tomorrow's, so neither is here)
 st yesterday/ visit        visit bank  ·  Add: visit
-st week/ visit             zoo visit  ·  visit bank  ·  Add: visit
+st tomorrow/ visit         visit vet  ·  Add: visit
+st week/ visit             zoo visit  ·  visit vet  ·  visit tax  ·  Add: visit      (today, then the rest of the week; bank was Sunday, last week)
+st next-week/              review budget  ·  ssh prod web  ·  …    (next Monday to Sunday soonest first, then every undated line)
 st 2026-10-25/             visit bank  ·  ssh prod web  ·  …    (that day, then every undated line)
 st week/ pasta             pasta  ·  Add: pasta                 (recipes/ is searched too; the subtitle says recipes · today · 500g)
 st tod                     today/  ·  Add: tod                  (the row; ⇥ or ↩ enters the view)
 st y                       yesterday/  ·  year/  ·  Add: y      (every view starting with the letter)
+st next                    next-week/  ·  next-month/  ·  next-quarter/  ·  next-year/  ·  Add: next
 ```
 
-Inside a view, results come **newest first**: the lines stamped in the window by stamp, today's on top, then the undated lines in file order. With a query, the usual scores decide and freshness breaks the ties. The subtitle of a dated line says how old it is, after the stash it lives in: `today`, `1d`, `6d`, `1w`, `3w`, `1mo`, `11mo`, `1y`, `10y`; a date in the future (hand-edited) shows as written. Undated lines show no age.
+Inside a view, results come in **calendar order around today**: today's lines, then the rest of the window ahead of today soonest first, then the part of the window already gone newest first, then the undated lines in file order. So `st next-week/` reads Monday to Sunday, `st yesterday/` is yesterday's lines then the evergreens, and `st week/` on a Wednesday is today, Thursday to Sunday, Tuesday, Monday, evergreens. With a query, the usual scores decide and freshness breaks the ties. The subtitle of a dated line says how old it is, after the stash it lives in: `today`, `1d`, `6d`, `1w`, `3w`, `1mo`, `11mo`, `1y`, `10y`; a date ahead of today shows as written (`2026-10-27`), since `st tomorrow/` is the way to ask what is planned. Undated lines show no age.
 
 ```
 st visit                   zoo visit          today · 10:00 east gate
+                           visit vet          2026-10-27 · the vet
+                           visit tax          2026-10-30 · friday
                            visit grandma      every sunday                 (undated)
+                           visit opera        2026-11-15 · next month
                            visit bank         1d · bring the signed form
                            visit dentist      1w · last monday
                            visit museum       3w · september
                            visit paris        9mo · last year
 ```
 
-That order is the freshness tiebreak, and it is the same everywhere: among equal matches, a line stamped today beats an undated one beats older ones, newest first. A stronger match still wins over a fresher one: `st visit` ranks an old whole-word `visit` above today's `visits`. Nothing decays and nothing is hidden; an old plan line is simply listed after the evergreens that match as well.
+That order is the freshness tiebreak at the root, and it only breaks ties: among equal matches, a line stamped today comes first, then lines up to the Sunday of next week soonest first (what `tomorrow/` and `next-week/` hold), then undated lines, then anything further ahead soonest first, then the past newest first. A stronger match still wins over a fresher one: `st visit` ranks an old whole-word `visit` above today's `visits`. Nothing decays and nothing is hidden; an old plan line is simply listed after the evergreens that match as well, and next month's plan after them too, until next month is next week.
 
 ### Adding under a view
 
-The *Add* row under a view appends to `default.txt`, since a view has no file. `today/` and the long windows stamp today; `yesterday/` and a date view stamp that day, which is the only way to backdate without an editor:
+The *Add* row under a view appends to `default.txt`, since a view has no file. The current period (`today/`, `week/`, `month/`, `quarter/`, `year/`, `decade/`) stamps today; every other view stamps the **first day of its window**, which is how a line is planned ahead or backdated without an editor:
 
 ```
 st today/ zoo visit ↩              2026-10-26: zoo visit            in default.txt
+st tomorrow/ dentist ↩             2026-10-27: dentist              in tomorrow/ tonight, in today/ tomorrow
+st next-week/ review budget ↩      2026-11-02: review budget        next Monday; in next-week/ now, in week/ from Monday
+st next-month/ renew passport ↩    2026-11-01: renew passport       the 1st of next month
+st next-quarter/ plan q1 ↩         2027-01-01: plan q1
 st yesterday/ call dentist ↩       2026-10-25: call dentist         in default.txt, held by yesterday/
+st last-week/ fixed the leak ↩     2026-10-19: fixed the leak       last Monday
 st 2026-10-20/ paid rent ↩         2026-10-20: paid rent            in default.txt, held by 2026-10-20/
+st 2026-12-24/ buy tree ↩          2026-12-24: buy tree             any date works, ahead or behind
 st week/ zoo visit ↩               2026-10-26: zoo visit            week/ means today
 st recipes/ pasta | 500g ↩         2026-10-26: pasta | 500g         in recipes.txt, held by today/ as well
 ```
+
+A planned line moves through the views as the calendar does and nothing else happens to it: when its day comes it is in `today/`, the day after in `yesterday/`, then in `week/` and `month/` as a past line. A planned line you never delete does not nag; it is in `yesterday/` with a `1d` in its subtitle, and ⌥↩ there is the end of it.
 
 ⌘↩ on a view's *Add* row or on a view row opens `default.txt`; ⌘↩ on an entry opens the entry's own file at its line, and ⌥↩ deletes it from there, stamp and all, as usual.
 
 ### Reserved names
 
-`today`, `yesterday`, `week`, `month`, `quarter`, `year`, `decade` and anything shaped like a date are views, so they cannot be stashes: `st week/ x ↩` adds to `default.txt`, and no `week.txt` is ever created. If a file with one of those names already exists in the folder, the view wins: `st week/` shows a hint saying `week.txt is hidden behind the week/ view`, the file's lines still turn up in a bare `st` and in whatever views their stamps allow, and renaming the file makes it a stash again.
+`today`, `yesterday`, `tomorrow`, `week`, `month`, `quarter`, `year`, `decade`, their `last-` and `next-` forms (`last-week`, `next-week`, `last-month`, `next-month`, `last-quarter`, `next-quarter`, `last-year`, `next-year`) and anything shaped like a date are views, so they cannot be stashes: `st week/ x ↩` adds to `default.txt`, and no `week.txt` is ever created. If a file with one of those names already exists in the folder, the view wins: `st week/` shows a hint saying `week.txt is hidden behind the week/ view`, the file's lines still turn up in a bare `st` and in whatever views their stamps allow, and renaming the file makes it a stash again.
 
 ### A day with views
 
-One way to use them: capture into `today/` as things come up, look at `yesterday/` in the morning, delete what is done with ⌥↩. Nothing carries forward by itself; a line you still want is one ⇥ ↩ away (⇥ puts its words into the query, ↩ on *Add* stores it again with today's stamp, and the old line stays where it was, dated). `week/` is the review, `month/` the retrospective, and a bare `st` still finds everything, with age in the subtitle so a stale plan line is easy to spot and delete.
+One way to use them: capture into `today/` as things come up, plan ahead into `tomorrow/` and `next-week/`, look at `yesterday/` in the morning, delete what is done with ⌥↩. Nothing carries forward by itself; a leftover you still want is one ⇥ ↩ away (⇥ puts its words into the query, ↩ on *Add* stores it again with today's stamp, and the old line stays where it was, dated), or one `st tomorrow/ … ↩` if it is for tomorrow. `week/` is the plan for the week and, by Friday, its review; `next-week/` is Friday's planning; `month/` the retrospective; and a bare `st` still finds everything, with the age or the date in the subtitle so a stale plan line is easy to spot and delete.
 
 ```
 st today/ call dentist ↩           morning: three things into today/
 st today/ ship auth tests ↩
 st today/ reply anna ↩
+st tomorrow/ pick up parcel ↩      and one for tomorrow; it shows in today/ when tomorrow comes
+st next-week/ 1:1 anna prep ↩      stamped next Monday
 st today/                          during the day: the plan, ↩ opens or copies a line, ⌥↩ clears it when done
 st yesterday/                      next morning: what was left; ⇥ ↩ on a line to take it into today
-st week/                           friday: the week, newest first
+st week/                           the week: today, the days ahead, the days gone
+st next-week/                      friday afternoon: what next week already holds
 ```
 
 ## Placeholders
@@ -538,14 +555,15 @@ What keeps it fast:
 - A path payload opens only if it exists when you search; a command that happens to start with `/` is copied, not run.
 - A stamp is a day, not a time, in the local time zone of the machine that wrote it; the day turns at 00:00, so a line added at 00:30 is already today's. Views are calendar windows and nothing else: there is no "last 7 days", no "this week so far", and no window shorter than a day.
 - A view holds every undated line, so `st today/` on an old stash lists all of it; the evergreens come after today's lines.
-- `today`, `yesterday`, `week`, `month`, `quarter`, `year`, `decade` and dates are not available as stash names.
+- `today`, `yesterday`, `tomorrow`, `week`, `month`, `quarter`, `year`, `decade`, their `last-` and `next-` forms and dates are not available as stash names.
+- "Comes up first" means the calendar: a line stamped within next week ranks above the evergreens, a line stamped the Monday after does not, even when that is two days away. There is no rolling horizon.
 - It's a plain-text file: don't store secrets you wouldn't keep in a dotfile.
 
 ## Development
 
 ```bash
 uv sync
-make test           # pytest on the project interpreter                      (579 tests)
+make test           # pytest on the project interpreter                      (652 tests)
 make test-system    # the same on /usr/bin/python3, the interpreter the workflow runs on
 make lint           # ruff check + format
 make check          # build dist/Stashes.alfredworkflow and run it the way Alfred would
@@ -563,7 +581,7 @@ git tag v3.1.0 && git push origin v3.1.0
 | Path | Responsibility |
 |---|---|
 | `stash/entries.py` | Split a line into its stamp and, at the first separator, an `Entry` with its searchable text; the `name/` prefix |
-| `stash/views.py` | The view names, their calendar windows (integer day counts, no `datetime`), the age word, the freshness key |
+| `stash/views.py` | The view names as period × offset, their calendar windows (integer day counts, no `datetime`), the age word, the `Horizon` and freshness key |
 | `stash/matching.py` | One regex per query word for the label, substring fallback on the payload, scoring, ranking with the freshness tiebreak |
 | `stash/store.py` | The stashes folder: `default.txt` and the other files; load, append, delete lines; atomic, symlink-safe writes |
 | `stash/snippets.py` | `{{name}}` and `{{name=default}}` placeholders, the reserved `date`, `time` and `clipboard`, filling |
