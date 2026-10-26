@@ -16,6 +16,7 @@ from stash.matching import (
     token,
     token_pattern,
 )
+from stash.views import Horizon
 
 LINES = [
     "ssh prod web | ssh deploy@10.0.1.5",
@@ -31,8 +32,14 @@ def entries_from(lines):
     return [parse_line(line, number) for number, line in enumerate(lines, start=1)]
 
 
-def found_labels(query, lines=LINES, limit=10, today=""):
-    return [entry.label for entry in search(query, entries_from(lines), limit, today)]
+ROOT = Horizon("2026-10-26", "2026-10-26", "2026-11-08")
+
+
+def found_labels(query, lines=LINES, limit=10, horizon=None):
+    entries = entries_from(lines)
+    return [
+        entry.label for entry in (search(query, entries, limit, horizon) if horizon else search(query, entries, limit))
+    ]
 
 
 @pytest.mark.parametrize(
@@ -141,25 +148,31 @@ def test_search_keeps_file_order_for_equal_scores():
 
 DATED = [
     "2026-10-20: zoo visit | last week's plan",
+    "2027-01-10: visit rome | far ahead",
     "visit grandma | evergreen",
     "2026-10-26: visit dentist | today's plan",
+    "2026-11-02: visit tax | next week",
     "2026-10-25: visit bank | yesterday's plan",
+    "2026-10-27: visit vet | tomorrow",
 ]
 
 
-def test_search_breaks_equal_scores_by_today_then_undated_then_older_newest_first():
-    assert found_labels("visit", DATED, today="2026-10-26") == [
+def test_search_breaks_equal_scores_by_freshness():
+    assert found_labels("visit", DATED, horizon=ROOT) == [
         "visit dentist",
+        "visit vet",
+        "visit tax",
         "visit grandma",
+        "visit rome",
         "visit bank",
         "zoo visit",
-    ], "at an equal score, today's lines come first, evergreens next, then older lines newest first"
+    ], "today, then up to the end of next week soonest first, evergreens, the far future, then the past newest first"
 
 
 def test_search_lets_a_stronger_match_beat_a_fresher_one():
     lines = ["2026-10-26: visits | today", "visit | evergreen"]
 
-    assert found_labels("visit", lines, today="2026-10-26") == ["visit", "visits"], (
+    assert found_labels("visit", lines, horizon=ROOT) == ["visit", "visits"], (
         "age only breaks ties; a whole-word match on an old line still beats a prefix match on today's"
     )
 
@@ -167,24 +180,31 @@ def test_search_lets_a_stronger_match_beat_a_fresher_one():
 def test_search_tightness_still_decides_among_lines_of_one_age():
     lines = ["2026-10-20: box crate container | a", "2026-10-20: box | b"]
 
-    assert found_labels("box", lines, today="2026-10-26") == ["box", "box crate container"], (
+    assert found_labels("box", lines, horizon=ROOT) == ["box", "box crate container"], (
         "same date, same score: the tighter label wins as before"
     )
 
 
-def test_search_without_today_treats_every_stamp_as_fresh():
-    assert found_labels("visit", DATED) == ["visit dentist", "visit bank", "zoo visit", "visit grandma"], (
-        "with no reference day, dated lines rank newest first and undated ones last"
+def test_search_without_a_horizon_ignores_stamps():
+    undated = [line.split(": ", 1)[-1] for line in DATED]
+
+    assert found_labels("visit", DATED) == found_labels("visit", undated), (
+        "with no reference day, dates play no part: the result is what the same lines give without their stamps"
     )
 
 
 def test_by_freshness_orders_entries_for_browsing_a_view():
-    assert [entry.label for entry in by_freshness(entries_from(DATED), "2026-10-26")] == [
+    week = Horizon("2026-10-26", "2026-10-26", "2026-11-01")
+
+    assert [entry.label for entry in by_freshness(entries_from(DATED), week)] == [
         "visit dentist",
+        "visit vet",
         "visit grandma",
+        "visit tax",
+        "visit rome",
         "visit bank",
         "zoo visit",
-    ], "browsing a view lists today's lines, evergreens, then older lines newest first, file order within a day"
+    ], "browsing ranks today, the window soonest first, evergreens, the far future soonest first, then the past"
 
 
 def test_search_ranks_by_the_order_given_when_everything_else_is_equal():

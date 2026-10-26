@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from typing import NamedTuple
 
 from .entries import Entry, haystack_of, split_words
-from .views import freshness
+from .views import NO_HORIZON, Horizon, freshness
 
 EXACT, PREFIX, SUBSTRING, SUBSEQUENCE, NO_MATCH = 8, 6, 4, 2, 0
 PAYLOAD = 1
@@ -52,21 +52,21 @@ def score(tokens: Sequence[Token], entry: Entry) -> int:
 Hit = tuple[int, int, Entry]
 
 
-def rank(hit: Hit, floor: str = "") -> tuple[int, tuple[int, int], int, int]:
+def rank(hit: Hit, horizon: Horizon = NO_HORIZON) -> tuple[int, tuple[int, int], int, int]:
     total, position, entry = hit
-    return -total, freshness(entry.date, floor), len(entry.haystack), position
+    return -total, freshness(entry.date, horizon), len(entry.haystack), position
 
 
-def by_freshness(entries: Sequence[Entry], floor: str) -> list[Entry]:
-    return sorted(entries, key=lambda entry: freshness(entry.date, floor))
+def by_freshness(entries: Sequence[Entry], horizon: Horizon) -> list[Entry]:
+    return sorted(entries, key=lambda entry: freshness(entry.date, horizon))
 
 
-def search(query: str, entries: Sequence[Entry], limit: int, floor: str = "") -> list[Entry]:
+def search(query: str, entries: Sequence[Entry], limit: int, horizon: Horizon = NO_HORIZON) -> list[Entry]:
     tokens = [token(word) for word in dict.fromkeys(split_words(query.lower()))]
     if not tokens:
         return list(entries[:limit])
     hits = [(score(tokens, entry), position, entry) for position, entry in enumerate(entries)]
-    best = heapq.nsmallest(limit, [hit for hit in hits if hit[0]], key=lambda hit: rank(hit, floor))
+    best = heapq.nsmallest(limit, [hit for hit in hits if hit[0]], key=lambda hit: rank(hit, horizon))
     return [entry for _, _, entry in best]
 
 

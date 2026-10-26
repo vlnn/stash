@@ -579,6 +579,10 @@ DATED = (
     "visit grandma | evergreen\n"
     "2026-09-30: visit museum | september\n"
     "2025-12-31: visit paris | last year\n"
+    "2027-01-10: visit rome | far ahead\n"
+    "2026-10-30: visit tax | next friday\n"
+    "2026-11-15: visit opera | next month\n"
+    "2026-10-26: visit vet | the vet\n"
 )
 
 
@@ -597,13 +601,63 @@ def dated(db_file, grocery, frozen_clock):
         ("yesterday/", ["visit bank", "cheese", "visit grandma", "milk eggs", "bread"]),
         ("yesterday/ visit", ["visit bank", "visit grandma", "Add: visit"]),
         ("week/ visit", ["zoo visit", "visit bank", "visit dentist", "visit grandma", "Add: visit"]),
-        ("month/ visit", ["zoo visit", "visit bank", "visit dentist", "visit grandma", "Add: visit"]),
-        ("quarter/ visit", ["zoo visit", "visit bank", "visit dentist", "visit grandma", "Add: visit"]),
-        ("year/ visit", ["zoo visit", "visit bank", "visit dentist", "visit museum", "visit grandma", "Add: visit"]),
+        (
+            "month/ visit",
+            ["zoo visit", "visit vet", "visit tax", "visit bank", "visit dentist", "visit grandma", "Add: visit"],
+        ),
+        (
+            "quarter/ visit",
+            [
+                "zoo visit",
+                "visit vet",
+                "visit tax",
+                "visit opera",
+                "visit bank",
+                "visit dentist",
+                "visit grandma",
+                "Add: visit",
+            ],
+        ),
+        (
+            "year/ visit",
+            [
+                "zoo visit",
+                "visit vet",
+                "visit tax",
+                "visit opera",
+                "visit bank",
+                "visit dentist",
+                "visit museum",
+                "visit grandma",
+                "Add: visit",
+            ],
+        ),
         (
             "decade/ visit",
-            ["zoo visit", "visit bank", "visit dentist", "visit museum", "visit paris", "visit grandma", "Add: visit"],
+            [
+                "zoo visit",
+                "visit vet",
+                "visit tax",
+                "visit opera",
+                "visit rome",
+                "visit bank",
+                "visit dentist",
+                "visit museum",
+                "visit paris",
+                "visit grandma",
+                "Add: visit",
+            ],
         ),
+        ("tomorrow/ visit", ["visit vet", "visit grandma", "Add: visit"]),
+        ("tomorrow/", ["visit vet", "visit grandma", "milk eggs", "bread"]),
+        ("next-week/ visit", ["visit vet", "visit tax", "visit grandma", "Add: visit"]),
+        ("next-month/ visit", ["visit opera", "visit grandma", "Add: visit"]),
+        ("next-quarter/ visit", ["visit rome", "visit grandma", "Add: visit"]),
+        ("next-year/ visit", ["visit rome", "visit grandma", "Add: visit"]),
+        ("last-week/ visit", ["visit grandma", "Add: visit"]),
+        ("last-month/ visit", ["visit museum", "visit grandma", "Add: visit"]),
+        ("last-quarter/ visit", ["visit museum", "visit grandma", "Add: visit"]),
+        ("last-year/ visit", ["visit paris", "visit grandma", "Add: visit"]),
         ("2026-10-20/", ["visit dentist", "visit grandma", "milk eggs", "bread"]),
         ("2026-10-20/ dentist", ["visit dentist", "Add: dentist"]),
         ("2026-10-21/", ["visit grandma", "milk eggs", "bread"]),
@@ -622,21 +676,29 @@ def test_root_search_breaks_ties_by_freshness_and_shows_an_age_word(capsys, env,
 
     assert [item["title"] for item in items] == [
         "zoo visit",
+        "visit vet",
+        "visit tax",
         "visit grandma",
+        "visit opera",
+        "visit rome",
         "visit bank",
         "visit dentist",
         "visit museum",
         "visit paris",
         "Add: visit",
-    ], "at the root, equal matches rank today, undated, then older newest first"
+    ], "at the root, equal matches rank today, up to next Sunday, undated, later, then the past newest first"
     assert [item["subtitle"] for item in items[:-1]] == [
         "today · plan for the day",
+        "2026-10-26 · the vet",
+        "2026-10-30 · next friday",
         "evergreen",
+        "2026-11-15 · next month",
+        "2027-01-10 · far ahead",
         "1d · the bank",
         "5d · last monday",
         "3w · september",
         "9mo · last year",
-    ], "a dated line's subtitle starts with how old it is; an undated line's does not"
+    ], "a past stamp shows as an age, a future one as its date, an undated line shows neither"
 
 
 @pytest.mark.parametrize(
@@ -662,6 +724,13 @@ def test_subtitle_shows_stash_then_age_then_payload(capsys, env, dated, query, s
         ("2026-10-20/ backdated | x", "Added: backdated", "2026-10-20: backdated | x"),
         ("week/ x", "Added: x", "2026-10-25: x"),
         ("decade/ x", "Added: x", "2026-10-25: x"),
+        ("tomorrow/ x", "Added: x", "2026-10-26: x"),
+        ("next-week/ x", "Added: x", "2026-10-26: x"),
+        ("last-week/ x", "Added: x", "2026-10-12: x"),
+        ("next-month/ x", "Added: x", "2026-11-01: x"),
+        ("last-month/ x", "Added: x", "2026-09-01: x"),
+        ("next-quarter/ x", "Added: x", "2027-01-01: x"),
+        ("last-year/ x", "Added: x", "2025-01-01: x"),
         ("2026-10-20: typed | x", "Added: 2026-10-20: typed", "2026-10-25: 2026-10-20: typed | x"),
         ("2026-10-20 great day", "Added: 2026-10-20 great day", "2026-10-25: 2026-10-20 great day"),
     ],
@@ -669,7 +738,7 @@ def test_subtitle_shows_stash_then_age_then_payload(capsys, env, dated, query, s
 def test_add_under_a_view_writes_to_default_with_the_view_date(capsys, env, db_file, frozen_clock, raw, output, stored):
     assert run(capsys, env, "add", raw) == output, "a view is not a stash, so add does not name it"
     assert db_file.read_text(encoding="utf-8").endswith(f"\n{stored}\n"), (
-        "today/ and the long windows stamp today, yesterday/ and a date view stamp that date; a typed date is text"
+        "the current period stamps today; the shifted views and a date stamp their first day; typed dates are text"
     )
 
 
@@ -708,8 +777,10 @@ def test_edit_under_a_view_opens_default(mocker, capsys, env, db_file):
     "query, expected, subtitle",
     [
         ("tod", ["today/", "Add: tod"], "4 entries · 2026-10-25 · ↩ to browse"),
+        ("tom", ["tomorrow/", "Add: tom"], "4 entries · 2026-10-26 · ↩ to browse"),
         ("wee", ["week/", "Add: wee"], "7 entries · 2026-10-19 – 2026-10-25 · ↩ to browse"),
         ("yes", ["yesterday/", "Add: yes"], "5 entries · 2026-10-24 · ↩ to browse"),
+        ("next-w", ["next-week/", "Add: next-w"], "5 entries · 2026-10-26 – 2026-11-01 · ↩ to browse"),
     ],
 )
 def test_a_view_row_appears_when_its_name_is_typed(capsys, env, dated, query, expected, subtitle):
@@ -731,10 +802,12 @@ def test_view_rows_need_the_start_of_their_name(capsys, stashed_env, dated, quer
 
 def test_view_rows_for_every_view_that_starts_with_what_was_typed(capsys, env, dated):
     rows = [title for title in item_titles(run(capsys, env, "search", "y")) if title.endswith("/")]
+    nexts = [title for title in item_titles(run(capsys, env, "search", "next")) if title.endswith("/")]
 
     assert rows == ["grocery/", "yesterday/", "year/"], (
         "stash rows first as always, then every view starting with the letter, in their natural order"
     )
+    assert nexts == ["next-week/", "next-month/", "next-quarter/", "next-year/"], "next lists the four next views"
 
 
 def test_a_file_named_after_a_view_is_shadowed_but_its_lines_are_not_lost(capsys, env, db_dir, dated):

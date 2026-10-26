@@ -2,18 +2,49 @@ from __future__ import annotations
 
 import re
 import time
+from typing import NamedTuple
 
 from .entries import DATE
 
-VIEWS = ("today", "yesterday", "week", "month", "quarter", "year", "decade")
-TODAY, YESTERDAY, WEEK, MONTH, QUARTER, YEAR, DECADE = VIEWS
+DAY, WEEK, MONTH, QUARTER, YEAR, DECADE = "day", "week", "month", "quarter", "year", "decade"
+TODAY, NEXT_WEEK = "today", "next-week"
+PERIODS = {
+    TODAY: (DAY, 0),
+    "yesterday": (DAY, -1),
+    "tomorrow": (DAY, 1),
+    WEEK: (WEEK, 0),
+    "last-week": (WEEK, -1),
+    NEXT_WEEK: (WEEK, 1),
+    MONTH: (MONTH, 0),
+    "last-month": (MONTH, -1),
+    "next-month": (MONTH, 1),
+    QUARTER: (QUARTER, 0),
+    "last-quarter": (QUARTER, -1),
+    "next-quarter": (QUARTER, 1),
+    YEAR: (YEAR, 0),
+    "last-year": (YEAR, -1),
+    "next-year": (YEAR, 1),
+    DECADE: (DECADE, 0),
+}
+VIEWS = tuple(PERIODS)
 DATE_NAME = re.compile(rf"^{DATE}$")
 DATE_FORMAT = "%Y-%m-%d"
 EPOCH_SHIFT = 719468
 
+Window = tuple[str, str]
+
+
+class Horizon(NamedTuple):
+    today: str
+    floor: str
+    last: str
+
+
+NO_HORIZON = Horizon("", "", "")
+
 
 def is_view(name: str) -> bool:
-    return name in VIEWS or DATE_NAME.match(name) is not None
+    return name in PERIODS or DATE_NAME.match(name) is not None
 
 
 def iso(now: time.struct_time) -> str:
@@ -49,36 +80,46 @@ def day(year: int, month: int, mday: int) -> str:
     return f"{year:04d}-{month:02d}-{mday:02d}"
 
 
-def window(view: str, now: time.struct_time) -> tuple[str, str]:
+def window(view: str, now: time.struct_time) -> Window:
+    if view not in PERIODS:
+        return view, view
+    period, offset = PERIODS[view]
     year, month, mday, weekday = now.tm_year, now.tm_mon, now.tm_mday, now.tm_wday
-    if view == TODAY:
-        return iso(now), iso(now)
-    if view == YESTERDAY:
-        return day(year, month, mday - 1), day(year, month, mday - 1)
-    if view == WEEK:
-        return day(year, month, mday - weekday), day(year, month, mday - weekday + 6)
-    if view == MONTH:
-        return day(year, month, 1), day(year, month + 1, 0)
-    if view == QUARTER:
-        first = (month - 1) // 3 * 3 + 1
+    if period == DAY:
+        return day(year, month, mday + offset), day(year, month, mday + offset)
+    if period == WEEK:
+        monday = mday - weekday + 7 * offset
+        return day(year, month, monday), day(year, month, monday + 6)
+    if period == MONTH:
+        return day(year, month + offset, 1), day(year, month + offset + 1, 0)
+    if period == QUARTER:
+        first = (month - 1) // 3 * 3 + 1 + 3 * offset
         return day(year, first, 1), day(year, first + 3, 0)
-    if view == YEAR:
-        return day(year, 1, 1), day(year, 12, 31)
-    if view == DECADE:
-        first = year - year % 10
-        return day(first, 1, 1), day(first + 9, 12, 31)
-    return view, view
+    if period == YEAR:
+        return day(year + offset, 1, 1), day(year + offset, 12, 31)
+    first = year - year % 10
+    return day(first, 1, 1), day(first + 9, 12, 31)
 
 
-def admits(span: tuple[str, str], date: str) -> bool:
+def admits(span: Window, date: str) -> bool:
     first, last = span
     return not date or first <= date <= last
 
 
+def is_current(view: str) -> bool:
+    return view in PERIODS and PERIODS[view][1] == 0
+
+
 def stamp_for(view: str, now: time.struct_time) -> str:
-    if view == YESTERDAY or DATE_NAME.match(view):
+    if is_view(view) and not is_current(view):
         return window(view, now)[0]
     return iso(now)
+
+
+def horizon_at(now: time.struct_time, span: Window | None = None) -> Horizon:
+    today = iso(now)
+    first, last = span or (today, window(NEXT_WEEK, now)[1])
+    return Horizon(today, first, last)
 
 
 def days_ago(date: str, now: time.struct_time) -> int:
@@ -100,7 +141,19 @@ def age(date: str, now: time.struct_time) -> str:
     return f"{days // 365}y"
 
 
-def freshness(date: str, floor: str) -> tuple[int, int]:
+def freshness(date: str, horizon: Horizon) -> tuple[int, int]:
+    today, floor, last = horizon
+    if not today:
+        return 0, 0
     if not date:
-        return 1, 0
-    return (0 if date >= floor else 2), -int(date.replace("-", ""))
+        return 3, 0
+    number = int(date.replace("-", ""))
+    if date == today:
+        return 0, 0
+    if today < date <= last:
+        return 1, number
+    if floor <= date < today:
+        return 2, -number
+    if date > last:
+        return 4, number
+    return 5, -number

@@ -108,7 +108,7 @@ def stash_search(stash: str, words: str, query: str, config: Config) -> list[alf
     today = now()
     path = store.stash_path(config.db_dir, stash)
     entries = store.load_entries(path, stash)
-    hits = search(words, entries, config.max_results, views.iso(today))
+    hits = search(words, entries, config.max_results, views.horizon_at(today))
     reserved = clock_values()
     matches = [item_of(entry, stash, reserved, config, today) for entry in hits]
     exists = os.path.exists(path)
@@ -118,13 +118,13 @@ def stash_search(stash: str, words: str, query: str, config: Config) -> list[alf
 
 def root_search(words: str, query: str, config: Config) -> list[alfred.Item]:
     today = now()
-    floor = views.iso(today)
+    horizon = views.horizon_at(today)
     root = store.load_stash(config.db_dir)
     stashes = store.load_stashes(config.db_dir)
     stashed = [entry for entries in stashes.values() for entry in entries]
     rows = stash_rows(words, stashes) if words.strip() or config.show_stashes else []
     rows += view_rows(words, [*root, *stashed], today) if words.strip() else []
-    hits = [*search(words, root, config.max_results, floor), *search(words, stashed, config.max_results, floor)]
+    hits = [*search(words, root, config.max_results, horizon), *search(words, stashed, config.max_results, horizon)]
     hits = hits[: max(config.max_results - len(rows), 0)]
     reserved = clock_values()
     matches = [*rows, *(item_of(entry, "", reserved, config, today) for entry in hits)]
@@ -135,9 +135,10 @@ def root_search(words: str, query: str, config: Config) -> list[alfred.Item]:
 def view_search(view: str, words: str, query: str, config: Config) -> list[alfred.Item]:
     today = now()
     window = views.window(view, today)
+    horizon = views.horizon_at(today, window)
     everything = [*store.load_stash(config.db_dir), *stashed_entries(config.db_dir)]
-    admitted = by_freshness([entry for entry in everything if views.admits(window, entry.date)], window[0])
-    hits = search(words, admitted, config.max_results, window[0])
+    admitted = by_freshness([entry for entry in everything if views.admits(window, entry.date)], horizon)
+    hits = search(words, admitted, config.max_results, horizon)
     reserved = clock_values()
     matches = [item_of(entry, view, reserved, config, today) for entry in hits]
     hint = alfred.view_hint(view, window)
