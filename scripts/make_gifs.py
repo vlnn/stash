@@ -79,7 +79,7 @@ def clipped(text, limit=96):
 
 def frames_of(scenario, theme):
     queries = ["", *keystrokes(scenario.typed)]
-    return [frame(query, search_items(query), scenario.shows, theme) for query in queries]
+    return [frame(query, search_items(query, scenario.today), scenario.shows, theme) for query in queries]
 
 
 def save_gif(frames, path):

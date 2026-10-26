@@ -1,5 +1,6 @@
-# The stash the documentation GIFs are recorded against. Keep it small, undated and stable:
+# The stash the documentation GIFs are recorded against. Keep it small and stable:
 # every line here can end up on a frame, and docs/scenarios.py says what each GIF must land on.
+# The dated lines at the end are seen from DOCS_DAY (2026-10-26), which the calendar scenarios pin.
 
 # shell one-liners: enter copies, shift-enter pastes
 ssh prod web              | ssh deploy@10.0.1.5
@@ -13,10 +14,28 @@ port listen who 8080      | lsof -nP -iTCP:8080 -sTCP:LISTEN | grep -v COMMAND
 grafana api latency       | https://grafana.example.com/d/api-latency
 docs python re            | https://docs.python.org/3/library/re.html
 
+# hand-offs: enter opens Alfred with the other workflow's keyword
+algorithms book           | algorithms @books
+
+# templates: enter asks for each blank, then copies
+ssh box                   | ssh {{user=root}}@{{host}} -p {{port=22}}
+
 # text: enter copies
 email work                | name.surname@example.com
 reply thanks review       | Thanks for the review! I've addressed the comments, PTAL.
+visit grandma             | every sunday
 
 # plain lines: searched in full, copied in full
 pihole update finished
 wifi guest GuestNetwork-5G
+
+# dated lines around DOCS_DAY: yesterday, today, tomorrow, later this week, next month, and a while ago
+2026-10-25: visit bank    | bring the signed form
+2026-10-26: zoo visit     | 10:00, meet at the east gate
+2026-10-26: k8s ctx prod  | kubectl config use-context prod
+2026-10-27: visit vet     | the vet
+2026-10-30: visit tax     | friday
+2026-11-02: review budget | next monday
+2026-11-15: visit opera   | next month
+2026-10-19: visit dentist | last monday
+2026-01-20: visit paris   | last year

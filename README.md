@@ -24,6 +24,8 @@ st stg k8
   ↩ copy / open / add   ⇧↩ paste   ⌘↩ edit   ⌥↩ delete
 ```
 
+A longer, task-by-task walkthrough with animated examples is in [docs/MANUAL.md](docs/MANUAL.md).
+
 ## Contents
 
 - [Install](#install)
@@ -568,11 +570,11 @@ make test-system    # the same on /usr/bin/python3, the interpreter the workflow
 make lint           # ruff check + format
 make check          # build dist/Stashes.alfredworkflow and run it the way Alfred would
 make bench          # latency per keystroke; PYTHON=/path/to/python3 to pick the interpreter
-make docs           # regenerate everything under docs/: for now the GIFs
+make docs           # regenerate everything under docs/: the GIFs the manual embeds
 make gifs           # draw docs/gifs/*.gif, one frame per keystroke of each docs/scenarios.py scenario, dark and light
 ```
 
-`make gifs` renders what Alfred would show, from the Script Filter JSON `run.py search` prints, as the query of each scenario is typed key by key against `docs/stashes/`, once in a dark and once in a light scheme; the same scenarios are asserted by `tests/test_scenarios.py`, so a GIF only shows what the suite checks.
+`make gifs` renders what Alfred would show, from the Script Filter JSON `run.py search` prints, as the query of each scenario is typed key by key against `docs/stashes/`, once in a dark and once in a light scheme; the same scenarios are asserted by `tests/test_scenarios.py`, so a GIF only shows what the suite checks. Scenarios that depend on the calendar pin their day (`DOCS_DAY`), so the dated lines in `docs/stashes/default.txt` land on the same frames every time. `docs/MANUAL.md` embeds the light GIF of each scenario and switches to the dark one for readers whose browser prefers a dark scheme.
 
 `make check` unzips the bundle into a temporary folder and drives every script from its `info.plist` through `bash`, exactly as Alfred does, against a throwaway stash: add with pipes, search, hand-off, edit, delete, the views.
 
@@ -598,4 +600,4 @@ git tag v3.1.0 && git push origin v3.1.0
 | `tests/` | pytest suite, including a structural check of `info.plist` |
 | `bench.py` | End-to-end latency benchmark |
 | `examples/` | Sample folder: the stashes `default.txt` and `checklists.txt` |
-| `docs/` | The typing scenarios, the stashes they run against, and the GIFs drawn from them in both schemes |
+| `docs/` | `MANUAL.md`, the typing scenarios, the stashes they run against, and the GIFs drawn from them in both schemes |
