@@ -305,7 +305,7 @@ st recipes/ pasta | 500g ↩         2026-10-26: pasta | 500g         in recipes
 
 ### Reserved names
 
-`today`, `yesterday`, `week`, `month`, `quarter`, `year`, `decade` and anything shaped like a date are views, so they cannot be stashes: `st week/ x ↩` adds to `default.txt`, and no `week.txt` is ever created. If a file with one of those names already exists in the folder, the view wins: `st week/` shows a hint saying `week.txt is hidden behind the week/ view`, the file's lines still turn up in a bare `st` and in every view (they are undated), and renaming the file makes it a stash again.
+`today`, `yesterday`, `week`, `month`, `quarter`, `year`, `decade` and anything shaped like a date are views, so they cannot be stashes: `st week/ x ↩` adds to `default.txt`, and no `week.txt` is ever created. If a file with one of those names already exists in the folder, the view wins: `st week/` shows a hint saying `week.txt is hidden behind the week/ view`, the file's lines still turn up in a bare `st` and in whatever views their stamps allow, and renaming the file makes it a stash again.
 
 ### A day with views
 
