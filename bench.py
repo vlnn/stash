@@ -22,10 +22,17 @@ def stress_vocabulary(rng, count):
     return ["".join(rng.choices(STRESS_SYLLABLES, k=rng.randint(1, 3))) for _ in range(count)]
 
 
+def stamp(rng):
+    # half the lines carry a date from the last two years, the other half are undated evergreens
+    if rng.random() < 0.5:
+        return ""
+    return f"{rng.randint(2024, 2026)}-{rng.randint(1, 12):02d}-{rng.randint(1, 28):02d}: "
+
+
 def database_line(rng, vocabulary):
     keywords = " ".join(rng.sample(vocabulary, rng.randint(2, 5)))
     title = " ".join(rng.sample(vocabulary, rng.randint(2, 4))).capitalize()
-    return f"{keywords} | {title} | echo {rng.randrange(10**9)}\n"
+    return f"{stamp(rng)}{keywords} | {title} | echo {rng.randrange(10**9)}\n"
 
 
 def write_database(directory, size, vocabulary, rng):
@@ -38,7 +45,7 @@ def write_database(directory, size, vocabulary, rng):
 
 def queries_for(vocabulary):
     first, second, third = vocabulary[:3]
-    return ("", "a", first[:3], f"{second} {first[:2]}", third[0] + third[-1], "zzzzq")
+    return ("", "a", first[:3], f"{second} {first[:2]}", third[0] + third[-1], "zzzzq", "year/", f"year/ {first[:3]}")
 
 
 def milliseconds(argv, env):

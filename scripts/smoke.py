@@ -85,10 +85,9 @@ def main(bundle_path, python):
         check(hand_off["variables"] == {"action": "alfred"} and hand_off["arg"] == "kb delany", "@word hands off")
         check(titles(run(bundle_dir, scripts, "search", "кав", env))[0] == "кава coffee", "unicode searches")
         check(run(bundle_dir, scripts, "edit", "2", env).endswith("default.txt:2"), "edit opens the editor at the line")
-        check(
-            run(bundle_dir, scripts, "delete", "logs | tail -f app.log | grep ERROR", env).startswith("Deleted:"),
-            "delete removes a line",
-        )
+        stored = found["mods"]["alt"]["arg"]
+        check(stored.startswith("20") and ": logs | " in stored, "lines are stamped")
+        check(run(bundle_dir, scripts, "delete", stored, env).startswith("Deleted:"), "delete removes it")
         check(
             titles(run(bundle_dir, scripts, "search", "", env)) == ["ssh prod", "books", "кава coffee"],
             "the rest is intact",
@@ -125,6 +124,14 @@ def main(bundle_path, python):
         check(unmatched == ["Add: zelazny @kobold"], "new text is added, not run")
         [found, run_row, _] = json.loads(run(bundle_dir, scripts, "search", "delany @kobold", env))["items"]
         check(found["title"] == "books" and run_row["arg"] == "kb delany", "found through the payload, enter or run")
+        check(titles(run(bundle_dir, scripts, "search", "today/", env))[0] == "ssh prod", "today/ holds today's lines")
+        check(titles(run(bundle_dir, scripts, "search", "yesterday/ ssh", env)) == ["Add: ssh"], "yesterday/ does not")
+        check(run(bundle_dir, scripts, "add", "today/ zoo visit", env) == "Added: zoo visit", "today/ adds to default")
+        check(not os.path.exists(os.path.join(env["db_dir"], "today.txt")), "a view never becomes a file")
+        [row, *_] = json.loads(run(bundle_dir, scripts, "search", "tod", env))["items"]
+        check(row["title"] == "today/" and row["autocomplete"] == "today/ ", "typing a view name lists its row")
+        [zoo, *_] = json.loads(run(bundle_dir, scripts, "search", "zoo", env))["items"]
+        check(zoo["subtitle"] == "today · Copy", "a dated line says how old it is")
 
 
 if __name__ == "__main__":

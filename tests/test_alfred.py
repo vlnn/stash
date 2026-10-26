@@ -15,8 +15,11 @@ from stash.alfred import (
     render,
     root_hint,
     run_item,
+    shadow_hint,
+    span_of,
     stash_hint,
     stash_item,
+    view_hint,
 )
 from stash.entries import parse_line
 
@@ -411,3 +414,78 @@ def test_feedback_offers_run_only_beside_a_match(matches, query, expected):
         "a found entry comes first and may be run; a typed payload is run only as the alternative beside it; "
         "new text is only ever added, and a typed separator means Add, as before"
     )
+
+
+DATED = parse_line("2026-10-24: bread | sourdough", line_number=2, stash="grocery")
+
+
+@pytest.mark.parametrize(
+    "within, age, subtitle",
+    [
+        ("", "1d", "grocery · 1d · sourdough"),
+        ("grocery", "1d", "1d · sourdough"),
+        ("today", "today", "grocery · today · sourdough"),
+        ("", "", "grocery · sourdough"),
+    ],
+)
+def test_entry_item_puts_the_age_after_the_stash_and_before_the_payload(within, age, subtitle):
+    assert entry_item(DATED, within=within, age=age)["subtitle"] == subtitle, (
+        "stash unless implied, then age if given, then the payload"
+    )
+
+
+def test_entry_item_of_a_dated_line_deletes_the_stored_line_stamp_included():
+    assert entry_item(DATED)["mods"]["alt"]["arg"] == "grocery/ 2026-10-24: bread | sourdough", (
+        "delete matches the line as stored, so the stamp must travel with it"
+    )
+
+
+def test_entry_item_title_and_uid_ignore_the_stamp():
+    item = entry_item(DATED)
+
+    assert item["title"] == "bread", "the stamp is never shown in the title"
+    assert item["uid"] == "grocery/ bread|sourdough", "Alfred's learning follows the entry, not the day it was added"
+
+
+@pytest.mark.parametrize(
+    "window, span",
+    [(("2026-10-25", "2026-10-25"), "2026-10-25"), (("2026-10-19", "2026-10-25"), "2026-10-19 – 2026-10-25")],
+)
+def test_span_of_writes_a_day_or_a_range(window, span):
+    assert span_of(window) == span, "one day reads as itself, a window as first – last"
+
+
+def test_stash_item_for_a_view_shows_its_days_and_opens_default():
+    item = stash_item("week", 7, "2026-10-19 – 2026-10-25")
+
+    assert item["subtitle"] == "7 entries · 2026-10-19 – 2026-10-25 · ↩ to browse", (
+        "a view row says which days it spans"
+    )
+    assert item["mods"]["cmd"] == {"arg": "1", "subtitle": "Open default/ in your editor", "valid": True}, (
+        "a view has no file; cmd opens default.txt, where today/ adds land"
+    )
+
+
+def test_view_hint_names_the_window():
+    hint = view_hint("week", ("2026-10-19", "2026-10-25"))
+
+    assert hint["title"] == "Nothing in week/", "an empty view is told apart from a miss"
+    assert hint["subtitle"] == "Lines stamped 2026-10-19 – 2026-10-25 and undated lines show here", "and says what fits"
+
+
+def test_shadow_hint_explains_the_file_in_the_way():
+    hint = shadow_hint("today")
+
+    assert hint["title"] == "today.txt is hidden behind the today/ view", "the view wins over a file of its name"
+    assert hint["valid"] is False and hint["mods"] == {}, "there is nothing to act on from the hint"
+
+
+def test_add_item_under_a_view_opens_default_but_adds_through_the_view():
+    item = add_item("zoo visit", "yesterday")
+
+    assert item["arg"] == "yesterday/ zoo visit", "the add command needs the view to pick the date"
+    assert item["mods"]["cmd"] == {"arg": "1", "subtitle": "Open default/ in your editor"}, "the line lands in default"
+
+
+def test_add_item_keeps_a_typed_date_as_text():
+    assert add_item("2026-10-20: typed | x")["title"] == "Add: 2026-10-20: typed", "only the tool writes stamps"
