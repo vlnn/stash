@@ -6,6 +6,8 @@ from typing import NamedTuple
 SEPARATOR = re.compile(r"\||(?:(?<=\s)|^)\\(?=\s|$)")
 STASH_NAME = re.compile(r"[\w-]+")
 STASH_PREFIX = re.compile(rf"^({STASH_NAME.pattern})/\s*")
+DATE = r"\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])"
+STAMP = re.compile(rf"^({DATE}):\s*")
 COMMENT_PREFIX = "#"
 
 Keywords = tuple[str, ...]
@@ -19,17 +21,30 @@ class Entry(NamedTuple):
     raw: str = ""
     stash: str = ""
     needle: str = ""
+    date: str = ""
 
 
 def parse_line(line: str, line_number: int = 0, stash: str = "") -> Entry | None:
     text = line.strip()
     if not text or text.startswith(COMMENT_PREFIX):
         return None
-    label, payload = split_record(text)
+    date, body = split_stamp(text)
+    label, payload = split_record(body)
     keywords = split_words(SEPARATOR.sub(" ", label))
     if not keywords:
         return None
-    return Entry(label, payload, haystack_of(keywords), line_number, text, stash, payload.lower())
+    return Entry(label, payload, haystack_of(keywords), line_number, text, stash, payload.lower(), date)
+
+
+def split_stamp(text: str) -> tuple[str, str]:
+    found = STAMP.match(text)
+    if found is None:
+        return "", text
+    return found.group(1), text[found.end() :]
+
+
+def stamped(date: str, text: str) -> str:
+    return f"{date}: {text}"
 
 
 def split_record(text: str) -> tuple[str, str]:

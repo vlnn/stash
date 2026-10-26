@@ -1,6 +1,6 @@
 import pytest
 
-from stash.entries import Entry, in_stash, is_stash_name, parse_line, split_stash, split_words
+from stash.entries import Entry, in_stash, is_stash_name, parse_line, split_stamp, split_stash, split_words, stamped
 
 
 @pytest.mark.parametrize(
@@ -146,3 +146,73 @@ def test_is_stash_name_accepts_what_split_stash_can_read(name, valid):
 
 def test_parse_line_keeps_the_stash():
     assert parse_line("milk | 2L", 3, "grocery").stash == "grocery", "parse_line should tag the entry with its stash"
+
+
+@pytest.mark.parametrize(
+    "line, date, label, payload",
+    [
+        ("2026-10-26: ssh prod | ssh deploy@h", "2026-10-26", "ssh prod", "ssh deploy@h"),
+        ("2026-10-26: pihole update finished", "2026-10-26", "pihole update finished", "pihole update finished"),
+        ("2026-10-26: | #FF8800", "2026-10-26", "#FF8800", "#FF8800"),
+        ("2026-10-26: find py \\ find . -name '*.pyc'", "2026-10-26", "find py", "find . -name '*.pyc'"),
+        ("2026-10-26:no space | x", "2026-10-26", "no space", "x"),
+        ("  2026-10-26:   padded | x", "2026-10-26", "padded", "x"),
+        ("2026-10-26: 2025-05-20 great day", "2026-10-26", "2025-05-20 great day", "2025-05-20 great day"),
+        ("2026-10-26: 2025-05-20: typed stamp | x", "2026-10-26", "2025-05-20: typed stamp", "x"),
+        ("ssh prod | ssh deploy@h", "", "ssh prod", "ssh deploy@h"),
+        ("2026-10-26 no colon | x", "", "2026-10-26 no colon", "x"),
+        ("2026-13-26: bad month | x", "", "2026-13-26: bad month", "x"),
+        ("26-10-26: short year | x", "", "26-10-26: short year", "x"),
+        ("release 2026-10-26: | x", "", "release 2026-10-26:", "x"),
+    ],
+)
+def test_parse_line_takes_a_leading_date_colon_as_the_stamp(line, date, label, payload):
+    entry = parse_line(line)
+
+    assert entry.date == date, "a line starting with YYYY-MM-DD: carries that date; anything else is undated"
+    assert entry.label == label, "the stamp is stripped before the separator rule, so it is never a label word"
+    assert entry.payload == payload, "the stamp is never part of the payload either"
+
+
+@pytest.mark.parametrize(
+    "line, keywords",
+    [
+        ("2026-10-26: ssh prod | x", ("ssh", "prod")),
+        ("2026-10-26: 2025-05-20 great day", ("2025-05-20", "great", "day")),
+    ],
+)
+def test_stamp_is_not_a_search_word_but_a_date_in_the_text_is(line, keywords):
+    assert tuple(parse_line(line).haystack.split()) == keywords, (
+        "the stamp is metadata; a date you typed is an ordinary word"
+    )
+
+
+def test_parse_line_keeps_the_stamp_in_the_raw_line():
+    assert parse_line(" 2026-10-26: wifi | pw \n").raw == "2026-10-26: wifi | pw", (
+        "deletion matches the stored line, stamp included"
+    )
+
+
+@pytest.mark.parametrize("line", ["2026-10-26:", "2026-10-26: ", "2026-10-26: |", "# 2026-10-26: a comment"])
+def test_parse_line_skips_a_bare_stamp_and_a_stamped_comment(line):
+    assert parse_line(line) is None, "a stamp with no entry after it is not an entry; a comment stays a comment"
+
+
+@pytest.mark.parametrize(
+    "text, date, rest",
+    [
+        ("2026-10-26: ssh | x", "2026-10-26", "ssh | x"),
+        ("2026-10-26:ssh", "2026-10-26", "ssh"),
+        ("ssh | x", "", "ssh | x"),
+        ("", "", ""),
+    ],
+)
+def test_split_stamp(text, date, rest):
+    assert split_stamp(text) == (date, rest), "split_stamp should take a leading YYYY-MM-DD: and leave the rest"
+
+
+def test_stamped_writes_the_stamp_the_way_split_stamp_reads_it():
+    line = stamped("2026-10-26", "ssh prod | ssh deploy@h")
+
+    assert line == "2026-10-26: ssh prod | ssh deploy@h", "stamped should prepend date, colon, one space"
+    assert split_stamp(line) == ("2026-10-26", "ssh prod | ssh deploy@h"), "stamped and split_stamp are inverses"
