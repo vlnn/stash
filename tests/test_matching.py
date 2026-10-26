@@ -8,6 +8,7 @@ from stash.matching import (
     PREFIX,
     SUBSEQUENCE,
     SUBSTRING,
+    by_freshness,
     score,
     search,
     search_stashes,
@@ -30,8 +31,8 @@ def entries_from(lines):
     return [parse_line(line, number) for number, line in enumerate(lines, start=1)]
 
 
-def found_labels(query, lines=LINES, limit=10):
-    return [entry.label for entry in search(query, entries_from(lines), limit)]
+def found_labels(query, lines=LINES, limit=10, today=""):
+    return [entry.label for entry in search(query, entries_from(lines), limit, today)]
 
 
 @pytest.mark.parametrize(
@@ -135,6 +136,62 @@ def test_score_falls_back_to_a_plain_substring_of_the_payload(query, line, expec
 def test_search_keeps_file_order_for_equal_scores():
     assert found_labels("abc", ["abc one | a", "abc two | b"]) == ["abc one", "abc two"], (
         "search should keep file order when scores and tightness are equal"
+    )
+
+
+DATED = [
+    "2026-10-20: zoo visit | last week's plan",
+    "visit grandma | evergreen",
+    "2026-10-26: visit dentist | today's plan",
+    "2026-10-25: visit bank | yesterday's plan",
+]
+
+
+def test_search_breaks_equal_scores_by_today_then_undated_then_older_newest_first():
+    assert found_labels("visit", DATED, today="2026-10-26") == [
+        "visit dentist",
+        "visit grandma",
+        "visit bank",
+        "zoo visit",
+    ], "at an equal score, today's lines come first, evergreens next, then older lines newest first"
+
+
+def test_search_lets_a_stronger_match_beat_a_fresher_one():
+    lines = ["2026-10-26: visits | today", "visit | evergreen"]
+
+    assert found_labels("visit", lines, today="2026-10-26") == ["visit", "visits"], (
+        "age only breaks ties; a whole-word match on an old line still beats a prefix match on today's"
+    )
+
+
+def test_search_tightness_still_decides_among_lines_of_one_age():
+    lines = ["2026-10-20: box crate container | a", "2026-10-20: box | b"]
+
+    assert found_labels("box", lines, today="2026-10-26") == ["box", "box crate container"], (
+        "same date, same score: the tighter label wins as before"
+    )
+
+
+def test_search_without_today_treats_every_stamp_as_fresh():
+    assert found_labels("visit", DATED) == ["visit dentist", "visit bank", "zoo visit", "visit grandma"], (
+        "with no reference day, dated lines rank newest first and undated ones last"
+    )
+
+
+def test_by_freshness_orders_entries_for_browsing_a_view():
+    assert [entry.label for entry in by_freshness(entries_from(DATED), "2026-10-26")] == [
+        "visit dentist",
+        "visit grandma",
+        "visit bank",
+        "zoo visit",
+    ], "browsing a view lists today's lines, evergreens, then older lines newest first, file order within a day"
+
+
+def test_search_ranks_by_the_order_given_when_everything_else_is_equal():
+    entries = list(reversed(entries_from(["abc one | a", "abc two | b"])))
+
+    assert [entry.label for entry in search("abc", entries, 10)] == ["abc two", "abc one"], (
+        "the last tiebreak is the order the entries were given in, which is file order for one file"
     )
 
 

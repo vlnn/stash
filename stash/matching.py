@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import NamedTuple
 
 from .entries import Entry, haystack_of, split_words
+from .views import freshness
 
 EXACT, PREFIX, SUBSTRING, SUBSEQUENCE, NO_MATCH = 8, 6, 4, 2, 0
 PAYLOAD = 1
@@ -48,17 +49,25 @@ def score(tokens: Sequence[Token], entry: Entry) -> int:
     return total
 
 
-def rank(hit: tuple[int, Entry]) -> tuple[int, int, int]:
-    total, entry = hit
-    return -total, len(entry.haystack), entry.line_number
+Hit = tuple[int, int, Entry]
 
 
-def search(query: str, entries: Sequence[Entry], limit: int) -> list[Entry]:
+def rank(hit: Hit, today: str = "") -> tuple[int, tuple[int, int], int, int]:
+    total, position, entry = hit
+    return -total, freshness(entry.date, today), len(entry.haystack), position
+
+
+def by_freshness(entries: Sequence[Entry], today: str) -> list[Entry]:
+    return sorted(entries, key=lambda entry: freshness(entry.date, today))
+
+
+def search(query: str, entries: Sequence[Entry], limit: int, today: str = "") -> list[Entry]:
     tokens = [token(word) for word in dict.fromkeys(split_words(query.lower()))]
     if not tokens:
         return list(entries[:limit])
-    hits = [(score(tokens, entry), entry) for entry in entries]
-    return [entry for _, entry in heapq.nsmallest(limit, [hit for hit in hits if hit[0]], key=rank)]
+    hits = [(score(tokens, entry), position, entry) for position, entry in enumerate(entries)]
+    best = heapq.nsmallest(limit, [hit for hit in hits if hit[0]], key=lambda hit: rank(hit, today))
+    return [entry for _, _, entry in best]
 
 
 def stash_entry(name: str, position: int) -> Entry:
