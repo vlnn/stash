@@ -255,7 +255,7 @@ WORKFLOW = {
     "disabled": False,
     "name": "Stashes",
     "readme": README,
-    "version": "3.0.0",
+    "version": "3.1.0",
     "webaddress": "https://github.com/vlnn/stashes",
     "userconfigurationconfig": SETTINGS,
     "variables": {},

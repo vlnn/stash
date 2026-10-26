@@ -8,6 +8,7 @@ Fuzzy keyword search over plain-text stashes you own, as an Alfred workflow.
 - **Run** by typing: a hand-off, a link or a `{{blank}}` typed straight into the field gets a *Run* row next to what it found, acting on the text without storing it.
 - **Own the data**: one line per entry in text files you can edit, grep, sync and keep in git. The format is one rule: everything after the first `|` is the payload; the words before it are what you search by first.
 - **Several stashes** when the list gets long: every `name.txt` in the folder is a stash; `st name/` searches one, and a bare `st` searches all of them.
+- **Dated**: every line you add is stamped with the day, in the line itself (`2026-10-26: …`). `st today/`, `st yesterday/`, `st week/`, `st month/`, `st quarter/`, `st year/` and `st decade/` are views over every stash by that day; nothing is ever moved, rolled or deleted to make them work.
 - **Fill in the blanks**: a payload with `{{host}}` asks for `host` on ↩ and copies, opens or pastes the result; `{{date}}`, `{{time}}` and `{{clipboard}}` fill themselves.
 - **Fast**: no dependencies, built to stay well under Alfred's "instant" threshold for a few thousand entries.
 
@@ -30,6 +31,7 @@ st stg k8
 - [The stashes folder](#the-stashes-folder)
 - [Searching](#searching)
 - [Several stashes](#several-stashes)
+- [Dates and views](#dates-and-views)
 - [Placeholders](#placeholders)
 - [Running what you typed](#running-what-you-typed)
 - [Actions on a result](#actions-on-a-result)
@@ -62,6 +64,7 @@ Requirements: Alfred 5 with the Powerpack, and Python 3.9 or newer. There are no
 st ssh prod web | ssh deploy@10.0.1.5     ↩ adds the entry
 st prod                                   ↩ copies ssh deploy@10.0.1.5
 st http://127.0.0.1:4000                  ↩ adds it; next time, st 4000 ↩ opens it
+st today/                                 what you added today, then the undated evergreens
 st                                        browse everything; ⌘↩ opens default.txt
 ```
 
@@ -79,14 +82,18 @@ ssh prod web | ssh deploy@10.0.1.5                       search by ssh / prod / 
 logs api | tail -f app.log | grep ERROR                  only the first | splits, so pipes in the payload are fine
 find pyc \ find . -name '*.pyc' -exec rm {} \;           \ works as the separator too
 | echo a | wc                                            empty left side: a payload with pipes, searched by its own words
+2026-10-26: k8s ctx prod | kubectl config use-context prod   a stamp: the day the line was added, written by the tool
 ```
+
+A line the tool added starts with a **stamp**, `YYYY-MM-DD:` and a space; the rule above applies to what follows it. The stamp is never shown in the title and never searched; it is what `today/`, `week/` and the other views filter by (see [Dates and views](#dates-and-views)). A line without one, such as every line written before this version or by hand, is undated and belongs to every view.
 
 Rules:
 
 - `|` and `\` are both separators, so use whichever your keyboard makes easier; only the first one on the line counts. A `\` counts only with whitespace on both sides (or at the very start or end of the line), so `regex \d+`, `C:\Users\me` and `printf 'a\nb'` stay whole as plain lines.
 - Search words are split on spaces and commas. The payload is searched too, but only as a fallback (see [Searching](#searching)).
 - A separator with nothing after it (`note |`) copies the words themselves.
-- Lines starting with `#` and blank lines are ignored, so comment and group freely. To stash something that starts with `#`, write `| #FF8800`.
+- Lines starting with `#` and blank lines are ignored, so comment and group freely. To stash something that starts with `#`, write `| #FF8800`. After a stamp the same holds: `2026-10-26: # note` is a comment, `2026-10-26: | #FF8800` an entry.
+- A stamp is exactly `YYYY-MM-DD:` at the start of the line (a real month and day; `2026-13-01:` is just words). Only the first one counts: a date in the text, with or without a colon, is an ordinary word, so `2026-10-26: 2025-05-20 great day` is searched by `2025-05-20`, `great` and `day`.
 - Whitespace around the separator is ignored, so you can align columns.
 - The file is UTF-8; words in any script work (`кава coffee`). A stray non-UTF-8 byte won't break search, and add or delete keep such bytes exactly as they were.
 
@@ -115,6 +122,11 @@ reply thanks review       | Thanks for the review! I've addressed the comments, 
 # plain lines: searched in full, copied in full
 pihole update finished
 wifi guest GuestNetwork-5G
+
+# what the tool appends: stamped with the day, otherwise the same lines
+2026-10-25: visit bank    | bring the signed form
+2026-10-26: zoo visit     | 10:00, meet at the east gate
+2026-10-26: k8s ctx prod  | kubectl config use-context prod
 ```
 
 ## Searching
@@ -131,7 +143,7 @@ A query word matches a word of the label in one of four ways, strongest first, a
 | `prd`, `stg` | prod, staging | letters in order, inside one label word | 2 |
 | `deploy`, `{{date}}` | … \| ssh deploy@10.0.1.5 | plain text anywhere in the payload, case-insensitive | 1 |
 
-Scores of all query words add up, so an entry found through its label always comes before one found only through its payload, however weak the label match. The payload is searched as written (`{{date}}` finds every entry that uses it), with no letter-dropping: `dply` does not find `deploy`. Equal scores go to the entry with fewer label words (the tighter match), then to the one higher in the file. Alfred also learns which results you pick and moves them up over time.
+Scores of all query words add up, so an entry found through its label always comes before one found only through its payload, however weak the label match. The payload is searched as written (`{{date}}` finds every entry that uses it), with no letter-dropping: `dply` does not find `deploy`. Equal scores go first to the fresher line: one stamped today, then one with no stamp, then older ones newest first (see [Dates and views](#dates-and-views)); after that to the entry with fewer label words (the tighter match), then to the one higher in the file. Alfred also learns which results you pick and moves them up over time.
 
 The last result is always **Add: …** for what you typed (see [Adding entries](#adding-entries)); it is left out of the examples below.
 
@@ -152,6 +164,8 @@ The last result is always **Add: …** for what you typed (see [Adding entries](
 | `st ssh prod staging` | only *Add* | every query word must match |
 | `st kctx` | only *Add* | letters-in-order stays inside one word; type `st k ctx` |
 | `st stgaing` | only *Add* | swapped letters aren't tolerated, dropped letters are |
+| `st visit` | zoo visit, visit bank | both whole-word; the one stamped today comes first, see [Dates and views](#dates-and-views) |
+| `st 2026-10-26` | only *Add* | the stamp is not a word; `st 2026-10-26/` is how you ask for that day |
 
 Press ⇥ (Tab) on a result to put its words into the query.
 
@@ -170,7 +184,7 @@ st recipes/ pasta | 500g                     ↩ creates recipes.txt with that e
 
 Results come in three tiers, each ranked as in [Searching](#searching): stash rows whose names match what you typed, entries of `default`, then entries from every other stash. A stash row has the 📒 icon, says how many entries it holds, and ⇥ or ↩ on it puts `checklists/ ` into the query, which is the whole mechanism: a query that starts with `name/` searches only that stash, and everything else (*Add*, ⌘↩, ⌥↩) acts on its file. Backspace over the slash to leave. Seen from a bare `st`, an entry's subtitle starts with its stash (`checklists · …`); inside `checklists/` it looks like any other entry.
 
-A bare `st` lists entries only; turn on **List stashes** in the configuration to have it list every stash first.
+A bare `st` lists entries only; turn on **List stashes** in the configuration to have it list every stash first. The views of [Dates and views](#dates-and-views) get the same rows (`today/`, `week/`, …) when you type the start of their name, never on a bare `st`.
 
 A stash exists exactly when its file does. There is no "create stash": add the first entry under `name/` and the file appears, with the *Add* row saying so beforehand. To remove one, delete the file. ⌘↩ on a stash row opens its file; ⌥↩ does nothing there, since deleting a whole file is not something a keystroke should do.
 
@@ -218,6 +232,93 @@ The first hand-off needs a one-time macOS permission (step 4 of [Install](#insta
 Write workflow names instead of keywords by listing aliases in the `flows` variable, for example `tally=t kobold=kb wisp=l`; then `parser lexer @tally` means the same as `parser lexer @t`. The subtitle shows the name as you wrote it (`→ tally · parser lexer`), ⌃ shows the resolved call (`alfred: t parser lexer`), and ⌘C still copies the payload as written.
 
 Only a leading or trailing `@word` counts, so `me@example.com` and `mail me@example.com now` are copied as text. A payload that genuinely starts or ends with an `@handle` (`@here deploying now`) would be taken as a hand-off; ⌘C still copies it, or end the line with a full stop, or put a word before the handle.
+
+## Dates and views
+
+Every line the tool adds is stamped with the day it was added, and seven names, plus any date, are **views** that filter every stash by that stamp. A view looks like a stash (`st today/`, a `today/` row when you type `tod`, an *Add* row that works) but is not one: it has no file, nothing is moved into or out of it, and nothing happens at midnight. The windows are calendar periods, so `week/` is Monday to Sunday of this week, not the last seven days.
+
+| View | Holds lines stamped | On Monday 2026-10-26 |
+|---|---|---|
+| `today/` | today | 2026-10-26 |
+| `yesterday/` | yesterday | 2026-10-25 |
+| `week/` | this ISO week, Monday to Sunday | 2026-10-26 – 2026-11-01 |
+| `month/` | this calendar month | 2026-10-01 – 2026-10-31 |
+| `quarter/` | this calendar quarter | 2026-10-01 – 2026-12-31 |
+| `year/` | this calendar year | 2026-01-01 – 2026-12-31 |
+| `decade/` | this decade, `2020`–`2029` | 2020-01-01 – 2029-12-31 |
+| `2026-10-20/` | that day | 2026-10-20 |
+
+Every view also holds every **undated** line: a line without a stamp is an evergreen and belongs to every window, so `st today/ ssh` finds the `ssh prod web` you wrote by hand last year as well as the one you added this morning.
+
+### The stamp
+
+```
+st zoo visit | 10:00 east gate    ↩  appends   2026-10-26: zoo visit | 10:00 east gate   to default.txt
+st recipes/ pasta | 500g          ↩  appends   2026-10-26: pasta | 500g                   to recipes.txt
+```
+
+- The stamp is the day the tool wrote the line, in local time; the day changes at 00:00. It is written once and never touched again: the tool does not restamp, move, age out or delete anything. To change a stamp, edit the file; to remove one, delete it from the line.
+- What you type is never a stamp. `st 2026-10-20: call dentist ↩` stores `2026-10-26: 2026-10-20: call dentist`, found by `st dentist` and by `st 2026-10-20` (a word now), shown as `2026-10-20: call dentist`, and held by `today/`, not by `2026-10-20/`.
+- Lines that predate this version, and lines you write in the editor without a stamp, are undated. There is nothing to migrate: they keep working as before and show up in every view. If you want a whole file to carry one date, a one-liner does it: `sed -i '' -e '/^[^#]/ s/^/2026-01-01: /' ~/.config/stash/default.txt`.
+
+### Searching a view
+
+A query that starts with a view name searches the lines the view holds, across every stash, and nothing else:
+
+```
+st today/                  zoo visit  ·  k8s ctx prod  ·  ssh prod web  ·  grafana api latency  ·  …   (today's, then every undated line)
+st today/ visit            zoo visit  ·  Add: visit            (visit bank is yesterday's, so it is not here)
+st yesterday/ visit        visit bank  ·  Add: visit
+st week/ visit             zoo visit  ·  visit bank  ·  Add: visit
+st 2026-10-25/             visit bank  ·  ssh prod web  ·  …    (that day, then every undated line)
+st week/ pasta             pasta  ·  Add: pasta                 (recipes/ is searched too; the subtitle says recipes · today · 500g)
+st tod                     today/  ·  Add: tod                  (the row; ⇥ or ↩ enters the view)
+st y                       yesterday/  ·  year/  ·  Add: y      (every view starting with the letter)
+```
+
+Inside a view, results come **newest first**: the lines stamped in the window by stamp, today's on top, then the undated lines in file order. With a query, the usual scores decide and freshness breaks the ties. The subtitle of a dated line says how old it is, after the stash it lives in: `today`, `1d`, `6d`, `1w`, `3w`, `1mo`, `11mo`, `1y`, `10y`; a date in the future (hand-edited) shows as written. Undated lines show no age.
+
+```
+st visit                   zoo visit          today · 10:00 east gate
+                           visit grandma      every sunday                 (undated)
+                           visit bank         1d · bring the signed form
+                           visit dentist      1w · last monday
+                           visit museum       3w · september
+                           visit paris        9mo · last year
+```
+
+That order is the freshness tiebreak, and it is the same everywhere: among equal matches, a line stamped today beats an undated one beats older ones, newest first. A stronger match still wins over a fresher one: `st visit` ranks an old whole-word `visit` above today's `visits`. Nothing decays and nothing is hidden; an old plan line is simply listed after the evergreens that match as well.
+
+### Adding under a view
+
+The *Add* row under a view appends to `default.txt`, since a view has no file. `today/` and the long windows stamp today; `yesterday/` and a date view stamp that day, which is the only way to backdate without an editor:
+
+```
+st today/ zoo visit ↩              2026-10-26: zoo visit            in default.txt
+st yesterday/ call dentist ↩       2026-10-25: call dentist         in default.txt, held by yesterday/
+st 2026-10-20/ paid rent ↩         2026-10-20: paid rent            in default.txt, held by 2026-10-20/
+st week/ zoo visit ↩               2026-10-26: zoo visit            week/ means today
+st recipes/ pasta | 500g ↩         2026-10-26: pasta | 500g         in recipes.txt, held by today/ as well
+```
+
+⌘↩ on a view's *Add* row or on a view row opens `default.txt`; ⌘↩ on an entry opens the entry's own file at its line, and ⌥↩ deletes it from there, stamp and all, as usual.
+
+### Reserved names
+
+`today`, `yesterday`, `week`, `month`, `quarter`, `year`, `decade` and anything shaped like a date are views, so they cannot be stashes: `st week/ x ↩` adds to `default.txt`, and no `week.txt` is ever created. If a file with one of those names already exists in the folder, the view wins: `st week/` shows a hint saying `week.txt is hidden behind the week/ view`, the file's lines still turn up in a bare `st` and in every view (they are undated), and renaming the file makes it a stash again.
+
+### A day with views
+
+One way to use them: capture into `today/` as things come up, look at `yesterday/` in the morning, delete what is done with ⌥↩. Nothing carries forward by itself; a line you still want is one ⇥ ↩ away (⇥ puts its words into the query, ↩ on *Add* stores it again with today's stamp, and the old line stays where it was, dated). `week/` is the review, `month/` the retrospective, and a bare `st` still finds everything, with age in the subtitle so a stale plan line is easy to spot and delete.
+
+```
+st today/ call dentist ↩           morning: three things into today/
+st today/ ship auth tests ↩
+st today/ reply anna ↩
+st today/                          during the day: the plan, ↩ opens or copies a line, ⌥↩ clears it when done
+st yesterday/                      next morning: what was left; ⇥ ↩ on a line to take it into today
+st week/                           friday: the week, newest first
+```
 
 ## Placeholders
 
@@ -269,20 +370,22 @@ There is no separate add keyword. Whatever you type after `st` is offered as a n
 - With matches, *Add* is the last result: ↓ to it, or keep typing.
 - As soon as you type a `|` or `\`, you are clearly writing an entry, so *Add* becomes the **first** result and ↩ stores it. The words before the separator are still searched, so you see at once whether such an entry already exists.
 
-| You type after `st` | Stored line | Shown as | ↩ later |
+| You type after `st` | Stored line (on 2026-10-26) | Shown as | ↩ later |
 |---|---|---|---|
-| `ssh prod web \| ssh deploy@10.0.1.5` | same | ssh prod web | copies the command |
-| `logs api \| tail -f app.log \| grep ERROR` | same | logs api | copies `tail -f app.log \| grep ERROR` |
-| `grafana lat \| https://grafana.example.com/d/api-latency` | same | grafana lat | opens the dashboard |
-| `http://127.0.0.1:4000` | same | http://127.0.0.1:4000 | opens it |
-| `pihole update finished` | same | pihole update finished | copies it |
+| `ssh prod web \| ssh deploy@10.0.1.5` | `2026-10-26: ssh prod web \| ssh deploy@10.0.1.5` | ssh prod web | copies the command |
+| `logs api \| tail -f app.log \| grep ERROR` | `2026-10-26: logs api \| tail -f app.log \| grep ERROR` | logs api | copies `tail -f app.log \| grep ERROR` |
+| `grafana lat \| https://grafana.example.com/d/api-latency` | `2026-10-26: grafana lat \| https://…` | grafana lat | opens the dashboard |
+| `http://127.0.0.1:4000` | `2026-10-26: http://127.0.0.1:4000` | http://127.0.0.1:4000 | opens it |
+| `pihole update finished` | `2026-10-26: pihole update finished` | pihole update finished | copies it |
+| `yesterday/ call dentist` | `2026-10-25: call dentist` | call dentist | copies it; held by `yesterday/` |
 
-Entries are appended at the end of `default.txt`, or of `name.txt` when the query starts with `name/`. Reorder or group them later in your editor; the files are the source of truth.
+Entries are appended at the end of `default.txt`, or of `name.txt` when the query starts with `name/`, each with the day's stamp in front (see [Dates and views](#dates-and-views)). Reorder or group them later in your editor; the files are the source of truth.
 
 ## Editing and deleting
 
 - ⌘↩ on any result opens its file in your editor at that entry's line (with an editor that supports lines, see below); on the *Add* item or on a hint it opens the current stash at the top.
-- ⌥↩ on a search result deletes that line from its file. Deletion matches the line's content, so if you edited the file since the search, it reports *entry not found* instead of deleting the wrong line. Comments and other lines are kept as they are, and a file that is a symlink (to iCloud, Dropbox, a git repo) stays a symlink.
+- ⌥↩ on a search result deletes that line from its file. Deletion matches the line's content, stamp included, so if you edited the file since the search, it reports *entry not found* instead of deleting the wrong line. Comments and other lines are kept as they are, and a file that is a symlink (to iCloud, Dropbox, a git repo) stays a symlink.
+- The stamp is yours to edit like the rest of the line: change the date and the line moves to that day's views, delete it and the line becomes an evergreen that every view holds.
 
 ## Configuration
 
@@ -295,7 +398,7 @@ Set these in Alfred: open the workflow and press **Configure Workflow…** (the 
 | `max_results` | `50` | How many results Alfred receives. |
 | `python` | `/usr/bin/python3` | Interpreter, 3.9 or newer. Absolute path, no `~`. |
 | `flows` | empty | Aliases for `@word` hand-offs, as `name=keyword` pairs: `tally=t kobold=kb wisp=l`. |
-| `show_stashes` | off | List every stash on a bare `st`. Typing part of a stash name shows its row either way. |
+| `show_stashes` | off | List every stash on a bare `st`. Typing part of a stash name shows its row either way; a view row needs the start of its name and is never listed on a bare `st`. |
 
 Alfred runs workflows with a minimal `PATH`, so use the full path of your editor's command line tool. Quote paths with spaces:
 
@@ -354,11 +457,19 @@ Search and copy the best match, in bash or fish (needs `jq`):
 python3 ~/.stash/run.py search k8s prod | jq -r '.items[0].arg' | pbcopy
 ```
 
-Add an entry, to `default` or to another stash:
+Views are queries like any other, so today's plan as a list, or everything from one day:
+
+```bash
+python3 ~/.stash/run.py search 'today/' | jq -r '.items[] | select(.uid) | .title'
+python3 ~/.stash/run.py search '2026-10-20/ visit' | jq -r '.items[] | select(.uid) | "\(.title)\t\(.subtitle)"'
+```
+
+Add an entry, to `default` or to another stash, or backdated under a view; each gets its stamp:
 
 ```bash
 python3 ~/.stash/run.py add 'logs api | kubectl logs -f deploy/api | grep -v health'
 python3 ~/.stash/run.py add 'checklists/ pack | passport, charger'
+python3 ~/.stash/run.py add 'yesterday/ paid rent'
 ```
 
 Fill a payload's blanks with `name=value` pairs (`{{date}}`, `{{time}}` and `{{clipboard}}` resolve on their own):
@@ -411,6 +522,7 @@ What keeps it fast:
 - Each query word compiles to one regex whose alternatives are ordered from whole word to in-word letters, so a single `match` returns both whether and how well the word matches, and the in-word pattern never backtracks.
 - Deciding whether a payload opens or copies costs one `stat` per shown result, never per entry.
 - The payload fallback is a plain substring test on a lowercased copy made at parse time, about 2 ms per 10,000 entries on top of the label search.
+- A stamp costs one anchored regex match per line at parse time and one integer per hit at ranking time; the calendar windows are computed once per keystroke with integer day counts, so neither `datetime` (~1 ms to import on Python 3.9) nor the clock is involved beyond reading today's date. The benchmark stamps half of its lines.
 - Python runs with `-S` (no `site` import) and the code avoids heavy modules: `dataclasses` alone costs ~12 ms and `pathlib` ~9 ms per start, so `NamedTuple`, `os.path` and `os.execvp` take their place.
 - Alfred is set to run the script immediately and to cancel a still-running search when you type the next letter.
 
@@ -422,35 +534,39 @@ What keeps it fast:
 - Payloads are single lines: there is no way to put a newline in one, and `\n` is copied as the two characters. A default inside `{{name=…}}` can't contain braces.
 - Stashes do not nest, and an entry whose first word ends in `/` (`foo/ bar`) can't be reached as such: `st foo/` means the stash `foo`.
 - A path payload opens only if it exists when you search; a command that happens to start with `/` is copied, not run.
+- A stamp is a day, not a time, in the local time zone of the machine that wrote it; the day turns at 00:00, so a line added at 00:30 is already today's. Views are calendar windows and nothing else: there is no "last 7 days", no "this week so far", and no window shorter than a day.
+- A view holds every undated line, so `st today/` on an old stash lists all of it; the evergreens come after today's lines.
+- `today`, `yesterday`, `week`, `month`, `quarter`, `year`, `decade` and dates are not available as stash names.
 - It's a plain-text file: don't store secrets you wouldn't keep in a dotfile.
 
 ## Development
 
 ```bash
 uv sync
-make test           # pytest on the project interpreter                      (356 tests)
+make test           # pytest on the project interpreter                      (579 tests)
 make test-system    # the same on /usr/bin/python3, the interpreter the workflow runs on
 make lint           # ruff check + format
 make check          # build dist/Stashes.alfredworkflow and run it the way Alfred would
 make bench          # latency per keystroke; PYTHON=/path/to/python3 to pick the interpreter
 ```
 
-`make check` unzips the bundle into a temporary folder and drives every script from its `info.plist` through `bash`, exactly as Alfred does, against a throwaway stash: add with pipes, search, hand-off, edit, delete.
+`make check` unzips the bundle into a temporary folder and drives every script from its `info.plist` through `bash`, exactly as Alfred does, against a throwaway stash: add with pipes, search, hand-off, edit, delete, the views.
 
 CI (`.github/workflows/ci.yml`) runs lint and the tests on Python 3.9 and 3.13 on Linux, then the tests and `make check` on macOS with `/usr/bin/python3`, and uploads the bundle. Every push to the default branch republishes it as the `latest` pre-release; a `v*` tag makes a proper release with notes. To cut one:
 
 ```bash
-git tag v3.0.0 && git push origin v3.0.0
+git tag v3.1.0 && git push origin v3.1.0
 ```
 
 | Path | Responsibility |
 |---|---|
-| `stash/entries.py` | Split a line at its first separator into an `Entry` with its searchable text; the `name/` prefix |
-| `stash/matching.py` | One regex per query word for the label, substring fallback on the payload, scoring, ranking |
+| `stash/entries.py` | Split a line into its stamp and, at the first separator, an `Entry` with its searchable text; the `name/` prefix |
+| `stash/views.py` | The view names, their calendar windows (integer day counts, no `datetime`), the age word, the freshness key |
+| `stash/matching.py` | One regex per query word for the label, substring fallback on the payload, scoring, ranking with the freshness tiebreak |
 | `stash/store.py` | The stashes folder: `default.txt` and the other files; load, append, delete lines; atomic, symlink-safe writes |
 | `stash/snippets.py` | `{{name}}` and `{{name=default}}` placeholders, the reserved `date`, `time` and `clipboard`, filling |
-| `stash/alfred.py` | Alfred Script Filter JSON: results and their copy/open/hand-off/fill/resolve action, stash rows, the *Run* and *Add* items, prompt rows, hints |
-| `stash/cli.py` | Commands `search`, `add`, `delete`, `edit`, `open`, `alfred`, `prompt`, `resolve`, `fill`; workflow variables |
+| `stash/alfred.py` | Alfred Script Filter JSON: results and their copy/open/hand-off/fill/resolve action, stash and view rows, the *Run* and *Add* items, prompt rows, hints |
+| `stash/cli.py` | Commands `search`, `add`, `delete`, `edit`, `open`, `alfred`, `prompt`, `resolve`, `fill`; the stamp on add, the view searches; workflow variables |
 | `run.py` | Entry point Alfred calls |
 | `make_plist.py` | Source of `info.plist`: keywords, the prompt filter, the router, connections, variables |
 | `scripts/build.py`, `scripts/smoke.py`, `scripts/make_icons.py` | Build the bundle; run it the way Alfred would; draw `stash.png` (📒 on the icon's tile) |

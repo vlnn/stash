@@ -1,6 +1,8 @@
 # A stash: one entry per line. This is default.txt, the one st lands in.
 # Everything after the first | (or \) is the payload, verbatim; the words before it are what you search by.
 # Without a separator the whole line is both. Lines starting with # are comments.
+# A line the tool adds starts with a stamp (2026-10-26: …), the day it was added; today/, week/, year/ … filter by it.
+# Lines without a stamp, like most of this file, are undated and belong to every view.
 
 # shell one-liners: enter copies, shift-enter pastes
 ssh prod web              | ssh deploy@10.0.1.5
@@ -37,3 +39,8 @@ pihole update finished
 wifi guest GuestNetwork-5G
 http://127.0.0.1:4000
 | echo "a payload with | pipes, searched by its own words"
+
+# dated lines, as the tool writes them: st today/ shows today's, st 2026-10-25/ that day's, st year/ this year's
+2026-10-25: visit bank    | bring the signed form
+2026-10-26: zoo visit     | 10:00, meet at the east gate
+2026-10-26: k8s ctx prod  | kubectl config use-context prod
