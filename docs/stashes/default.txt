@@ -1,0 +1,22 @@
+# The stash the documentation GIFs are recorded against. Keep it small, undated and stable:
+# every line here can end up on a frame, and docs/scenarios.py says what each GIF must land on.
+
+# shell one-liners: enter copies, shift-enter pastes
+ssh prod web              | ssh deploy@10.0.1.5
+ssh staging web           | ssh deploy@10.0.2.5
+k8s ctx staging kube      | kubectl config use-context staging
+k8s ctx prod kube         | kubectl config use-context prod
+git log graph pretty      | git log --oneline --graph --decorate --all
+port listen who 8080      | lsof -nP -iTCP:8080 -sTCP:LISTEN | grep -v COMMAND
+
+# links: enter opens
+grafana api latency       | https://grafana.example.com/d/api-latency
+docs python re            | https://docs.python.org/3/library/re.html
+
+# text: enter copies
+email work                | name.surname@example.com
+reply thanks review       | Thanks for the review! I've addressed the comments, PTAL.
+
+# plain lines: searched in full, copied in full
+pihole update finished
+wifi guest GuestNetwork-5G

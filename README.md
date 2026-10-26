@@ -563,12 +563,16 @@ What keeps it fast:
 
 ```bash
 uv sync
-make test           # pytest on the project interpreter                      (652 tests)
+make test           # pytest on the project interpreter                      (664 tests)
 make test-system    # the same on /usr/bin/python3, the interpreter the workflow runs on
 make lint           # ruff check + format
 make check          # build dist/Stashes.alfredworkflow and run it the way Alfred would
 make bench          # latency per keystroke; PYTHON=/path/to/python3 to pick the interpreter
+make docs           # regenerate everything under docs/: for now the GIFs
+make gifs           # draw docs/gifs/*.gif, one frame per keystroke of each docs/scenarios.py scenario, dark and light
 ```
+
+`make gifs` renders what Alfred would show, from the Script Filter JSON `run.py search` prints, as the query of each scenario is typed key by key against `docs/stashes/`, once in a dark and once in a light scheme; the same scenarios are asserted by `tests/test_scenarios.py`, so a GIF only shows what the suite checks.
 
 `make check` unzips the bundle into a temporary folder and drives every script from its `info.plist` through `bash`, exactly as Alfred does, against a throwaway stash: add with pipes, search, hand-off, edit, delete, the views.
 
@@ -589,8 +593,9 @@ git tag v3.1.0 && git push origin v3.1.0
 | `stash/cli.py` | Commands `search`, `add`, `delete`, `edit`, `open`, `alfred`, `prompt`, `resolve`, `fill`; the stamp on add, the view searches; workflow variables |
 | `run.py` | Entry point Alfred calls |
 | `make_plist.py` | Source of `info.plist`: keywords, the prompt filter, the router, connections, variables |
-| `scripts/build.py`, `scripts/smoke.py`, `scripts/make_icons.py` | Build the bundle; run it the way Alfred would; draw `stash.png` (📒 on the icon's tile) |
+| `scripts/build.py`, `scripts/smoke.py`, `scripts/make_icons.py`, `scripts/make_gifs.py` | Build the bundle; run it the way Alfred would; draw `stash.png` (📒 on the icon's tile); draw the GIFs |
 | `Makefile`, `.github/workflows/ci.yml` | The targets above, and CI that runs them |
 | `tests/` | pytest suite, including a structural check of `info.plist` |
 | `bench.py` | End-to-end latency benchmark |
 | `examples/` | Sample folder: the stashes `default.txt` and `checklists.txt` |
+| `docs/` | The typing scenarios, the stashes they run against, and the GIFs drawn from them in both schemes |

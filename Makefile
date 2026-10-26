@@ -1,4 +1,4 @@
-.PHONY: test test-system lint build check bench clean
+.PHONY: test test-system lint build check bench docs gifs clean
 
 test:
 	uv run pytest
@@ -18,6 +18,11 @@ check: build
 
 bench:
 	uv run python bench.py --python $(or $(PYTHON),/usr/bin/python3)
+
+docs: gifs
+
+gifs:
+	uv run --with pillow python scripts/make_gifs.py
 
 clean:
 	rm -rf dist .pytest_cache .ruff_cache

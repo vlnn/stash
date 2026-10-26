@@ -1,0 +1,4 @@
+# A second stash, so the GIFs can show  st checklists/ <words>  searching one file only.
+release checklist         | changelog, bump version, tag, build, upload, announce
+travel packing            | passport, charger, adapter, headphones, meds
+new machine setup         | xcode-select --install, brew, dotfiles, ssh keys, alfred
