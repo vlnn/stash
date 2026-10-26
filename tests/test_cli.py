@@ -101,6 +101,9 @@ def test_config_from_environment(env, expected):
         (["search", "deploy"], ["ssh prod web", "Add: deploy"]),
         (["search", "prod | ssh prod"], ["Add: prod", "ssh prod web"]),
         (["search", "prod \\ ssh prod"], ["Add: prod", "ssh prod web"]),
+        (["search", "| echo a | wc"], ["Add: echo a | wc"]),
+        (["search", "grocery/ | echo a"], ["Add: echo a"]),
+        (["search", "today/ | echo a"], ["Add: echo a"]),
     ],
 )
 def test_search_prints_alfred_items(capsys, env, argv, expected):

@@ -6,7 +6,7 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from .entries import Entry, has_separator, in_stash, parse_text
+from .entries import SEPARATOR, Entry, has_separator, in_stash, parse_text, split_words
 from .snippets import CLIPBOARD, PLACEHOLDER, Clipboard, Values, fill, has_placeholders, mentions, pending, placeholders
 from .views import is_view
 
@@ -221,6 +221,11 @@ def add_item(raw: str, stash: str = "", new_stash: bool = False, reserved: Value
     }
 
 
+def has_words_before_separator(query: str) -> bool:
+    words, *_ = SEPARATOR.split(query, 1)
+    return bool(split_words(words))
+
+
 def hint_item(title: str, subtitle: str, stash: str = "", mods: bool = True) -> Item:
     editor = {"cmd": {**open_editor(stash), "valid": True}} if mods else {}
     return {"title": title, "subtitle": subtitle, **INVALID, "mods": editor}
@@ -263,7 +268,7 @@ def feedback(
     if addition is None:
         return list(matches) or [hint]
     if has_separator(query):
-        return [addition, *matches]
+        return [addition, *matches] if has_words_before_separator(query) else [addition]
     run = [run_item(query, flows, reserved, stash)] if matches and is_payload(query) else []
     return [*matches, *run, addition]
 

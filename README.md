@@ -369,6 +369,7 @@ There is no separate add keyword. Whatever you type after `st` is offered as a n
 - With no matches, *Add* is the only result, so a miss is ↩ away from being stored under the words you just searched for.
 - With matches, *Add* is the last result: ↓ to it, or keep typing.
 - As soon as you type a `|` or `\`, you are clearly writing an entry, so *Add* becomes the **first** result and ↩ stores it. The words before the separator are still searched, so you see at once whether such an entry already exists.
+- With nothing before the separator (`st | echo a | wc`, a payload searched by its own words) there is nothing to search for, so *Add* is the **only** result. Anything else would be the whole stash under it, and Alfred floats the entries it has learned above a row it has never seen.
 
 | You type after `st` | Stored line (on 2026-10-26) | Shown as | ↩ later |
 |---|---|---|---|
@@ -377,6 +378,7 @@ There is no separate add keyword. Whatever you type after `st` is offered as a n
 | `grafana lat \| https://grafana.example.com/d/api-latency` | `2026-10-26: grafana lat \| https://…` | grafana lat | opens the dashboard |
 | `http://127.0.0.1:4000` | `2026-10-26: http://127.0.0.1:4000` | http://127.0.0.1:4000 | opens it |
 | `pihole update finished` | `2026-10-26: pihole update finished` | pihole update finished | copies it |
+| `\| echo a \| wc` | `2026-10-26: \| echo a \| wc` | echo a \| wc | copies it; the only row while you type it |
 | `yesterday/ call dentist` | `2026-10-25: call dentist` | call dentist | copies it; held by `yesterday/` |
 
 Entries are appended at the end of `default.txt`, or of `name.txt` when the query starts with `name/`, each with the day's stamp in front (see [Dates and views](#dates-and-views)). Reorder or group them later in your editor; the files are the source of truth.

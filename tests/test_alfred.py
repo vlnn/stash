@@ -205,6 +205,8 @@ ADD = "Add: prod"
         (["ssh prod web"], "prod \\ p", [ADD, "ssh prod web"]),
         ([], "", ["hint"]),
         ([], "|", ["hint"]),
+        (["ssh prod web", "wifi guest"], "| echo a | wc", ["Add: echo a | wc"]),
+        (["ssh prod web", "wifi guest"], "\\ echo a", ["Add: echo a"]),
     ],
 )
 def test_feedback_lists_matches_and_offers_to_add(matches, query, expected):
@@ -212,7 +214,7 @@ def test_feedback_lists_matches_and_offers_to_add(matches, query, expected):
 
     assert titles(feedback(items, query, {"title": "hint"})) == expected, (
         "feedback should list matches, offer to add the query, put Add first once a separator is typed, "
-        "and fall back to the hint when there is nothing to show"
+        "offer only Add when nothing precedes the separator, and fall back to the hint when there is nothing to show"
     )
 
 

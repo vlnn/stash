@@ -132,6 +132,8 @@ def main(bundle_path, python):
         check(row["title"] == "today/" and row["autocomplete"] == "today/ ", "typing a view name lists its row")
         [zoo, *_] = json.loads(run(bundle_dir, scripts, "search", "zoo", env))["items"]
         check(zoo["subtitle"] == "today · Copy", "a dated line says how old it is")
+        check(titles(run(bundle_dir, scripts, "search", "| echo a | wc", env)) == ["Add: echo a | wc"], "| alone adds")
+        check(run(bundle_dir, scripts, "add", "| echo a | wc", env) == "Added: echo a | wc", "and stores the pipes")
 
 
 if __name__ == "__main__":
