@@ -29,11 +29,18 @@ def parse_line(line: str, line_number: int = 0, stash: str = "") -> Entry | None
     if not text or text.startswith(COMMENT_PREFIX):
         return None
     date, body = split_stamp(text)
-    label, payload = split_record(body)
+    return parse_text(body, line_number, stash, text, date)
+
+
+def parse_text(body: str, line_number: int = 0, stash: str = "", raw: str = "", date: str = "") -> Entry | None:
+    text = body.strip()
+    if not text or text.startswith(COMMENT_PREFIX):
+        return None
+    label, payload = split_record(text)
     keywords = split_words(SEPARATOR.sub(" ", label))
     if not keywords:
         return None
-    return Entry(label, payload, haystack_of(keywords), line_number, text, stash, payload.lower(), date)
+    return Entry(label, payload, haystack_of(keywords), line_number, raw or text, stash, payload.lower(), date)
 
 
 def split_stamp(text: str) -> tuple[str, str]:

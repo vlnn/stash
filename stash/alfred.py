@@ -6,8 +6,9 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from .entries import Entry, has_separator, in_stash, parse_line
+from .entries import Entry, has_separator, in_stash, parse_text
 from .snippets import CLIPBOARD, PLACEHOLDER, Clipboard, Values, fill, has_placeholders, mentions, pending, placeholders
+from .views import is_view
 
 Item = dict[str, Any]
 Flows = Mapping[str, str]
@@ -114,24 +115,33 @@ def where(stash: str) -> str:
     return f"{stash}/" if stash else "default/"
 
 
+def home(stash: str) -> str:
+    return "" if is_view(stash) else stash
+
+
 def with_origin(origin: str, subtitle: str) -> str:
     return f"{origin} · {subtitle}" if origin else subtitle
+
+
+def origin_of(stash: str, within: str, age: str) -> str:
+    return " · ".join(part for part in (stash if stash != within else "", age) if part)
 
 
 def open_editor(stash: str = "") -> Item:
     return {"arg": in_stash(stash, "1"), "subtitle": f"Open {where(stash)} in your editor"}
 
 
-def entry_item(entry: Entry, flows: Flows = NO_FLOWS, within: str = "", reserved: Values = NO_VALUES) -> Item:
+def entry_item(
+    entry: Entry, flows: Flows = NO_FLOWS, within: str = "", reserved: Values = NO_VALUES, age: str = ""
+) -> Item:
     payload = fill(entry.payload, reserved)
     action = action_for(payload)
     arg = "" if is_deferred(action) else arg_of(payload, action, flows)
-    origin = entry.stash if entry.stash != within else ""
     line = str(entry.line_number)
     return {
         "uid": in_stash(entry.stash, f"{entry.label}|{entry.payload}"),
         "title": entry.label,
-        "subtitle": with_origin(origin, subtitle_of(entry.label, payload, action, arg)),
+        "subtitle": with_origin(origin_of(entry.stash, within, age), subtitle_of(entry.label, payload, action, arg)),
         "arg": arg,
         "autocomplete": in_stash(entry.stash, entry.label),
         "variables": deferred_variables(action, payload) if is_deferred(action) else {"action": action},
@@ -160,7 +170,7 @@ def run_item(query: str, flows: Flows, reserved: Values, stash: str = "") -> Ite
         "variables": deferred_variables(action, payload) if is_deferred(action) else {"action": action},
         "text": {"copy": payload, "largetype": payload},
         "mods": {
-            "cmd": open_editor(stash),
+            "cmd": open_editor(home(stash)),
             "alt": INVALID,
             "shift": paste_mod_for(action, payload),
             "ctrl": {**INVALID, "subtitle": f"Not stored · {action_detail(action, arg)}"},
@@ -178,20 +188,26 @@ def subtitle_of(label: str, payload: str, action: str, arg: str) -> str:
     return payload if action in ("copy", "resolve") else f"{LABELS[action]} · {payload}"
 
 
-def stash_item(stash: str, count: int) -> Item:
+def stash_item(stash: str, count: int, span: str = "") -> Item:
     noun = "entry" if count == 1 else "entries"
+    days = f"{span} · " if span else ""
     return {
         "title": f"{stash}/",
-        "subtitle": f"{count} {noun} · ↩ to browse",
+        "subtitle": f"{count} {noun} · {days}↩ to browse",
         "autocomplete": f"{stash}/ ",
         "icon": STASH_ICON,
         **INVALID,
-        "mods": {"cmd": {**open_editor(stash), "valid": True}, "alt": INVALID, "shift": INVALID},
+        "mods": {"cmd": {**open_editor(home(stash)), "valid": True}, "alt": INVALID, "shift": INVALID},
     }
 
 
+def span_of(window: tuple[str, str]) -> str:
+    first, last = window
+    return first if first == last else f"{first} – {last}"
+
+
 def add_item(raw: str, stash: str = "", new_stash: bool = False, reserved: Values = NO_VALUES) -> Item | None:
-    entry = parse_line(raw)
+    entry = parse_text(raw)
     if entry is None:
         return None
     format_hint = "" if has_separator(raw) else f"   ({FORMAT_HINT})"
@@ -201,7 +217,7 @@ def add_item(raw: str, stash: str = "", new_stash: bool = False, reserved: Value
         "subtitle": f"{fill(entry.payload, reserved)}{format_hint}{creation}",
         "arg": in_stash(stash, entry.raw),
         "variables": {"action": "add"},
-        "mods": {"cmd": open_editor(stash), "alt": INVALID, "shift": INVALID},
+        "mods": {"cmd": open_editor(home(stash)), "alt": INVALID, "shift": INVALID},
     }
 
 
@@ -220,6 +236,18 @@ def stash_hint(stash: str, exists: bool) -> Item:
     if not exists:
         return hint_item(f"New stash {stash}/", f"Type {FORMAT_HINT} to add its first entry", stash)
     return hint_item(f"{stash}/ is empty", f"Type {FORMAT_HINT} to add an entry", stash)
+
+
+def view_hint(view: str, window: tuple[str, str]) -> Item:
+    return hint_item(f"Nothing in {view}/", f"Lines stamped {span_of(window)} and undated lines show here")
+
+
+def shadow_hint(view: str) -> Item:
+    return hint_item(
+        f"{view}.txt is hidden behind the {view}/ view",
+        "Rename the file to reach it as a stash; a bare search still finds its lines",
+        mods=False,
+    )
 
 
 def feedback(

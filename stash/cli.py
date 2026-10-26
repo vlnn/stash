@@ -10,9 +10,10 @@ import time
 from collections.abc import Mapping, Sequence
 from typing import Callable, NamedTuple, Optional
 
-from . import alfred, snippets, store
-from .entries import SEPARATOR, Entry, parse_line, split_stash
-from .matching import search, search_stashes
+from . import alfred, snippets, store, views
+from .entries import SEPARATOR, Entry, parse_text, split_stash, stamped
+from .matching import by_freshness, search, search_stashes
+from .snippets import Values
 
 DEFAULT_DB_DIR = "~/.config/stash"
 DEFAULT_EDITOR = "open -t {file}"
@@ -84,36 +85,85 @@ def flows_from(text: str) -> dict[str, str]:
 def search_command(query: str, config: Config) -> str:
     stash, rest = split_stash(query)
     words, *_ = SEPARATOR.split(rest, 1)
-    items = stash_search(stash, words, rest.strip(), config) if stash else root_search(words, rest.strip(), config)
+    query = rest.strip()
+    if views.is_view(stash):
+        items = view_search(stash, words, query, config)
+    elif stash:
+        items = stash_search(stash, words, query, config)
+    else:
+        items = root_search(words, query, config)
     return alfred.render(items)
 
 
+def now() -> time.struct_time:
+    return time.localtime()
+
+
+def item_of(entry: Entry, within: str, reserved: Values, config: Config, today: time.struct_time) -> alfred.Item:
+    age = views.age(entry.date, today) if entry.date else ""
+    return alfred.entry_item(entry, config.flows, within, reserved, age)
+
+
 def stash_search(stash: str, words: str, query: str, config: Config) -> list[alfred.Item]:
+    today = now()
     path = store.stash_path(config.db_dir, stash)
     entries = store.load_entries(path, stash)
-    hits = search(words, entries, config.max_results)
+    hits = search(words, entries, config.max_results, views.iso(today))
     reserved = clock_values()
-    matches = [alfred.entry_item(entry, config.flows, stash, reserved) for entry in hits]
+    matches = [item_of(entry, stash, reserved, config, today) for entry in hits]
     exists = os.path.exists(path)
     hint = alfred.stash_hint(stash, exists)
     return alfred.feedback(matches, query, hint, stash, not exists, reserved, config.flows)
 
 
 def root_search(words: str, query: str, config: Config) -> list[alfred.Item]:
+    today = now()
+    floor = views.iso(today)
     root = store.load_stash(config.db_dir)
     stashes = store.load_stashes(config.db_dir)
     stashed = [entry for entries in stashes.values() for entry in entries]
     rows = stash_rows(words, stashes) if words.strip() or config.show_stashes else []
-    hits = [*search(words, root, config.max_results), *search(words, stashed, config.max_results)]
+    rows += view_rows(words, [*root, *stashed], today) if words.strip() else []
+    hits = [*search(words, root, config.max_results, floor), *search(words, stashed, config.max_results, floor)]
     hits = hits[: max(config.max_results - len(rows), 0)]
     reserved = clock_values()
-    matches = [*rows, *(alfred.entry_item(entry, config.flows, "", reserved) for entry in hits)]
+    matches = [*rows, *(item_of(entry, "", reserved, config, today) for entry in hits)]
     hint = alfred.root_hint(not (root or stashed), query)
     return alfred.feedback(matches, query, hint, reserved=reserved, flows=config.flows)
 
 
+def view_search(view: str, words: str, query: str, config: Config) -> list[alfred.Item]:
+    today = now()
+    window = views.window(view, today)
+    everything = [*store.load_stash(config.db_dir), *stashed_entries(config.db_dir)]
+    admitted = by_freshness([entry for entry in everything if views.admits(window, entry.date)], window[0])
+    hits = search(words, admitted, config.max_results, window[0])
+    reserved = clock_values()
+    matches = [item_of(entry, view, reserved, config, today) for entry in hits]
+    hint = alfred.view_hint(view, window)
+    items = alfred.feedback(matches, query, hint, view, False, reserved, config.flows)
+    shadowed = os.path.exists(store.stash_path(config.db_dir, view))
+    return [alfred.shadow_hint(view), *items] if shadowed else items
+
+
+def stashed_entries(db_dir: str) -> list[Entry]:
+    return [entry for entries in store.load_stashes(db_dir).values() for entry in entries]
+
+
 def stash_rows(words: str, stashes: Mapping[str, list[Entry]]) -> list[alfred.Item]:
-    return [alfred.stash_item(name, len(stashes[name])) for name in search_stashes(words, list(stashes))]
+    names = [name for name in stashes if not views.is_view(name)]
+    return [alfred.stash_item(name, len(stashes[name])) for name in search_stashes(words, names)]
+
+
+def view_rows(words: str, entries: Sequence[Entry], today: time.struct_time) -> list[alfred.Item]:
+    typed = words.strip().lower()
+    return [view_row(view, entries, today) for view in views.VIEWS if typed and view.startswith(typed)]
+
+
+def view_row(view: str, entries: Sequence[Entry], today: time.struct_time) -> alfred.Item:
+    window = views.window(view, today)
+    count = sum(views.admits(window, entry.date) for entry in entries)
+    return alfred.stash_item(view, count, alfred.span_of(window))
 
 
 def prompt_command(query: str, config: Config) -> str:
@@ -137,23 +187,25 @@ def fill_command(arguments: Sequence[str], config: Config) -> str:
 
 def add_command(raw: str, config: Config) -> str:
     stash, line = split_stash(raw)
-    entry = parse_line(line)
+    entry = parse_text(line)
     if entry is None:
         return f"Nothing added, expected: {alfred.FORMAT_HINT}"
-    store.append_line(store.stash_path(config.db_dir, stash), entry.raw)
+    date = views.stamp_for(stash, now())
+    stash = alfred.home(stash)
+    store.append_line(store.stash_path(config.db_dir, stash), stamped(date, entry.raw))
     return f"Added to {stash}/: {entry.label}" if stash else f"Added: {entry.label}"
 
 
 def delete_command(raw: str, config: Config) -> str:
     stash, line = split_stash(raw)
-    if store.delete_line(store.stash_path(config.db_dir, stash), line):
+    if store.delete_line(store.stash_path(config.db_dir, alfred.home(stash)), line):
         return f"Deleted: {line.strip()}"
     return "Not deleted: entry not found, the file may have changed"
 
 
 def edit_command(target: str, config: Config) -> str | None:
     stash, line_number = split_stash(target)
-    path = store.stash_path(config.db_dir, stash)
+    path = store.stash_path(config.db_dir, alfred.home(stash))
     store.ensure_file(path)
     argv = editor_argv(config.editor, path, line_number or "1")
     try:

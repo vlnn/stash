@@ -1,6 +1,16 @@
 import pytest
 
-from stash.entries import Entry, in_stash, is_stash_name, parse_line, split_stamp, split_stash, split_words, stamped
+from stash.entries import (
+    Entry,
+    in_stash,
+    is_stash_name,
+    parse_line,
+    parse_text,
+    split_stamp,
+    split_stash,
+    split_words,
+    stamped,
+)
 
 
 @pytest.mark.parametrize(
@@ -193,9 +203,22 @@ def test_parse_line_keeps_the_stamp_in_the_raw_line():
     )
 
 
-@pytest.mark.parametrize("line", ["2026-10-26:", "2026-10-26: ", "2026-10-26: |", "# 2026-10-26: a comment"])
+@pytest.mark.parametrize(
+    "line", ["2026-10-26:", "2026-10-26: ", "2026-10-26: |", "# 2026-10-26: a comment", "2026-10-26: # still a comment"]
+)
 def test_parse_line_skips_a_bare_stamp_and_a_stamped_comment(line):
-    assert parse_line(line) is None, "a stamp with no entry after it is not an entry; a comment stays a comment"
+    assert parse_line(line) is None, "a stamp with no entry after it is not an entry; after the stamp # still comments"
+
+
+@pytest.mark.parametrize(
+    "text, label, date",
+    [("2026-10-20: typed | x", "2026-10-20: typed", ""), ("plain | x", "plain", ""), ("# nope", None, None)],
+)
+def test_parse_text_reads_what_was_typed_without_looking_for_a_stamp(text, label, date):
+    entry = parse_text(text)
+
+    assert (entry and entry.label) == label, "parse_text is for typed text, where a date is just words"
+    assert (entry and entry.date) == date, "typed text never carries a stamp"
 
 
 @pytest.mark.parametrize(

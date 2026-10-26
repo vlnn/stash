@@ -1,8 +1,9 @@
 import time
+from datetime import date, timedelta
 
 import pytest
 
-from stash.views import VIEWS, admits, age, freshness, is_view, iso, stamp_for, window
+from stash.views import VIEWS, admits, age, civil, freshness, is_view, iso, ordinal, stamp_for, window
 
 
 def day(text):
@@ -87,7 +88,7 @@ def test_window_is_the_calendar_period_around_now(view, now, first, last):
     ],
 )
 def test_admits_dated_lines_inside_the_window_and_undated_lines_always(view, date, expected):
-    assert admits(view, date, MONDAY) is expected, (
+    assert admits(window(view, MONDAY), date) is expected, (
         "a view holds every line stamped inside its window and every line without a stamp"
     )
 
@@ -134,13 +135,23 @@ def test_iso_formats_now_as_a_stamp_date():
     assert iso(MONDAY) == "2026-10-26", "iso should write dates the way stamps are written"
 
 
-def test_freshness_orders_today_then_undated_then_older_newest_first():
+def test_freshness_orders_fresh_lines_then_undated_then_older_newest_first():
     dates = ["2026-10-20", "", "2026-10-26", "2026-10-25", "", "2026-10-27"]
 
     ordered = sorted(dates, key=lambda date: freshness(date, "2026-10-26"))
 
     assert ordered == ["2026-10-27", "2026-10-26", "", "", "2026-10-25", "2026-10-20"], (
-        "today (and anything hand-dated in the future) first, undated next, then older lines newest first"
+        "lines from the floor day on (newest first), undated next, then older lines newest first"
+    )
+
+
+def test_freshness_floor_is_the_start_of_the_window_inside_a_view():
+    dates = ["2026-10-20", "", "2026-10-26", "2026-10-25"]
+
+    ordered = sorted(dates, key=lambda date: freshness(date, "2026-10-19"))
+
+    assert ordered == ["2026-10-26", "2026-10-25", "2026-10-20", ""], (
+        "with the floor at the week's Monday, the whole week ranks newest first ahead of the evergreens"
     )
 
 
@@ -148,3 +159,15 @@ def test_freshness_is_stable_for_equal_dates():
     assert freshness("2026-10-20", "2026-10-26") == freshness("2026-10-20", "2026-10-26"), (
         "equal dates must compare equal so file order decides"
     )
+
+
+@pytest.mark.parametrize("start", ["1999-12-25", "2026-10-26", "2099-12-25", "2400-02-20"])
+def test_ordinal_and_civil_agree_with_the_calendar_across_leap_years(start):
+    first = date.fromisoformat(start)
+
+    for offset in range(0, 1500, 7):
+        current = first + timedelta(days=offset)
+        days = ordinal(current.year, current.month, current.day)
+
+        assert days - ordinal(first.year, first.month, first.day) == offset, "ordinal counts days like the calendar"
+        assert civil(days) == (current.year, current.month, current.day), "civil inverts ordinal"

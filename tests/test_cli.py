@@ -15,6 +15,7 @@ from stash.cli import (
     flows_from,
     main,
 )
+from stash.views import VIEWS
 
 DATABASE = "ssh prod web | ssh deploy@10.0.1.5\nwifi guest | hunter2\n"
 
@@ -132,12 +133,12 @@ def test_search_survives_undecodable_bytes(capsys, env, db_file):
     )
 
 
-def test_add_appends_entry_and_confirms(capsys, env, db_file):
+def test_add_appends_a_stamped_entry_and_confirms(capsys, env, db_file, frozen_clock):
     output = run(capsys, env, "add", "  k8s ctx | kubectl ctx  ")
 
     assert output == "Added: k8s ctx", "add should confirm with the entry label"
-    assert db_file.read_text(encoding="utf-8").endswith("\nk8s ctx | kubectl ctx\n"), (
-        "add should append the stripped line to the database"
+    assert db_file.read_text(encoding="utf-8").endswith("\n2026-10-25: k8s ctx | kubectl ctx\n"), (
+        "add should append the stripped line with today's stamp in front"
     )
 
 
@@ -345,12 +346,12 @@ def test_search_with_only_stashs_lists_them(capsys, tmp_path):
     ], "a stash with stashes and no default.txt is not empty"
 
 
-def test_add_into_stash_creates_its_file(capsys, env, db_dir):
+def test_add_into_stash_creates_its_file(capsys, env, db_dir, frozen_clock):
     output = run(capsys, env, "add", "recipes/ pasta | 500g, 10 min")
 
     assert output == "Added to recipes/: pasta", "add should say which stash received the entry"
-    assert (db_dir / "recipes.txt").read_text(encoding="utf-8") == "pasta | 500g, 10 min\n", (
-        "the first entry of a stash should create its file without the stash prefix"
+    assert (db_dir / "recipes.txt").read_text(encoding="utf-8") == "2026-10-25: pasta | 500g, 10 min\n", (
+        "the first entry of a stash should create its file, stamped, without the stash prefix"
     )
     assert (db_dir / "default.txt").read_text(encoding="utf-8") == DATABASE, "the root should be untouched"
 
@@ -566,3 +567,193 @@ def test_search_only_adds_a_typed_hand_off_that_matches_nothing(capsys, env, fro
 
 def run_search(capsys, env, query):
     return run(capsys, env, "search", query)
+
+
+DATED = (
+    "2026-10-25: zoo visit | plan for the day\n"
+    "2026-10-24: visit bank | the bank\n"
+    "2026-10-20: visit dentist | last monday\n"
+    "visit grandma | evergreen\n"
+    "2026-09-30: visit museum | september\n"
+    "2025-12-31: visit paris | last year\n"
+)
+
+
+@pytest.fixture
+def dated(db_file, grocery, frozen_clock):
+    db_file.write_text(DATED, encoding="utf-8")
+    grocery.write_text(GROCERY + "2026-10-24: cheese | brie\n", encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        ("today/", ["zoo visit", "visit grandma", "milk eggs", "bread"]),
+        ("today/ visit", ["zoo visit", "visit grandma", "Add: visit"]),
+        ("today/ zoo", ["zoo visit", "Add: zoo"]),
+        ("yesterday/", ["visit bank", "cheese", "visit grandma", "milk eggs", "bread"]),
+        ("yesterday/ visit", ["visit bank", "visit grandma", "Add: visit"]),
+        ("week/ visit", ["zoo visit", "visit bank", "visit dentist", "visit grandma", "Add: visit"]),
+        ("month/ visit", ["zoo visit", "visit bank", "visit dentist", "visit grandma", "Add: visit"]),
+        ("quarter/ visit", ["zoo visit", "visit bank", "visit dentist", "visit grandma", "Add: visit"]),
+        ("year/ visit", ["zoo visit", "visit bank", "visit dentist", "visit museum", "visit grandma", "Add: visit"]),
+        (
+            "decade/ visit",
+            ["zoo visit", "visit bank", "visit dentist", "visit museum", "visit paris", "visit grandma", "Add: visit"],
+        ),
+        ("2026-10-20/", ["visit dentist", "visit grandma", "milk eggs", "bread"]),
+        ("2026-10-20/ dentist", ["visit dentist", "Add: dentist"]),
+        ("2026-10-21/", ["visit grandma", "milk eggs", "bread"]),
+        ("today/ zzz", ["Add: zzz"]),
+        ("today/ pasta | 500g", ["Add: pasta"]),
+    ],
+)
+def test_view_search_filters_by_stamp_and_lists_newest_first_then_undated(capsys, env, dated, query, expected):
+    assert item_titles(run(capsys, env, "search", query)) == expected, (
+        "a view holds the lines stamped inside its calendar window, newest first, then every undated line"
+    )
+
+
+def test_root_search_breaks_ties_by_freshness_and_shows_an_age_word(capsys, env, dated):
+    items = json.loads(run(capsys, env, "search", "visit"))["items"]
+
+    assert [item["title"] for item in items] == [
+        "zoo visit",
+        "visit grandma",
+        "visit bank",
+        "visit dentist",
+        "visit museum",
+        "visit paris",
+        "Add: visit",
+    ], "at the root, equal matches rank today, undated, then older newest first"
+    assert [item["subtitle"] for item in items[:-1]] == [
+        "today · plan for the day",
+        "evergreen",
+        "1d · the bank",
+        "5d · last monday",
+        "3w · september",
+        "9mo · last year",
+    ], "a dated line's subtitle starts with how old it is; an undated line's does not"
+
+
+@pytest.mark.parametrize(
+    "query, subtitle",
+    [
+        ("cheese", "grocery · 1d · brie"),
+        ("yesterday/ cheese", "grocery · 1d · brie"),
+        ("grocery/ cheese", "1d · brie"),
+        ("week/ bread", "grocery · sourdough"),
+    ],
+)
+def test_subtitle_shows_stash_then_age_then_payload(capsys, env, dated, query, subtitle):
+    [item, _] = json.loads(run(capsys, env, "search", query))["items"]
+
+    assert item["subtitle"] == subtitle, "stash (when not inside it), age (when stamped), payload"
+
+
+@pytest.mark.parametrize(
+    "raw, output, stored",
+    [
+        ("today/ zoo visit", "Added: zoo visit", "2026-10-25: zoo visit"),
+        ("yesterday/ call dentist", "Added: call dentist", "2026-10-24: call dentist"),
+        ("2026-10-20/ backdated | x", "Added: backdated", "2026-10-20: backdated | x"),
+        ("week/ x", "Added: x", "2026-10-25: x"),
+        ("decade/ x", "Added: x", "2026-10-25: x"),
+        ("2026-10-20: typed | x", "Added: 2026-10-20: typed", "2026-10-25: 2026-10-20: typed | x"),
+        ("2026-10-20 great day", "Added: 2026-10-20 great day", "2026-10-25: 2026-10-20 great day"),
+    ],
+)
+def test_add_under_a_view_writes_to_default_with_the_view_date(capsys, env, db_file, frozen_clock, raw, output, stored):
+    assert run(capsys, env, "add", raw) == output, "a view is not a stash, so add does not name it"
+    assert db_file.read_text(encoding="utf-8").endswith(f"\n{stored}\n"), (
+        "today/ and the long windows stamp today, yesterday/ and a date view stamp that date; a typed date is text"
+    )
+
+
+def test_add_under_a_view_never_creates_a_file_named_after_it(capsys, env, db_dir, frozen_clock):
+    run(capsys, env, "add", "today/ x")
+
+    assert not (db_dir / "today.txt").exists(), "views are not files"
+
+
+def test_add_row_under_a_view_carries_the_view_so_add_can_date_it(capsys, env, dated):
+    [addition] = json.loads(run(capsys, env, "search", "yesterday/ zzz"))["items"]
+
+    assert addition["arg"] == "yesterday/ zzz", "the add command reads the view prefix and stamps yesterday"
+    assert addition["mods"]["cmd"] == {"arg": "1", "subtitle": "Open default/ in your editor"}, (
+        "cmd-enter on the add row opens the file the line will land in"
+    )
+
+
+def test_add_row_shows_a_typed_date_as_text(capsys, env, frozen_clock):
+    [*_, addition] = json.loads(run(capsys, env, "search", "2026-10-20: typed | x"))["items"]
+
+    assert addition["title"] == "Add: 2026-10-20: typed", "what you type is the label, stamp-shaped or not"
+
+
+def test_edit_under_a_view_opens_default(mocker, capsys, env, db_file):
+    execvp = mocker.patch("stash.cli.os.execvp")
+
+    run(capsys, {**env, "editor": "code -g {file}:{line}"}, "edit", "today/ 3")
+
+    assert execvp.call_args_list == [mocker.call("code", ["code", "-g", f"{db_file}:3"])], (
+        "a view has no file of its own; its lines live in default.txt"
+    )
+
+
+@pytest.mark.parametrize(
+    "query, expected, subtitle",
+    [
+        ("tod", ["today/", "Add: tod"], "4 entries · 2026-10-25 · ↩ to browse"),
+        ("wee", ["week/", "Add: wee"], "7 entries · 2026-10-19 – 2026-10-25 · ↩ to browse"),
+        ("yes", ["yesterday/", "Add: yes"], "5 entries · 2026-10-24 · ↩ to browse"),
+    ],
+)
+def test_a_view_row_appears_when_its_name_is_typed(capsys, env, dated, query, expected, subtitle):
+    items = json.loads(run(capsys, env, "search", query))["items"]
+
+    assert [item["title"] for item in items] == expected, "typing part of a view name lists its row like a stash"
+    assert items[0]["subtitle"] == subtitle, "the row says how many lines the view holds and which days it spans"
+    assert items[0]["autocomplete"] == f"{expected[0]} ", "tab on the row enters the view"
+
+
+@pytest.mark.parametrize("query", ["", "e", "day", "o"])
+def test_view_rows_need_the_start_of_their_name(capsys, stashed_env, dated, query):
+    titles = item_titles(run(capsys, stashed_env, "search", query))
+
+    assert not any(title == f"{view}/" for view in VIEWS for title in titles), (
+        "seven fixed names would match almost any letter, so a view row needs a prefix, not a fuzzy hit"
+    )
+
+
+def test_view_rows_for_every_view_that_starts_with_what_was_typed(capsys, env, dated):
+    rows = [title for title in item_titles(run(capsys, env, "search", "y")) if title.endswith("/")]
+
+    assert rows == ["grocery/", "yesterday/", "year/"], (
+        "stash rows first as always, then every view starting with the letter, in their natural order"
+    )
+
+
+def test_a_file_named_after_a_view_is_shadowed_but_its_lines_are_not_lost(capsys, env, db_dir, dated):
+    (db_dir / "today.txt").write_text("shadow | x\n", encoding="utf-8")
+
+    inside = item_titles(run(capsys, env, "search", "today/"))
+    typed = item_titles(run(capsys, env, "search", "tod"))
+
+    assert inside[0] == "today.txt is hidden behind the today/ view", "the view says a file is in its way"
+    assert "shadow" in inside, "an undated line belongs to every view, so the shadowed line still shows"
+    assert item_titles(run(capsys, env, "search", "shadow")) == ["shadow", "Add: shadow"], "a bare st finds it"
+    assert typed.count("today/") == 1, "only the view row is offered, not a stash row for the file too"
+
+
+def test_an_empty_view_says_so(capsys, tmp_path, frozen_clock):
+    assert item_titles(run(capsys, {"db_dir": str(tmp_path / "none")}, "search", "today/")) == ["Nothing in today/"], (
+        "a view with nothing in it is told apart from a miss"
+    )
+
+
+def test_delete_under_a_view_removes_from_default(capsys, env, db_file, dated):
+    assert run(capsys, env, "delete", "today/ 2026-10-25: zoo visit | plan for the day") == (
+        "Deleted: 2026-10-25: zoo visit | plan for the day"
+    ), "delete matches the stored line, stamp included, in default.txt"
+    assert "zoo visit" not in item_titles(run(capsys, env, "search", "today/")), "the line is gone from the view"

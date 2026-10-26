@@ -52,21 +52,21 @@ def score(tokens: Sequence[Token], entry: Entry) -> int:
 Hit = tuple[int, int, Entry]
 
 
-def rank(hit: Hit, today: str = "") -> tuple[int, tuple[int, int], int, int]:
+def rank(hit: Hit, floor: str = "") -> tuple[int, tuple[int, int], int, int]:
     total, position, entry = hit
-    return -total, freshness(entry.date, today), len(entry.haystack), position
+    return -total, freshness(entry.date, floor), len(entry.haystack), position
 
 
-def by_freshness(entries: Sequence[Entry], today: str) -> list[Entry]:
-    return sorted(entries, key=lambda entry: freshness(entry.date, today))
+def by_freshness(entries: Sequence[Entry], floor: str) -> list[Entry]:
+    return sorted(entries, key=lambda entry: freshness(entry.date, floor))
 
 
-def search(query: str, entries: Sequence[Entry], limit: int, today: str = "") -> list[Entry]:
+def search(query: str, entries: Sequence[Entry], limit: int, floor: str = "") -> list[Entry]:
     tokens = [token(word) for word in dict.fromkeys(split_words(query.lower()))]
     if not tokens:
         return list(entries[:limit])
     hits = [(score(tokens, entry), position, entry) for position, entry in enumerate(entries)]
-    best = heapq.nsmallest(limit, [hit for hit in hits if hit[0]], key=lambda hit: rank(hit, today))
+    best = heapq.nsmallest(limit, [hit for hit in hits if hit[0]], key=lambda hit: rank(hit, floor))
     return [entry for _, _, entry in best]
 
 
