@@ -277,7 +277,7 @@ st next-week/              review budget  ·  ssh prod web  ·  …    (next Mon
 st 2026-10-25/             visit bank  ·  ssh prod web  ·  …    (that day, then every undated line)
 st week/ pasta             pasta  ·  Add: pasta                 (recipes/ is searched too; the subtitle says recipes · today · 500g)
 st tod                     today/  ·  Add: tod                  (the row; ⇥ or ↩ enters the view)
-st y                       yesterday/  ·  year/  ·  Add: y      (every view starting with the letter)
+st ye                      yesterday/  ·  year/  ·  Add: ye     (two letters on: every view starting with them, two at most)
 st next                    next-week/  ·  next-month/  ·  next-quarter/  ·  next-year/  ·  Add: next
 ```
 
@@ -419,7 +419,7 @@ Set these in Alfred: open the workflow and press **Configure Workflow…** (the 
 | `max_results` | `50` | How many results Alfred receives. |
 | `python` | `/usr/bin/python3` | Interpreter, 3.9 or newer. Absolute path, no `~`. |
 | `flows` | empty | Aliases for `@word` hand-offs, as `name=keyword` pairs: `tally=t kobold=kb wisp=l`. |
-| `show_stashes` | off | List every stash on a bare `st`. Typing part of a stash name shows its row either way; a view row needs the start of its name and is never listed on a bare `st`. |
+| `show_stashes` | off | List every stash on a bare `st`. Typing part of a stash name shows its row either way; a view row needs two letters of its name and is never listed on a bare `st`. |
 
 Alfred runs workflows with a minimal `PATH`, so use the full path of your editor's command line tool. Quote paths with spaces:
 
