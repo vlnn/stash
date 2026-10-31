@@ -278,7 +278,7 @@ st 2026-10-25/             visit bank  ·  ssh prod web  ·  …    (that day, t
 st week/ pasta             pasta  ·  Add: pasta                 (recipes/ is searched too; the subtitle says recipes · today · 500g)
 st tod                     today/  ·  Add: tod                  (the row; ⇥ or ↩ enters the view)
 st ye                      yesterday/  ·  year/  ·  Add: ye     (two letters on: every view starting with them, two at most)
-st next                    next-week/  ·  next-month/  ·  next-quarter/  ·  next-year/  ·  Add: next
+st next                    next-week/  ·  next-month/  ·  Add: next                (next-q reaches the other two)
 ```
 
 Inside a view, results come in **calendar order around today**: today's lines, then the rest of the window ahead of today soonest first, then the part of the window already gone newest first, then the undated lines in file order. So `st next-week/` reads Monday to Sunday, `st yesterday/` is yesterday's lines then the evergreens, and `st week/` on a Wednesday is today, Thursday to Sunday, Tuesday, Monday, evergreens. With a query, the usual scores decide and freshness breaks the ties. The subtitle of a dated line says how old it is, after the stash it lives in: `today`, `1d`, `6d`, `1w`, `3w`, `1mo`, `11mo`, `1y`, `10y`; a date ahead of today shows as written (`2026-10-27`), since `st tomorrow/` is the way to ask what is planned. Undated lines show no age.
