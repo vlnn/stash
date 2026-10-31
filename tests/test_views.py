@@ -131,24 +131,31 @@ def test_window_is_the_calendar_period_around_now(view, now, first, last):
     [
         ("today", "2026-10-26", True),
         ("today", "2026-10-25", False),
-        ("today", "2026-10-27", False),
         ("today", "", True),
+        ("yesterday", "2026-10-25", True),
+        ("yesterday", "", False),
+        ("tomorrow", "", True),
         ("week", "2026-10-26", True),
         ("week", "2026-11-01", True),
         ("week", "2026-11-02", False),
         ("week", "2026-10-25", False),
         ("week", "", True),
+        ("last-week", "", False),
+        ("next-week", "", True),
         ("year", "2026-01-01", True),
         ("year", "2025-12-31", False),
         ("year", "", True),
+        ("last-year", "", False),
         ("2026-10-20", "2026-10-20", True),
         ("2026-10-20", "2026-10-21", False),
-        ("2026-10-20", "", True),
+        ("2026-10-20", "", False),
+        ("2026-10-26", "", True),
+        ("2026-10-27", "", True),
     ],
 )
-def test_admits_dated_lines_inside_the_window_and_undated_lines_always(view, date, expected):
-    assert admits(window(view, MONDAY), date) is expected, (
-        "a view holds every line stamped inside its window and every line without a stamp"
+def test_admits_dated_lines_inside_the_window_and_undated_lines_unless_the_window_is_over(view, date, expected):
+    assert admits(window(view, MONDAY), date, iso(MONDAY)) is expected, (
+        "a view holds every line stamped inside its window; a line without a stamp belongs to today and the future"
     )
 
 

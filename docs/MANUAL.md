@@ -91,7 +91,7 @@ These two files are the whole of the `examples` folder in the repository. Point 
 # Everything after the first | (or \) is the payload, verbatim; the words before it are what you search by.
 # Without a separator the whole line is both. Lines starting with # are comments.
 # A line the tool adds starts with a stamp (2026-10-26: …), the day it was added; today/, week/, year/ … filter by it.
-# Lines without a stamp, like most of this file, are undated and belong to every view.
+# Lines without a stamp, like most of this file, are undated and belong to today's and every future view.
 
 # shell one-liners: enter copies, shift-enter pastes
 ssh prod web              | ssh deploy@10.0.1.5
@@ -262,7 +262,7 @@ Entries go to the end of `default.txt`, or of `name.txt` when the query starts w
 </picture>
 ### Editing and deleting
 
-⌘↩ on any result opens its file at that line in your editor (if the editor supports line numbers, see Configuration); on *Add* it opens the current stash at the top. ⌥↩ deletes that line by commenting it out in place: it becomes `# deleted 2026-10-31: …`, invisible to search and to every view, but still in the file, so a slip is undone by removing the prefix in your editor and line numbers below it stay put. Deletion matches the line's content, stamp included, so if you changed the file since the search it reports *entry not found* rather than touching the wrong line. Comments and other lines stay as they were, and a file that is a symlink stays a symlink. Tidy the comments out of the file whenever you like. The stamp is yours to edit like the rest of the line: change the date and the line moves to that day's views; delete it and the line becomes undated, which every view holds.
+⌘↩ on any result opens its file at that line in your editor (if the editor supports line numbers, see Configuration); on *Add* it opens the current stash at the top. ⌥↩ deletes that line by commenting it out in place: it becomes `# deleted 2026-10-31: …`, invisible to search and to every view, but still in the file, so a slip is undone by removing the prefix in your editor and line numbers below it stay put. Deletion matches the line's content, stamp included, so if you changed the file since the search it reports *entry not found* rather than touching the wrong line. Comments and other lines stay as they were, and a file that is a symlink stays a symlink. Tidy the comments out of the file whenever you like. The stamp is yours to edit like the rest of the line: change the date and the line moves to that day's views; delete it and the line becomes undated, which today's and the future views hold.
 
 ### Working with several stashes
 
@@ -302,7 +302,7 @@ Every line Stashes adds is stamped with the day it was added, and sixteen names,
 | `decade/` | this decade | 2020 to 2029 |
 | `2026-10-20/` | that one day, past or future | 2026-10-20 |
 
-The windows are calendar periods, so `week/` is this Monday to Sunday, not the last seven days, and `next-week/` is the Monday to Sunday after it. Every view also holds every **undated** line: a line without a stamp is an evergreen that belongs to every window, so `st today/ ssh` finds the `ssh prod web` you wrote by hand last year as well as the one you added this morning.
+The windows are calendar periods, so `week/` is this Monday to Sunday, not the last seven days, and `next-week/` is the Monday to Sunday after it. A view whose window reaches today or lies ahead also holds every **undated** line: a line without a stamp is an evergreen that belongs to the present and the future, so `st today/ ssh` finds the `ssh prod web` you wrote by hand last year as well as the one you added this morning. A view whose window is over (`yesterday/`, `last-week/`, a past date) holds its stamped lines only, so it reads as a log of that period.
 
 **The stamp.** It is a day, as `YYYY-MM-DD:` and a space at the start of the line; the usual label-and-payload rule applies to what follows. It is never shown in the title and never searched (`st 2026-10-26` finds nothing). A plain add stamps today, in local time; an add under a view can stamp another day (below). Once written it is never touched again: nothing is restamped, aged out or deleted. To change a stamp, edit the file; to remove one, delete it from the line.
 
@@ -319,17 +319,17 @@ What you type is never a stamp: `st 2026-10-20: call dentist` ↩ stores `2026-1
 ```
 st today/                  zoo visit  ·  k8s ctx prod  ·  ssh prod web  ·  …    today's, then every undated line
 st today/ visit            zoo visit  ·  Add: visit                           bank was yesterday, vet is tomorrow
-st yesterday/ visit        visit bank  ·  Add: visit
+st yesterday/ visit        visit bank  ·  Add: visit                          yesterday is over: no undated lines
 st tomorrow/ visit         visit vet  ·  Add: visit
 st week/ visit             zoo visit  ·  visit vet  ·  visit tax  ·  Add: visit   today, then the rest of the week
 st next-week/              review budget  ·  ssh prod web  ·  …               next Monday to Sunday, then undated
-st 2026-10-25/             visit bank  ·  ssh prod web  ·  …                  that day, then every undated line
+st 2026-10-25/             visit bank  ·  …                                  that day only; a past date holds no undated lines
 st week/ pasta             pasta  ·  Add: pasta                               recipes/ is searched too
 st tod                     today/  ·  Add: tod                                 the row; ⇥ or ↩ enters the view
 st next                    next-week/  ·  next-month/  ·  Add: next                    next-q reaches the other two
 ```
 
-Inside a view, results come in **calendar order around today**: today's lines, then the rest of the window ahead of today soonest first, then the part already gone newest first, then the undated lines in file order. So `st next-week/` reads Monday to Sunday, and `st week/` on a Wednesday is today, Thursday to Sunday, Tuesday, Monday, evergreens. With a query, the usual scores decide and freshness breaks ties. A dated line's subtitle says how old it is, after the stash it lives in: `today`, `1d`, `6d`, `1w`, `3w`, `1mo`, `11mo`, `1y`; a date ahead of today shows as written (`2026-10-27`); undated lines show no age.
+Inside a view, results come in **calendar order around today**: today's lines, then the rest of the window ahead of today soonest first, then the part already gone newest first, then, if the window reaches today, the undated lines in file order. So `st next-week/` reads Monday to Sunday, `st yesterday/` is yesterday's lines and nothing else, and `st week/` on a Wednesday is today, Thursday to Sunday, Tuesday, Monday, evergreens. With a query, the usual scores decide and freshness breaks ties. A dated line's subtitle says how old it is, after the stash it lives in: `today`, `1d`, `6d`, `1w`, `3w`, `1mo`, `11mo`, `1y`; a date ahead of today shows as written (`2026-10-27`); undated lines show no age.
 
 ```
 st visit                   zoo visit          today · 10:00 east gate
@@ -557,7 +557,7 @@ Added: k8s pods broken
 - Stashes do not nest, and an entry whose first word ends in `/` cannot be reached as such, because `st foo/` means the stash `foo`.
 - A path opens only if it exists at search time; a command that merely starts with `/` is copied, not run.
 - A stamp is a day, not a time, in the local time zone of the machine that wrote it; the day turns at 00:00. Views are calendar windows and nothing else: there is no "last 7 days" and no window shorter than a day.
-- A view holds every undated line, so `st today/` on an old stash lists all of it, with today's lines first. Views reach one period back and one ahead (`last-`, `next-`); there is no `next-next-week/`, but any date works as a view name.
+- A view from today on holds every undated line, so `st today/` on an old stash lists all of it, with today's lines first; past views hold stamped lines only. Views reach one period back and one ahead (`last-`, `next-`); there is no `next-next-week/`, but any date works as a view name.
 - `today`, `yesterday`, `tomorrow`, `week`, `month`, `quarter`, `year`, `decade`, their `last-` and `next-` forms, and dates are not available as stash names.
 - The files are plain text. Do not store secrets you would not keep in a dotfile.
 
@@ -576,7 +576,7 @@ Added: k8s pods broken
 | An entry that should copy tries to hand off | It starts or ends with `@word` | End the line with a full stop, put a word before the handle, or use ⌘C |
 | After upgrading, a stash called `stash` appeared | Version 2.x's single file is still named `stash.txt` | `mv ~/.config/stash/stash.txt ~/.config/stash/default.txt` |
 | **List stashes** turned itself off after upgrading | The setting was renamed from *List scopes* | Turn it on again in **Configure Workflow…** |
-| `st today/` lists old entries too | Undated lines belong to every view | Expected; today's lines come first. Add a stamp in the editor to date a line |
+| `st today/` lists old entries too | Undated lines belong to today's and the future views | Expected; today's lines come first. Add a stamp in the editor to date a line, or look at `yesterday/`, which holds stamped lines only |
 | `st week/` says a file is hidden behind the view | A stash file carries a reserved view name | Rename the file, e.g. `week.txt` to `weekly.txt` |
 
 **Where things are**

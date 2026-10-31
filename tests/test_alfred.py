@@ -469,10 +469,16 @@ def test_stash_item_for_a_view_shows_its_days_and_opens_default():
 
 
 def test_view_hint_names_the_window():
-    hint = view_hint("week", ("2026-10-19", "2026-10-25"))
+    hint = view_hint("week", ("2026-10-19", "2026-10-25"), True)
 
     assert hint["title"] == "Nothing in week/", "an empty view is told apart from a miss"
     assert hint["subtitle"] == "Lines stamped 2026-10-19 – 2026-10-25 and undated lines show here", "and says what fits"
+
+
+def test_view_hint_of_a_past_window_does_not_promise_undated_lines():
+    hint = view_hint("last-week", ("2026-10-12", "2026-10-18"), False)
+
+    assert hint["subtitle"] == "Lines stamped 2026-10-12 – 2026-10-18 show here", "a past view holds stamped lines only"
 
 
 def test_shadow_hint_explains_the_file_in_the_way():

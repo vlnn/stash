@@ -67,6 +67,7 @@ st ssh prod web | ssh deploy@10.0.1.5     ↩ adds the entry
 st prod                                   ↩ copies ssh deploy@10.0.1.5
 st http://127.0.0.1:4000                  ↩ adds it; next time, st 4000 ↩ opens it
 st today/                                 what you added today, then the undated evergreens
+st yesterday/                             what you added yesterday, and nothing else: a log
 st                                        browse everything; ⌘↩ opens default.txt
 ```
 
@@ -87,7 +88,7 @@ find pyc \ find . -name '*.pyc' -exec rm {} \;           \ works as the separato
 2026-10-26: k8s ctx prod | kubectl config use-context prod   a stamp: the day the line was added, written by the tool
 ```
 
-A line the tool added starts with a **stamp**, `YYYY-MM-DD:` and a space; the rule above applies to what follows it. The stamp is never shown in the title and never searched; it is what `today/`, `week/` and the other views filter by (see [Dates and views](#dates-and-views)). A line without one, such as every line written before this version or by hand, is undated and belongs to every view.
+A line the tool added starts with a **stamp**, `YYYY-MM-DD:` and a space; the rule above applies to what follows it. The stamp is never shown in the title and never searched; it is what `today/`, `week/` and the other views filter by (see [Dates and views](#dates-and-views)). A line without one, such as every line written before this version or by hand, is undated and belongs to today's view and every future one, never to a past one.
 
 Rules:
 
@@ -249,7 +250,7 @@ Every line the tool adds is stamped with the day it was added, and sixteen names
 | `decade/` | this decade, `2020`–`2029` | 2020-01-01 – 2029-12-31 |
 | `2026-10-20/` | that day, past or future | 2026-10-20 |
 
-Every view also holds every **undated** line: a line without a stamp is an evergreen and belongs to every window, so `st today/ ssh` finds the `ssh prod web` you wrote by hand last year as well as the one you added this morning.
+A view whose window reaches today or lies ahead also holds every **undated** line: a line without a stamp is an evergreen and belongs to the present and the future, so `st today/ ssh` finds the `ssh prod web` you wrote by hand last year as well as the one you added this morning. A view whose window is over (`yesterday/`, `last-week/`, `last-month/`, a past date) holds its stamped lines only, so it reads as a log of that period, with none of the evergreens mixed in.
 
 ### The stamp
 
@@ -261,7 +262,7 @@ st recipes/ pasta | 500g          ↩  appends   2026-10-26: pasta | 500g       
 - The stamp is the day the tool wrote the line, in local time; the day changes at 00:00. It is written once and never touched again: the tool does not restamp, move, age out or delete anything. To change a stamp, edit the file; to remove one, delete it from the line.
 - What you type is never a stamp. `st 2026-10-20: call dentist ↩` stores `2026-10-26: 2026-10-20: call dentist`, found by `st dentist` and by `st 2026-10-20` (a word now), shown as `2026-10-20: call dentist`, and held by `today/`, not by `2026-10-20/`.
 - A stamp can be ahead of today. `st tomorrow/ dentist ↩` writes `2026-10-27: dentist`; tonight it is in `tomorrow/`, `week/` and `month/`, tomorrow morning it is in `today/`, the day after in `yesterday/`, and so on back through `week/` and `month/` as the calendar moves past it. Nothing moves the line; the day changes.
-- Lines that predate this version, and lines you write in the editor without a stamp, are undated. There is nothing to migrate: they keep working as before and show up in every view. If you want a whole file to carry one date, a one-liner does it: `sed -i '' -e '/^[^#]/ s/^/2026-01-01: /' ~/.config/stash/default.txt`.
+- Lines that predate this version, and lines you write in the editor without a stamp, are undated. There is nothing to migrate: they keep working as before and show up in a bare `st` and in every view from today on. If you want a whole file to carry one date, a one-liner does it: `sed -i '' -e '/^[^#]/ s/^/2026-01-01: /' ~/.config/stash/default.txt`.
 
 ### Searching a view
 
@@ -270,18 +271,18 @@ A query that starts with a view name searches the lines the view holds, across e
 ```
 st today/                  zoo visit  ·  k8s ctx prod  ·  ssh prod web  ·  grafana api latency  ·  …   (today's, then every undated line)
 st today/ visit            zoo visit  ·  Add: visit            (visit bank is yesterday's and visit vet tomorrow's, so neither is here)
-st yesterday/ visit        visit bank  ·  Add: visit
+st yesterday/ visit        visit bank  ·  Add: visit            (yesterday is over: visit grandma, undated, stays out)
 st tomorrow/ visit         visit vet  ·  Add: visit
 st week/ visit             zoo visit  ·  visit vet  ·  visit tax  ·  Add: visit      (today, then the rest of the week; bank was Sunday, last week)
 st next-week/              review budget  ·  ssh prod web  ·  …    (next Monday to Sunday soonest first, then every undated line)
-st 2026-10-25/             visit bank  ·  ssh prod web  ·  …    (that day, then every undated line)
+st 2026-10-25/             visit bank  ·  …                     (that day only; a past date holds no undated lines)
 st week/ pasta             pasta  ·  Add: pasta                 (recipes/ is searched too; the subtitle says recipes · today · 500g)
 st tod                     today/  ·  Add: tod                  (the row; ⇥ or ↩ enters the view)
 st ye                      yesterday/  ·  year/  ·  Add: ye     (two letters on: every view starting with them, two at most)
 st next                    next-week/  ·  next-month/  ·  Add: next                (next-q reaches the other two)
 ```
 
-Inside a view, results come in **calendar order around today**: today's lines, then the rest of the window ahead of today soonest first, then the part of the window already gone newest first, then the undated lines in file order. So `st next-week/` reads Monday to Sunday, `st yesterday/` is yesterday's lines then the evergreens, and `st week/` on a Wednesday is today, Thursday to Sunday, Tuesday, Monday, evergreens. With a query, the usual scores decide and freshness breaks the ties. The subtitle of a dated line says how old it is, after the stash it lives in: `today`, `1d`, `6d`, `1w`, `3w`, `1mo`, `11mo`, `1y`, `10y`; a date ahead of today shows as written (`2026-10-27`), since `st tomorrow/` is the way to ask what is planned. Undated lines show no age.
+Inside a view, results come in **calendar order around today**: today's lines, then the rest of the window ahead of today soonest first, then the part of the window already gone newest first, then, if the window reaches today, the undated lines in file order. So `st next-week/` reads Monday to Sunday, `st yesterday/` is yesterday's lines and nothing else, and `st week/` on a Wednesday is today, Thursday to Sunday, Tuesday, Monday, evergreens. With a query, the usual scores decide and freshness breaks the ties. The subtitle of a dated line says how old it is, after the stash it lives in: `today`, `1d`, `6d`, `1w`, `3w`, `1mo`, `11mo`, `1y`, `10y`; a date ahead of today shows as written (`2026-10-27`), since `st tomorrow/` is the way to ask what is planned. Undated lines show no age.
 
 ```
 st visit                   zoo visit          today · 10:00 east gate
@@ -406,7 +407,7 @@ Entries are appended at the end of `default.txt`, or of `name.txt` when the quer
 
 - ⌘↩ on any result opens its file in your editor at that entry's line (with an editor that supports lines, see below); on the *Add* item or on a hint it opens the current stash at the top.
 - ⌥↩ on a search result deletes that line from its file by commenting it out in place: `k8s ctx | kubectl …` becomes `# deleted 2026-10-31: k8s ctx | kubectl …`, which search never sees and the views never hold. Nothing is removed, so a slip of the keystroke is undone by taking the prefix off in your editor, git diffs stay readable, and line numbers below it do not move. Deletion matches the line's content, stamp included, so if you edited the file since the search, it reports *entry not found* instead of deleting the wrong line. Comments and other lines are kept as they are, and a file that is a symlink (to iCloud, Dropbox, a git repo) stays a symlink. Delete the comments from the file whenever you like.
-- The stamp is yours to edit like the rest of the line: change the date and the line moves to that day's views, delete it and the line becomes an evergreen that every view holds.
+- The stamp is yours to edit like the rest of the line: change the date and the line moves to that day's views, delete it and the line becomes an evergreen that today's and the future views hold.
 
 ## Configuration
 
@@ -556,7 +557,7 @@ What keeps it fast:
 - Stashes do not nest, and an entry whose first word ends in `/` (`foo/ bar`) can't be reached as such: `st foo/` means the stash `foo`.
 - A path payload opens only if it exists when you search; a command that happens to start with `/` is copied, not run.
 - A stamp is a day, not a time, in the local time zone of the machine that wrote it; the day turns at 00:00, so a line added at 00:30 is already today's. Views are calendar windows and nothing else: there is no "last 7 days", no "this week so far", and no window shorter than a day.
-- A view holds every undated line, so `st today/` on an old stash lists all of it; the evergreens come after today's lines.
+- A view from today on holds every undated line, so `st today/` on an old stash lists all of it; the evergreens come after today's lines. Past views (`yesterday/`, `last-week/`, a past date) hold stamped lines only.
 - `today`, `yesterday`, `tomorrow`, `week`, `month`, `quarter`, `year`, `decade`, their `last-` and `next-` forms and dates are not available as stash names.
 - "Comes up first" means the calendar: a line stamped within next week ranks above the evergreens, a line stamped the Monday after does not, even when that is two days away. There is no rolling horizon.
 - It's a plain-text file: don't store secrets you wouldn't keep in a dotfile.

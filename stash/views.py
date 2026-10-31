@@ -108,9 +108,16 @@ def window(view: str, now: time.struct_time) -> Window:
     return day(first, 1, 1), day(first + 9, 12, 31)
 
 
-def admits(span: Window, date: str) -> bool:
+def admits(span: Window, date: str, today: str) -> bool:
     first, last = span
-    return not date or first <= date <= last
+    if not date:
+        return holds_undated(span, today)
+    return first <= date <= last
+
+
+def holds_undated(span: Window, today: str) -> bool:
+    _, last = span
+    return last >= today
 
 
 def is_current(view: str) -> bool:

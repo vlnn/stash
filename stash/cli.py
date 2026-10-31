@@ -137,11 +137,11 @@ def view_search(view: str, words: str, query: str, config: Config) -> list[alfre
     window = views.window(view, today)
     horizon = views.horizon_at(today, window)
     everything = [*store.load_stash(config.db_dir), *stashed_entries(config.db_dir)]
-    admitted = by_freshness([entry for entry in everything if views.admits(window, entry.date)], horizon)
+    admitted = by_freshness([entry for entry in everything if views.admits(window, entry.date, horizon.today)], horizon)
     hits = search(words, admitted, config.max_results, horizon)
     reserved = clock_values()
     matches = [item_of(entry, view, reserved, config, today) for entry in hits]
-    hint = alfred.view_hint(view, window)
+    hint = alfred.view_hint(view, window, views.holds_undated(window, horizon.today))
     items = alfred.feedback(matches, query, hint, view, False, reserved, config.flows)
     shadowed = os.path.exists(store.stash_path(config.db_dir, view))
     return [alfred.shadow_hint(view), *items] if shadowed else items
@@ -162,7 +162,7 @@ def view_rows(words: str, entries: Sequence[Entry], today: time.struct_time) -> 
 
 def view_row(view: str, entries: Sequence[Entry], today: time.struct_time) -> alfred.Item:
     window = views.window(view, today)
-    count = sum(views.admits(window, entry.date) for entry in entries)
+    count = sum(views.admits(window, entry.date, views.iso(today)) for entry in entries)
     return alfred.stash_item(view, count, alfred.span_of(window))
 
 

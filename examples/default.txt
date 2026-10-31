@@ -2,7 +2,7 @@
 # Everything after the first | (or \) is the payload, verbatim; the words before it are what you search by.
 # Without a separator the whole line is both. Lines starting with # are comments.
 # A line the tool adds starts with a stamp (2026-10-26: …), the day it was added; today/, week/, year/ … filter by it.
-# Lines without a stamp, like most of this file, are undated and belong to every view.
+# Lines without a stamp, like most of this file, are undated and belong to today's and every future view.
 
 # shell one-liners: enter copies, shift-enter pastes
 ssh prod web              | ssh deploy@10.0.1.5

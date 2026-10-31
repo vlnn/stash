@@ -608,8 +608,8 @@ def dated(db_file, grocery, frozen_clock):
         ("today/", ["zoo visit", "visit grandma", "milk eggs", "bread"]),
         ("today/ visit", ["zoo visit", "visit grandma", "Add: visit"]),
         ("today/ zoo", ["zoo visit", "Add: zoo"]),
-        ("yesterday/", ["visit bank", "cheese", "visit grandma", "milk eggs", "bread"]),
-        ("yesterday/ visit", ["visit bank", "visit grandma", "Add: visit"]),
+        ("yesterday/", ["visit bank", "cheese"]),
+        ("yesterday/ visit", ["visit bank", "Add: visit"]),
         ("week/ visit", ["zoo visit", "visit bank", "visit dentist", "visit grandma", "Add: visit"]),
         (
             "month/ visit",
@@ -664,20 +664,22 @@ def dated(db_file, grocery, frozen_clock):
         ("next-month/ visit", ["visit opera", "visit grandma", "Add: visit"]),
         ("next-quarter/ visit", ["visit rome", "visit grandma", "Add: visit"]),
         ("next-year/ visit", ["visit rome", "visit grandma", "Add: visit"]),
-        ("last-week/ visit", ["visit grandma", "Add: visit"]),
-        ("last-month/ visit", ["visit museum", "visit grandma", "Add: visit"]),
-        ("last-quarter/ visit", ["visit museum", "visit grandma", "Add: visit"]),
-        ("last-year/ visit", ["visit paris", "visit grandma", "Add: visit"]),
-        ("2026-10-20/", ["visit dentist", "visit grandma", "milk eggs", "bread"]),
+        ("last-week/ visit", ["Add: visit"]),
+        ("last-month/ visit", ["visit museum", "Add: visit"]),
+        ("last-quarter/ visit", ["visit museum", "Add: visit"]),
+        ("last-year/ visit", ["visit paris", "Add: visit"]),
+        ("2026-10-20/", ["visit dentist"]),
         ("2026-10-20/ dentist", ["visit dentist", "Add: dentist"]),
-        ("2026-10-21/", ["visit grandma", "milk eggs", "bread"]),
+        ("2026-10-21/", ["Nothing in 2026-10-21/"]),
+        ("2026-10-25/", ["zoo visit", "visit grandma", "milk eggs", "bread"]),
+        ("2026-10-27/", ["visit grandma", "milk eggs", "bread"]),
         ("today/ zzz", ["Add: zzz"]),
         ("today/ pasta | 500g", ["Add: pasta"]),
     ],
 )
 def test_view_search_filters_by_stamp_and_lists_newest_first_then_undated(capsys, env, dated, query, expected):
     assert item_titles(run(capsys, env, "search", query)) == expected, (
-        "a view holds the lines stamped inside its calendar window, newest first, then every undated line"
+        "a view holds the lines stamped inside its window, newest first; today's and future views add the undated lines"
     )
 
 
@@ -789,7 +791,7 @@ def test_edit_under_a_view_opens_default(mocker, capsys, env, db_file):
         ("tod", ["today/", "Add: tod"], "4 entries · 2026-10-25 · ↩ to browse"),
         ("tom", ["tomorrow/", "Add: tom"], "4 entries · 2026-10-26 · ↩ to browse"),
         ("wee", ["week/", "Add: wee"], "7 entries · 2026-10-19 – 2026-10-25 · ↩ to browse"),
-        ("yes", ["yesterday/", "Add: yes"], "5 entries · 2026-10-24 · ↩ to browse"),
+        ("yes", ["yesterday/", "Add: yes"], "2 entries · 2026-10-24 · ↩ to browse"),
         ("next-w", ["next-week/", "Add: next-w"], "5 entries · 2026-10-26 – 2026-11-01 · ↩ to browse"),
     ],
 )

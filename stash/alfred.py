@@ -243,8 +243,9 @@ def stash_hint(stash: str, exists: bool) -> Item:
     return hint_item(f"{stash}/ is empty", f"Type {FORMAT_HINT} to add an entry", stash)
 
 
-def view_hint(view: str, window: tuple[str, str]) -> Item:
-    return hint_item(f"Nothing in {view}/", f"Lines stamped {span_of(window)} and undated lines show here")
+def view_hint(view: str, window: tuple[str, str], undated: bool) -> Item:
+    also = " and undated lines" if undated else ""
+    return hint_item(f"Nothing in {view}/", f"Lines stamped {span_of(window)}{also} show here")
 
 
 def shadow_hint(view: str) -> Item:
