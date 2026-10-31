@@ -225,7 +225,7 @@ The other keys are the same for every result:
 | --- | --- |
 | ⇧↩ | copy and paste the payload into the frontmost app |
 | ⌘↩ | open the entry's file in your editor at that line |
-| ⌥↩ | delete the entry from its file |
+| ⌥↩ | delete the entry: comment it out in its file with the day |
 | ⌃ (hold) | show the file and line, and what ↩ will do |
 | ⌘C | copy the payload as written (Alfred's own shortcut) |
 | ⌘L | show the payload in Large Type |
@@ -262,7 +262,7 @@ Entries go to the end of `default.txt`, or of `name.txt` when the query starts w
 </picture>
 ### Editing and deleting
 
-⌘↩ on any result opens its file at that line in your editor (if the editor supports line numbers, see Configuration); on *Add* it opens the current stash at the top. ⌥↩ deletes that line. Deletion matches the line's content, stamp included, so if you changed the file since the search it reports *entry not found* rather than removing the wrong line. Comments and other lines stay as they were, and a file that is a symlink stays a symlink. The stamp is yours to edit like the rest of the line: change the date and the line moves to that day's views; delete it and the line becomes undated, which every view holds.
+⌘↩ on any result opens its file at that line in your editor (if the editor supports line numbers, see Configuration); on *Add* it opens the current stash at the top. ⌥↩ deletes that line by commenting it out in place: it becomes `# deleted 2026-10-31: …`, invisible to search and to every view, but still in the file, so a slip is undone by removing the prefix in your editor and line numbers below it stay put. Deletion matches the line's content, stamp included, so if you changed the file since the search it reports *entry not found* rather than touching the wrong line. Comments and other lines stay as they were, and a file that is a symlink stays a symlink. Tidy the comments out of the file whenever you like. The stamp is yours to edit like the rest of the line: change the date and the line moves to that day's views; delete it and the line becomes undated, which every view holds.
 
 ### Working with several stashes
 

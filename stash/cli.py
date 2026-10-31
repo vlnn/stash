@@ -198,7 +198,7 @@ def add_command(raw: str, config: Config) -> str:
 
 def delete_command(raw: str, config: Config) -> str:
     stash, line = split_stash(raw)
-    if store.delete_line(store.stash_path(config.db_dir, alfred.home(stash)), line):
+    if store.delete_line(store.stash_path(config.db_dir, alfred.home(stash)), line, views.iso(now())):
         return f"Deleted: {line.strip()}"
     return "Not deleted: entry not found, the file may have changed"
 

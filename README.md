@@ -211,7 +211,7 @@ The subtitle says which: `Open · …` or `→ kobold · delany`. Everything els
 |---|---|
 | ⇧↩ | Copy and paste the payload into the frontmost app |
 | ⌘↩ | Open this entry's file in your editor at its line (on *Add* or a hint: at the top) |
-| ⌥↩ | Delete this entry from its file |
+| ⌥↩ | Delete this entry: comment it out in its file with the day |
 | ⌃ (hold) | Show the entry's file and line number, and what ↩ will do (for a hand-off, the resolved call: `alfred: kb delany`) |
 | ⌘C | Copy the payload as written (Alfred's own copy shortcut) |
 | ⌘L | Show the payload in Large Type |
@@ -405,7 +405,7 @@ Entries are appended at the end of `default.txt`, or of `name.txt` when the quer
 ## Editing and deleting
 
 - ⌘↩ on any result opens its file in your editor at that entry's line (with an editor that supports lines, see below); on the *Add* item or on a hint it opens the current stash at the top.
-- ⌥↩ on a search result deletes that line from its file. Deletion matches the line's content, stamp included, so if you edited the file since the search, it reports *entry not found* instead of deleting the wrong line. Comments and other lines are kept as they are, and a file that is a symlink (to iCloud, Dropbox, a git repo) stays a symlink.
+- ⌥↩ on a search result deletes that line from its file by commenting it out in place: `k8s ctx | kubectl …` becomes `# deleted 2026-10-31: k8s ctx | kubectl …`, which search never sees and the views never hold. Nothing is removed, so a slip of the keystroke is undone by taking the prefix off in your editor, git diffs stay readable, and line numbers below it do not move. Deletion matches the line's content, stamp included, so if you edited the file since the search, it reports *entry not found* instead of deleting the wrong line. Comments and other lines are kept as they are, and a file that is a symlink (to iCloud, Dropbox, a git repo) stays a symlink. Delete the comments from the file whenever you like.
 - The stamp is yours to edit like the rest of the line: change the date and the line moves to that day's views, delete it and the line becomes an evergreen that every view holds.
 
 ## Configuration
@@ -589,7 +589,7 @@ git tag v3.1.0 && git push origin v3.1.0
 | `stash/entries.py` | Split a line into its stamp and, at the first separator, an `Entry` with its searchable text; the `name/` prefix |
 | `stash/views.py` | The view names as period × offset, their calendar windows (integer day counts, no `datetime`), the age word, the `Horizon` and freshness key |
 | `stash/matching.py` | One regex per query word for the label, substring fallback on the payload, scoring, ranking with the freshness tiebreak |
-| `stash/store.py` | The stashes folder: `default.txt` and the other files; load, append, delete lines; atomic, symlink-safe writes |
+| `stash/store.py` | The stashes folder: `default.txt` and the other files; load, append, comment out deleted lines; atomic, symlink-safe writes |
 | `stash/snippets.py` | `{{name}}` and `{{name=default}}` placeholders, the reserved `date`, `time` and `clipboard`, filling |
 | `stash/alfred.py` | Alfred Script Filter JSON: results and their copy/open/hand-off/fill/resolve action, stash and view rows, the *Run* and *Add* items, prompt rows, hints |
 | `stash/cli.py` | Commands `search`, `add`, `delete`, `edit`, `open`, `alfred`, `prompt`, `resolve`, `fill`; the stamp on add, the view searches; workflow variables |

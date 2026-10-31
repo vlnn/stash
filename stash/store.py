@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 
-from .entries import Entry, is_stash_name, parse_line
+from .entries import COMMENT_PREFIX, Entry, is_stash_name, parse_line
 
 TEXT = {"encoding": "utf-8", "errors": "surrogateescape", "newline": ""}
 ROOT = "default"
@@ -61,13 +61,18 @@ def append_line(path: str, line: str) -> None:
         file.write(f"{separator}{line}\n")
 
 
-def delete_line(path: str, target: str) -> bool:
+def delete_line(path: str, target: str, date: str) -> bool:
     lines = read_text(path).splitlines(keepends=True)
     index = find_line(lines, target)
     if index is None:
         return False
-    write_atomically(path, "".join(lines[:index] + lines[index + 1 :]))
+    lines[index] = deleted(lines[index], date)
+    write_atomically(path, "".join(lines))
     return True
+
+
+def deleted(line: str, date: str) -> str:
+    return f"{COMMENT_PREFIX} deleted {date}: {line}"
 
 
 def find_line(lines: list[str], target: str) -> int | None:

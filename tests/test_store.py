@@ -21,6 +21,9 @@ def db_file(tmp_path):
     return tmp_path / "entries.txt"
 
 
+DAY = "2026-10-25"
+
+
 def write(path, text):
     path.write_text(text, encoding="utf-8")
     return str(path)
@@ -77,24 +80,34 @@ def test_append_line_keeps_one_entry_per_line(db_file, existing, expected):
     "target",
     ["b | B | 2", "  b | B | 2  "],
 )
-def test_delete_line_removes_first_matching_line(db_file, target):
+def test_delete_line_comments_out_first_matching_line(db_file, target):
     path = write(db_file, "# keep\na | A | 1\n  b | B | 2\nc | C | 3\nb | B | 2\n")
 
-    assert delete_line(path, target) is True, "delete_line should report a successful deletion"
-    assert db_file.read_text(encoding="utf-8") == "# keep\na | A | 1\nc | C | 3\nb | B | 2\n", (
-        "delete_line should remove only the first matching line and keep everything else"
-    )
+    assert delete_line(path, target, DAY) is True, "delete_line should report a successful deletion"
+    assert db_file.read_text(encoding="utf-8") == (
+        "# keep\na | A | 1\n# deleted 2026-10-25:   b | B | 2\nc | C | 3\nb | B | 2\n"
+    ), "delete_line should comment out only the first matching line, verbatim, and keep everything else"
+
+
+def test_a_deleted_line_is_not_loaded_and_not_deleted_again(db_file):
+    path = write(db_file, "a | A | 1\nb | B | 2\n")
+
+    delete_line(path, "a | A | 1", DAY)
+
+    assert [entry.label for entry in load_entries(path)] == ["b"], "a commented-out line is gone from search"
+    assert delete_line(path, "a | A | 1", DAY) is False, "the comment is not the entry, so there is nothing to delete"
+    assert db_file.read_text(encoding="utf-8").count("deleted") == 1, "delete_line should not stack comments"
 
 
 def test_delete_line_leaves_file_untouched_when_missing_target(db_file):
     path = write(db_file, "a | A | 1\n")
 
-    assert delete_line(path, "zzz") is False, "delete_line should report that nothing matched"
+    assert delete_line(path, "zzz", DAY) is False, "delete_line should report that nothing matched"
     assert db_file.read_text(encoding="utf-8") == "a | A | 1\n", "delete_line should not change the file"
 
 
 def test_delete_line_on_missing_file_reports_nothing_deleted(db_file):
-    assert delete_line(str(db_file), "a") is False, "delete_line should handle a missing database"
+    assert delete_line(str(db_file), "a", DAY) is False, "delete_line should handle a missing database"
 
 
 def test_delete_line_preserves_symlinked_database(tmp_path):
@@ -104,17 +117,19 @@ def test_delete_line_preserves_symlinked_database(tmp_path):
     link = tmp_path / "entries.txt"
     link.symlink_to(real)
 
-    delete_line(str(link), "a | A | 1")
+    delete_line(str(link), "a | A | 1", DAY)
 
     assert link.is_symlink(), "delete_line should keep the symlink instead of replacing it with a file"
-    assert real.read_text(encoding="utf-8") == "b | B | 2\n", "delete_line should edit the symlink target"
+    assert real.read_text(encoding="utf-8") == "# deleted 2026-10-25: a | A | 1\nb | B | 2\n", (
+        "delete_line should edit the symlink target"
+    )
 
 
 def test_delete_line_keeps_file_mode(db_file):
     path = write(db_file, "a | A | 1\nb | B | 2\n")
     os.chmod(path, 0o600)
 
-    delete_line(path, "a | A | 1")
+    delete_line(path, "a | A | 1", DAY)
 
     assert stat.S_IMODE(os.stat(path).st_mode) == 0o600, "delete_line should keep the permissions of a private stash"
 
@@ -122,9 +137,11 @@ def test_delete_line_keeps_file_mode(db_file):
 def test_delete_line_keeps_windows_line_endings(db_file):
     db_file.write_bytes(b"a | A | 1\r\nb | B | 2\r\n")
 
-    delete_line(str(db_file), "a | A | 1")
+    delete_line(str(db_file), "a | A | 1", DAY)
 
-    assert db_file.read_bytes() == b"b | B | 2\r\n", "delete_line should not translate line endings"
+    assert db_file.read_bytes() == b"# deleted 2026-10-25: a | A | 1\r\nb | B | 2\r\n", (
+        "delete_line should not translate line endings"
+    )
 
 
 def test_ensure_file_creates_empty_database(tmp_path):
@@ -157,8 +174,8 @@ def test_load_entries_tolerates_undecodable_bytes(db_file):
 def test_delete_line_preserves_undecodable_bytes(db_file):
     db_file.write_bytes(MIXED_ENCODING)
 
-    assert delete_line(str(db_file), "last | 3") is True, "delete_line should work in a file with stray bytes"
-    assert db_file.read_bytes() == b"good | 1\ncaf\xe9 latin1 | 2\n", (
+    assert delete_line(str(db_file), "last | 3", DAY) is True, "delete_line should work in a file with stray bytes"
+    assert db_file.read_bytes() == b"good | 1\ncaf\xe9 latin1 | 2\n# deleted 2026-10-25: last | 3\n", (
         "delete_line should write undecodable bytes back exactly as they were"
     )
 

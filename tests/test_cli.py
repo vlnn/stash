@@ -166,9 +166,17 @@ def test_added_entry_is_searchable(capsys, env):
         ("gone | x", "Not deleted: entry not found, the file may have changed", ["ssh prod web", "wifi guest"]),
     ],
 )
-def test_delete(capsys, env, raw, expected_output, expected_titles):
+def test_delete(capsys, env, frozen_clock, raw, expected_output, expected_titles):
     assert run(capsys, env, "delete", raw) == expected_output, "delete should report what happened"
     assert item_titles(run(capsys, env, "search", "")) == expected_titles, "delete should remove only that entry"
+
+
+def test_delete_keeps_the_line_as_a_dated_comment(capsys, env, db_file, frozen_clock):
+    run(capsys, env, "delete", "wifi guest | hunter2")
+
+    assert db_file.read_text(encoding="utf-8") == (
+        "ssh prod web | ssh deploy@10.0.1.5\n# deleted 2026-10-25: wifi guest | hunter2\n"
+    ), "a keystroke should never destroy data: the line stays in the file, commented out with the day"
 
 
 @pytest.mark.parametrize(
@@ -359,14 +367,16 @@ def test_add_into_stash_creates_its_file(capsys, env, db_dir, frozen_clock):
     assert (db_dir / "default.txt").read_text(encoding="utf-8") == DATABASE, "the root should be untouched"
 
 
-def test_delete_from_stash(capsys, env, grocery):
+def test_delete_from_stash(capsys, env, grocery, frozen_clock):
     assert run(capsys, env, "delete", "grocery/ bread | sourdough") == "Deleted: bread | sourdough", (
         "delete should remove the line from the stash's file"
     )
-    assert grocery.read_text(encoding="utf-8") == "milk eggs | 2L and a dozen\n", "only that line should go"
+    assert grocery.read_text(encoding="utf-8") == (
+        "milk eggs | 2L and a dozen\n# deleted 2026-10-25: bread | sourdough\n"
+    ), "only that line should go, and it should stay in the file as a comment"
 
 
-def test_delete_from_stash_reports_unknown_entry(capsys, env, grocery):
+def test_delete_from_stash_reports_unknown_entry(capsys, env, grocery, frozen_clock):
     assert run(capsys, env, "delete", "grocery/ ssh prod web | ssh deploy@10.0.1.5").startswith("Not deleted"), (
         "a root entry is not found in a stash's file"
     )
