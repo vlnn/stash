@@ -157,8 +157,7 @@ def stash_rows(words: str, stashes: Mapping[str, list[Entry]]) -> list[alfred.It
 
 
 def view_rows(words: str, entries: Sequence[Entry], today: time.struct_time) -> list[alfred.Item]:
-    typed = words.strip().lower()
-    return [view_row(view, entries, today) for view in views.VIEWS if typed and view.startswith(typed)]
+    return [view_row(view, entries, today) for view in views.named(words.strip().lower())]
 
 
 def view_row(view: str, entries: Sequence[Entry], today: time.struct_time) -> alfred.Item:

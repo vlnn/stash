@@ -277,7 +277,7 @@ st recipes/ pasta | 500g                     ↩ creates recipes.txt
 
 Results come in three tiers: stash rows whose names match what you typed, then `default` entries, then entries from every other stash. A stash row carries the 📒 icon and says how many entries it holds; ⇥ or ↩ on it puts ` checklists/  ` into the query. That prefix is the whole mechanism: with it, search, *Add*, ⌘↩ and ⌥↩ all act on that one file. Backspace over the slash to leave. From a bare `st`, an entry's subtitle starts with its stash name; inside `checklists/` it looks like any other entry.
 
-By default a bare `st` lists entries only; turn on **List stashes** in the configuration to see every stash row first. The views of the next section (`today/`, `week/`, …) get the same kind of row when you type the start of their name, never on a bare `st`. ⌘↩ on a stash row opens its file; ⌥↩ does nothing there, because deleting a whole file should not be a keystroke.
+By default a bare `st` lists entries only; turn on **List stashes** in the configuration to see every stash row first. The views of the next section (`today/`, `week/`, …) get the same kind of row once you have typed two or more letters of their name, at most two at a time (`st la` lists `last-week/` and `last-month/`; `st last-q` reaches `last-quarter/`), never on a bare `st`. ⌘↩ on a stash row opens its file; ⌥↩ does nothing there, because deleting a whole file should not be a keystroke.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="gifs/stash-row-dark.gif">
@@ -463,7 +463,7 @@ All settings live in Alfred: open the workflow and press **Configure Workflow…
 | Max results | `max_results` | `50` | Rows sent to Alfred per keystroke, stash rows and *Add* included. |
 | Python | `python` | `/usr/bin/python3` | Interpreter, 3.9 or newer; absolute path, no `~`. |
 | Flows | `flows` | empty | Aliases for hand-offs as `name=keyword` pairs: `books=bk notes=n`. |
-| List stashes | `show_stashes` | off | Show every stash row (never the view rows, which need the start of their name) on a bare `st`. |
+| List stashes | `show_stashes` | off | Show every stash row (never the view rows, which need two letters of their name) on a bare `st`. |
 
 **Choosing an editor.** Alfred runs workflows with a minimal `PATH`, so give the full path of the editor's command-line tool, and quote paths with spaces. If the tool cannot be found, ⌘↩ posts a notification saying so.
 

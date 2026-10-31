@@ -800,14 +800,23 @@ def test_view_rows_need_the_start_of_their_name(capsys, stashed_env, dated, quer
     )
 
 
-def test_view_rows_for_every_view_that_starts_with_what_was_typed(capsys, env, dated):
-    rows = [title for title in item_titles(run(capsys, env, "search", "y")) if title.endswith("/")]
-    nexts = [title for title in item_titles(run(capsys, env, "search", "next")) if title.endswith("/")]
+@pytest.mark.parametrize("query", ["t", "y", "l", "n", "w"])
+def test_view_rows_wait_for_a_second_letter(capsys, env, dated, query):
+    titles = item_titles(run(capsys, env, "search", query))
 
-    assert rows == ["grocery/", "yesterday/", "year/"], (
-        "stash rows first as always, then every view starting with the letter, in their natural order"
+    assert not any(title == f"{view}/" for view in VIEWS for title in titles), (
+        "one letter is the start of a search, not of a view name, so entries keep the top of the list"
     )
-    assert nexts == ["next-week/", "next-month/", "next-quarter/", "next-year/"], "next lists the four next views"
+
+
+def test_view_rows_for_every_view_that_starts_with_what_was_typed(capsys, env, dated):
+    rows = [title for title in item_titles(run(capsys, env, "search", "ye")) if title.endswith("/")]
+    nexts = [title for title in item_titles(run(capsys, env, "search", "next")) if title.endswith("/")]
+    narrowed = [title for title in item_titles(run(capsys, env, "search", "next-q")) if title.endswith("/")]
+
+    assert rows == ["yesterday/", "year/"], "every view starting with the letters, in their natural order"
+    assert nexts == ["next-week/", "next-month/"], "a family of four shows its first two; one more letter narrows it"
+    assert narrowed == ["next-quarter/"], "the dash and a letter reach the rest of the family"
 
 
 def test_a_file_named_after_a_view_is_shadowed_but_its_lines_are_not_lost(capsys, env, db_dir, dated):

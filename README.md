@@ -186,7 +186,7 @@ st recipes/ pasta | 500g                     ↩ creates recipes.txt with that e
 
 Results come in three tiers, each ranked as in [Searching](#searching): stash rows whose names match what you typed, entries of `default`, then entries from every other stash. A stash row has the 📒 icon, says how many entries it holds, and ⇥ or ↩ on it puts `checklists/ ` into the query, which is the whole mechanism: a query that starts with `name/` searches only that stash, and everything else (*Add*, ⌘↩, ⌥↩) acts on its file. Backspace over the slash to leave. Seen from a bare `st`, an entry's subtitle starts with its stash (`checklists · …`); inside `checklists/` it looks like any other entry.
 
-A bare `st` lists entries only; turn on **List stashes** in the configuration to have it list every stash first. The views of [Dates and views](#dates-and-views) get the same rows (`today/`, `week/`, …) when you type the start of their name, never on a bare `st`.
+A bare `st` lists entries only; turn on **List stashes** in the configuration to have it list every stash first. The views of [Dates and views](#dates-and-views) get the same rows (`today/`, `week/`, …) once you have typed two or more letters of their name, at most two of them at a time (`st la` lists `last-week/` and `last-month/`; `st last-q` reaches `last-quarter/`), never on a bare `st`.
 
 A stash exists exactly when its file does. There is no "create stash": add the first entry under `name/` and the file appears, with the *Add* row saying so beforehand. To remove one, delete the file. ⌘↩ on a stash row opens its file; ⌥↩ does nothing there, since deleting a whole file is not something a keystroke should do.
 

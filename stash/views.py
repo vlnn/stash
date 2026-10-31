@@ -27,6 +27,7 @@ PERIODS = {
     DECADE: (DECADE, 0),
 }
 VIEWS = tuple(PERIODS)
+NAME_PREFIX, NAMED_LIMIT = 2, 2
 DATE_NAME = re.compile(rf"^{DATE}$")
 DATE_FORMAT = "%Y-%m-%d"
 EPOCH_SHIFT = 719468
@@ -41,6 +42,12 @@ class Horizon(NamedTuple):
 
 
 NO_HORIZON = Horizon("", "", "")
+
+
+def named(typed: str) -> list[str]:
+    if len(typed) < NAME_PREFIX:
+        return []
+    return [view for view in VIEWS if view.startswith(typed)][:NAMED_LIMIT]
 
 
 def is_view(name: str) -> bool:

@@ -14,6 +14,7 @@ from stash.views import (
     horizon_at,
     is_view,
     iso,
+    named,
     ordinal,
     stamp_for,
     window,
@@ -279,3 +280,20 @@ def test_ordinal_and_civil_agree_with_the_calendar_across_leap_years(start):
 
         assert days - ordinal(first.year, first.month, first.day) == offset, "ordinal counts days like the calendar"
         assert civil(days) == (current.year, current.month, current.day), "civil inverts ordinal"
+
+
+@pytest.mark.parametrize(
+    "typed, expected",
+    [
+        ("", []),
+        ("t", []),
+        ("to", ["today", "tomorrow"]),
+        ("tod", ["today"]),
+        ("last", ["last-week", "last-month"]),
+        ("last-y", ["last-year"]),
+        ("dec", ["decade"]),
+        ("xy", []),
+    ],
+)
+def test_named_offers_at_most_two_views_after_two_letters(typed, expected):
+    assert named(typed) == expected, "named should need two letters and offer the first two views they start"
